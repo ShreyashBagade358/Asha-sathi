@@ -6,8 +6,8 @@ import re
 import sys
 from html.parser import HTMLParser
 
-SRC = "/Users/shreyash/Downloads/asha-sathi/stitch_ui"
-OUT = "/Users/shreyash/Downloads/asha-sathi/apps/web-dashboard/src/pages/stitch"
+SRC = "/Users/shreyash/Downloads/asha-sathi/docs/design-mocks/stitch_ui"
+OUT = "/Users/shreyash/Downloads/asha-sathi/apps/web-dashboard/src/pages"
 
 THEME = {
     "colors.secondary": "#006e28",
