@@ -1,0 +1,16 @@
+/// Shared type definitions for Dart platform
+/// ASHA Sathi monorepo
+/// Purpose: Cross-platform type definitions shared between Flutter, TypeScript, and Python
+/// 
+/// Currently scaffolded - add your generated types here:
+/// - Freezed classes for serialization
+/// - JSON serializable models
+/// - Shared enums and constants
+/// - API response types
+
+// TODO: Add generated type definitions here
+// Example:
+// import 'package:freezed_annotation/freezed_annotation.dart';
+// part 'asha-types.freezed.dart';
+
+// export types from other packages or generate via build_runner

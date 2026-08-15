@@ -1,0 +1,75 @@
+# =============================================================================
+# ASHA Sathi - Development environment overrides
+#   helm upgrade --install asha-sathi . -f values.dev.yaml --namespace dev
+# =============================================================================
+global:
+  environment: development
+  imageTag: dev
+  imagePullSecrets: []
+
+backend:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+
+web:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+ml:
+  enabled: true
+  replicaCount: 1
+
+postgresql:
+  enabled: true
+  managePvc: false
+  primary:
+    persistence:
+      size: 20Gi
+
+redis:
+  enabled: true
+
+supabase:
+  enabled: false
+
+ingress:
+  enabled: true
+  hosts:
+    - name: dev.api.asha-sathi.gov.in
+      path: /api
+      pathType: Prefix
+      serviceName: asha-sathi-backend
+      servicePort: 8000
+    - name: dev.dashboard.asha-sathi.gov.in
+      path: /
+      pathType: Prefix
+      serviceName: asha-sathi-web
+      servicePort: 80
+
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true

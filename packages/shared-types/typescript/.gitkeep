@@ -1,0 +1,33 @@
+// Shared type definitions for TypeScript platform
+// ASHA Sathi monorepo
+// Purpose: Cross-platform type definitions shared between React, Flutter, and Python
+//
+// Currently scaffolded - add your types here:
+//
+// - Zod schemas for validation
+// - TypeScript interfaces for API requests/responses
+// - Shared enums and constants
+// - Generated types from OpenAPI
+//
+// Example:
+//
+// import { z } from 'zod';
+//
+// export interface ASHAProfile {
+//   id: string;
+//   name: string;
+//   phone: string;
+//   role: 'asha' | 'phc_admin' | 'patient';
+// }
+//
+// export const ASHAProfileSchema = z.object({
+//   id: z.string(),
+//   name: z.string(),
+//   phone: z.string().regex(/^\d{10}$/),
+//   role: z.enum(['asha', 'phc_admin', 'patient']),
+// });
+//
+// export type ASHAProfileInput = z.infer<typeof ASHAProfileSchema>;
+// export type ASHAProfileOutput = Omit<ASHAProfileInput, 'phone'>;
+
+// TODO: Add more type definitions and Zod schemas

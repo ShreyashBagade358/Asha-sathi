@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Child Health Records Directory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#00478d",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "tertiary-container": "#006880",
+                      "on-surface": "#091c35",
+                      "on-surface-variant": "#424752",
+                      "outline": "#727783",
+                      "on-primary-container": "#c8daff",
+                      "tertiary-fixed": "#b6ebff",
+                      "tertiary": "#004e61",
+                      "surface-tint": "#005db6",
+                      "surface-bright": "#f9f9ff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-on-surface": "#ecf0ff",
+                      "surface-dim": "#cadbfc",
+                      "on-tertiary": "#ffffff",
+                      "secondary": "#006e28",
+                      "background": "#f9f9ff",
+                      "surface": "#f9f9ff",
+                      "error-container": "#ffdad6",
+                      "surface-container-highest": "#d6e3ff",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-secondary-container": "#00752a",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "surface-container-low": "#f0f3ff",
+                      "primary-container": "#005eb8",
+                      "inverse-surface": "#20314b",
+                      "on-background": "#091c35",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "secondary-fixed": "#82fc90",
+                      "surface-variant": "#d6e3ff",
+                      "surface-container": "#e7eeff",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#82fc90",
+                      "on-tertiary-container": "#9be4ff",
+                      "inverse-primary": "#a9c7ff",
+                      "on-tertiary-fixed": "#001f28",
+                      "surface-container-high": "#dfe8ff",
+                      "on-secondary": "#ffffff",
+                      "outline-variant": "#c2c6d4",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#65df77",
+                      "on-secondary-fixed": "#002107",
+                      "on-primary-fixed": "#001b3d",
+                      "on-error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xs": "4px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "xl": "32px",
+                      "touch-target": "48px",
+                      "unit": "4px",
+                      "xxl": "48px",
+                      "sm": "8px",
+                      "form-gap": "20px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "caption": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md text-body-md antialiased overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface border-b border-outline-variant shadow-sm fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg">
+<div class="flex items-center gap-md">
+<!-- Mobile Menu Toggle -->
+<button class="md:hidden text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-2">
+<span aria-hidden="true" class="material-symbols-outlined">menu</span>
+</button>
+<div class="text-headline-md font-headline-md font-bold text-primary">
+                ASHA Sathi
+            </div>
+</div>
+<div class="flex items-center gap-md">
+<button aria-label="sync" class="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-2">
+<span aria-hidden="true" class="material-symbols-outlined">sync</span>
+</button>
+<button aria-label="notifications" class="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-2">
+<span aria-hidden="true" class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="object-cover w-full h-full" data-alt="A close up professional headshot of an administrative user in a healthcare setting. Bright, clear lighting on a soft neutral background. High resolution, clear focus, suitable for a profile avatar in a light mode medical application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYiL2jFzaWQg9VJjK7GbJ4dzWyaMigbpDInWtCx41W_pgPX8s7TP4LX5WRIxyWPWX1Js-8QrvDG31OvXaElQXgkmJoSy_zvWWpSYKl32p7SR8V_VnKJJiRaMc1p_mYoNypBM_Vb1S_ewhdRw80Vk_jcoA3JL46zObgea0A1TdCRy6eY8f8BfFPK1-7Rzn7_febJNCdCxsj6itAWSd6zJxjh7T_PEDx9mY6qb9FSwQBb6KIMU4SyhDoyA"/>
+</div>
+</div>
+</header>
+<div class="flex pt-[48px] h-screen">
+<!-- SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col h-full w-64 bg-surface-container-low border-r border-outline-variant p-md gap-sm flex-shrink-0">
+<div class="mb-lg">
+<h2 class="font-headline-md text-headline-md font-black text-primary">Admin Portal</h2>
+<p class="font-caption text-caption text-on-surface-variant">District Health Office</p>
+</div>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">groups</span>
+                Workers
+            </a>
+<a aria-current="page" class="flex items-center gap-md px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container font-bold transition-all scale-95 font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person_celebrate</span>
+                Beneficiaries
+            </a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+<div class="mt-auto">
+<button class="w-full bg-primary-container text-on-primary-container hover:bg-surface-tint hover:text-white transition-colors rounded-lg py-2 font-label-md text-label-md flex items-center justify-center gap-sm mb-lg">
+<span class="material-symbols-outlined text-sm">add</span> Add New Worker
+                </button>
+<a class="flex items-center gap-md px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center gap-md px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all font-label-md text-label-md" href="#">
+<span aria-hidden="true" class="material-symbols-outlined">help</span>
+                    Support
+                </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background p-md md:p-lg pb-[80px] md:pb-lg">
+<!-- Page Header -->
+<div class="mb-lg">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-2">Child Health Records</h1>
+<p class="text-on-surface-variant">Manage and monitor health vitals and vaccination status for children under 5.</p>
+</div>
+<!-- Summary Cards (Bento-style) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">Total Children Enrolled</span>
+<div class="bg-primary-container text-on-primary-container rounded-full p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">face</span>
+</div>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-on-surface">1,248</div>
+<div class="font-caption text-caption text-secondary mt-1 flex items-center">
+<span class="material-symbols-outlined text-[14px] mr-1">trending_up</span> +12 this month
+                        </div>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">Malnourished (Severe/Mod)</span>
+<div class="bg-error-container text-on-error-container rounded-full p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-error">86</div>
+<div class="font-caption text-caption text-on-surface-variant mt-1">
+                            Requires immediate follow-up
+                        </div>
+</div>
+<!-- Red vertical indicator line for urgent card -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm relative overflow-hidden flex flex-col justify-between h-32">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">Upcoming Vaccinations</span>
+<div class="bg-tertiary-container text-on-tertiary-container rounded-full p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">vaccines</span>
+</div>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-on-surface">342</div>
+<div class="font-caption text-caption text-on-surface-variant mt-1">
+                            Due in the next 14 days
+                        </div>
+</div>
+</div>
+</div>
+<!-- Filters and Search Bar -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-md mb-lg shadow-sm flex flex-col lg:flex-row gap-md items-center justify-between">
+<div class="relative w-full lg:w-1/3">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-[48px]" placeholder="Search by child name, ID, or mother's name..." type="text"/>
+</div>
+<div class="flex flex-wrap items-center gap-sm w-full lg:w-auto">
+<select class="bg-surface border border-outline-variant rounded-md px-3 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-[48px] font-label-md text-label-md flex-1 lg:flex-none">
+<option value="">All Villages</option>
+<option value="v1">Shantipur</option>
+<option value="v2">Anandpur</option>
+<option value="v3">Ramnagar</option>
+</select>
+<select class="bg-surface border border-outline-variant rounded-md px-3 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-[48px] font-label-md text-label-md flex-1 lg:flex-none">
+<option value="">Age Group</option>
+<option value="0-6m">0 - 6 Months</option>
+<option value="6-24m">6 - 24 Months</option>
+<option value="2-5y">2 - 5 Years</option>
+</select>
+<select class="bg-surface border border-outline-variant rounded-md px-3 py-2 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary min-h-[48px] font-label-md text-label-md flex-1 lg:flex-none">
+<option value="">Vaccination Status</option>
+<option value="up-to-date">Up to Date</option>
+<option value="due">Due Soon</option>
+<option value="missed">Missed/Overdue</option>
+</select>
+</div>
+</div>
+<!-- Data Table (Desktop) / Cards (Mobile) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm overflow-hidden">
+<!-- Desktop Table View -->
+<div class="hidden lg:block overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">Child Details</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">Age</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">Mother's Name</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">Nutrition Status</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant">Vaccination</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1: Normal -->
+<tr class="hover:bg-surface-container transition-colors h-[40px]">
+<td class="py-2 px-4 flex items-center gap-3">
+<div class="w-1 h-8 bg-secondary rounded-full"></div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">Aarav Patel</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: CH-9082</div>
+</div>
+</td>
+<td class="py-2 px-4 text-on-surface">14 Months</td>
+<td class="py-2 px-4 text-on-surface">Meera Patel</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-caption text-caption">Normal</span>
+</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-caption text-caption">Up to date</span>
+</td>
+<td class="py-2 px-4 text-right">
+<button class="text-primary hover:text-primary-container p-1 rounded"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+<!-- Row 2: Underweight & Due -->
+<tr class="hover:bg-surface-container transition-colors h-[40px] bg-surface-container-lowest">
+<td class="py-2 px-4 flex items-center gap-3">
+<div class="w-1 h-8 bg-[#f59e0b] rounded-full"></div> <!-- Orange risk -->
+<div>
+<div class="font-label-md text-label-md text-on-surface">Saanvi Sharma</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: CH-9104</div>
+</div>
+</td>
+<td class="py-2 px-4 text-on-surface">8 Months</td>
+<td class="py-2 px-4 text-on-surface">Priya Sharma</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-[#fef3c7] text-[#92400e] font-caption text-caption">Underweight</span>
+</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-tertiary-container text-on-tertiary-container font-caption text-caption">Due (Measles)</span>
+</td>
+<td class="py-2 px-4 text-right">
+<button class="text-primary hover:text-primary-container p-1 rounded"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+<!-- Row 3: Stunted & Missed -->
+<tr class="hover:bg-surface-container transition-colors h-[40px]">
+<td class="py-2 px-4 flex items-center gap-3">
+<div class="w-1 h-8 bg-error rounded-full"></div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">Rohan Das</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: CH-8841</div>
+</div>
+</td>
+<td class="py-2 px-4 text-on-surface">2.5 Years</td>
+<td class="py-2 px-4 text-on-surface">Anita Das</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-error-container text-on-error-container font-caption text-caption">Stunted</span>
+</td>
+<td class="py-2 px-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-error-container text-on-error-container font-caption text-caption">Missed (DPT Booster)</span>
+</td>
+<td class="py-2 px-4 text-right">
+<button class="text-primary hover:text-primary-container p-1 rounded"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Mobile Card View -->
+<div class="lg:hidden flex flex-col divide-y divide-outline-variant">
+<!-- Card 1 -->
+<div class="p-4 relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+<div class="flex justify-between items-start mb-2 pl-2">
+<div>
+<div class="font-headline-md text-headline-md text-on-surface">Aarav Patel</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: CH-9082 • 14 Months</div>
+</div>
+<button class="text-primary hover:bg-surface-container rounded p-1 min-h-[48px] min-w-[48px] flex items-center justify-center">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="pl-2 mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Mother:</span> <span class="text-on-surface">Meera Patel</span>
+</div>
+<div class="flex gap-2 pl-2 flex-wrap">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-caption text-caption">Normal Nutrition</span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-caption text-caption">Vax: Up to date</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="p-4 relative bg-surface-container-lowest">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#f59e0b]"></div>
+<div class="flex justify-between items-start mb-2 pl-2">
+<div>
+<div class="font-headline-md text-headline-md text-on-surface">Saanvi Sharma</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: CH-9104 • 8 Months</div>
+</div>
+<button class="text-primary hover:bg-surface-container rounded p-1 min-h-[48px] min-w-[48px] flex items-center justify-center">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="pl-2 mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Mother:</span> <span class="text-on-surface">Priya Sharma</span>
+</div>
+<div class="flex gap-2 pl-2 flex-wrap">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-[#fef3c7] text-[#92400e] font-caption text-caption">Underweight</span>
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-tertiary-container text-on-tertiary-container font-caption text-caption">Vax: Due (Measles)</span>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="bg-surface-container-low border-t border-outline-variant p-3 flex items-center justify-between">
+<span class="font-caption text-caption text-on-surface-variant">Showing 1 to 10 of 1,248</span>
+<div class="flex gap-1">
+<button class="px-3 py-1 border border-outline-variant rounded bg-surface text-on-surface-variant disabled:opacity-50" disabled="">Prev</button>
+<button class="px-3 py-1 border border-outline-variant rounded bg-surface text-on-surface-variant hover:bg-surface-container">Next</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface border-t border-outline-variant rounded-t-full shadow-lg h-[64px]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg w-16 py-1" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-md text-[10px] leading-none">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg w-16 py-1" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">cottage</span>
+<span class="font-label-md text-[10px] leading-none">Households</span>
+</a>
+<a aria-current="page" class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-90 transition-transform duration-200" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person_search</span>
+<span class="font-label-md text-[10px] leading-none font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg w-16 py-1" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">assignment_turned_in</span>
+<span class="font-label-md text-[10px] leading-none">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors rounded-lg w-16 py-1" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">account_circle</span>
+<span class="font-label-md text-[10px] leading-none">Profile</span>
+</a>
+</nav>
+</body></html>

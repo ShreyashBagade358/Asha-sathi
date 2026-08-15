@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Health Check-up History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-fixed-variant": "#00468c",
+                      "on-tertiary": "#ffffff",
+                      "background": "#f9f9ff",
+                      "on-surface-variant": "#424752",
+                      "tertiary-fixed": "#b6ebff",
+                      "on-secondary-fixed": "#002107",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "surface-container-highest": "#d6e3ff",
+                      "inverse-on-surface": "#ecf0ff",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "surface-variant": "#d6e3ff",
+                      "surface-dim": "#cadbfc",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "secondary-fixed": "#82fc90",
+                      "on-secondary": "#ffffff",
+                      "outline-variant": "#c2c6d4",
+                      "inverse-primary": "#a9c7ff",
+                      "surface-container-low": "#f0f3ff",
+                      "on-secondary-container": "#00752a",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#006880",
+                      "secondary-container": "#82fc90",
+                      "on-background": "#091c35",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "inverse-surface": "#20314b",
+                      "on-primary-fixed": "#001b3d",
+                      "error-container": "#ffdad6",
+                      "tertiary": "#004e61",
+                      "surface-bright": "#f9f9ff",
+                      "on-surface": "#091c35",
+                      "secondary": "#006e28",
+                      "outline": "#727783",
+                      "surface": "#f9f9ff",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-tertiary-fixed": "#001f28",
+                      "surface-container-lowest": "#ffffff",
+                      "primary": "#00478d",
+                      "surface-container": "#e7eeff",
+                      "on-tertiary-container": "#9be4ff",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-container": "#c8daff",
+                      "surface-tint": "#005db6",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed-dim": "#65df77",
+                      "primary-container": "#005eb8",
+                      "surface-container-high": "#dfe8ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "xxl": "48px",
+                      "touch-target": "48px",
+                      "md": "16px",
+                      "xl": "32px",
+                      "lg": "24px",
+                      "form-gap": "20px",
+                      "sm": "8px",
+                      "xs": "4px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter", "sans-serif"
+                      ],
+                      "label-md": [
+                              "Inter", "sans-serif"
+                      ],
+                      "display-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "caption": [
+                              "Inter", "sans-serif"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter", "sans-serif"
+                      ],
+                      "body-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-md": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter", "sans-serif"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        .chart-grid {
+            background-image: linear-gradient(to right, #e7eeff 1px, transparent 1px), linear-gradient(to bottom, #e7eeff 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex bg-surface-container-low dark:bg-surface-dim h-screen w-64 fixed left-0 top-0 flex flex-col border-r border-outline-variant dark:border-outline z-50">
+<div class="p-lg border-b border-outline-variant dark:border-outline flex flex-col items-center">
+<div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-3xl">local_hospital</span>
+</div>
+<h1 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed text-center">PHC Administration</h1>
+<p class="font-caption text-caption text-on-surface-variant dark:text-outline-variant text-center">Rural Health Network</p>
+</div>
+<div class="p-md">
+<button class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-sm px-md rounded-DEFAULT flex items-center justify-center gap-xs shadow-sm hover:bg-surface-tint transition-colors h-[48px]">
+<span class="material-symbols-outlined">add_chart</span>
+                Generate Report
+            </button>
+</div>
+<nav class="flex-1 overflow-y-auto py-sm">
+<ul class="space-y-xs">
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">groups</span>
+                        Workers
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-primary dark:text-primary-fixed font-bold border-r-4 border-primary dark:border-primary-fixed bg-surface-container-high dark:bg-surface-container-highest transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+                        Beneficiaries
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">home_health</span>
+                        Households
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">pregnant_woman</span>
+                        Maternal Health
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">child_care</span>
+                        Child Health
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                        Inventory
+                    </a>
+</li>
+</ul>
+</nav>
+<div class="border-t border-outline-variant dark:border-outline py-sm">
+<ul class="space-y-xs">
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">settings</span>
+                        Settings
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-lg py-sm font-label-md text-label-md text-on-surface-variant dark:text-outline-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-all duration-200 ease-in-out h-[48px]" href="#">
+<span class="material-symbols-outlined">logout</span>
+                        Logout
+                    </a>
+</li>
+</ul>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-inverse-surface w-full top-0 sticky z-40 bg-surface-container-lowest dark:bg-inverse-surface shadow-sm flex justify-between items-center px-lg py-sm h-16">
+<div class="flex items-center gap-md md:hidden">
+<button class="text-on-surface-variant dark:text-outline-variant cursor-pointer active:opacity-80 p-sm rounded-full hover:bg-surface-container dark:hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">PHC Admin Portal</span>
+</div>
+<div class="hidden md:flex items-center flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container text-on-surface pl-10 pr-4 py-2 rounded-full border-none focus:ring-2 focus:ring-primary font-body-md text-body-md h-[48px] placeholder:text-on-surface-variant" placeholder="Search patients, records..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="text-on-surface-variant dark:text-outline-variant cursor-pointer active:opacity-80 p-sm rounded-full hover:bg-surface-container dark:hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="text-on-surface-variant dark:text-outline-variant cursor-pointer active:opacity-80 p-sm rounded-full hover:bg-surface-container dark:hover:bg-surface-variant transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant dark:text-outline-variant cursor-pointer active:opacity-80 p-sm rounded-full hover:bg-surface-container dark:hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-variant border border-outline-variant overflow-hidden ml-md cursor-pointer">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of an Indian healthcare administrator wearing a crisp collared shirt. The lighting is soft and natural, emphasizing a trustworthy and competent demeanor. The background is a clean, slightly blurred bright clinical office setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA7E4WpXgOFsgIvk_69g_I2UTeVFMOhBr7qtdNG1HeD7aMKe87h2zV3BG02fVkmoU_p04d4QfKdagHdd7FVb9vFcDRMSaWQzArkKkfuFJSBA9nf04bRN0OZ5snIVMfn_nl3QJ1-h4h5xII7gpoTQocaW3Kic0uJ0h979Mti5nTr74zDgQ5VufRTXgH_VAvKY3KV3pXuk1t_8nA8R8E9-aR2DO9-Ykaz6BnB55A8f43WMDMmgkrnrtXiQ"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-4 md:p-lg lg:p-xl space-y-lg max-w-[1440px] mx-auto w-full">
+<!-- Page Header & Actions -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-background">Health Check-up History</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Longitudinal clinical view for Beneficiary #1042</p>
+</div>
+<button class="bg-primary-container text-on-primary font-label-md text-label-md py-sm px-lg rounded-DEFAULT flex items-center justify-center gap-xs shadow-sm hover:bg-surface-tint transition-colors h-[48px]">
+<span class="material-symbols-outlined">add</span>
+                    Record New Check-up
+                </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Patient Summary Card (Left Column) -->
+<div class="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm relative overflow-hidden flex flex-col">
+<!-- Risk Level Strip -->
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-error"></div>
+<div class="p-lg pl-xl flex-1 flex flex-col">
+<div class="flex items-start gap-md mb-md">
+<div class="w-16 h-16 rounded-full bg-surface-variant overflow-hidden flex-shrink-0 border-2 border-surface-container-highest">
+<img alt="Patient Photo" class="w-full h-full object-cover" data-alt="A portrait of an elderly rural Indian woman with weathered, expressive features. She is wearing a traditional sari. The lighting is soft and dignified, capturing resilience. The background is a simple, neutral-toned wall to keep the focus on her face." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDf4o8lspPpVIoiDFlZD5OOLPV0vuKf72lGOZSCR_oSeXpWt60FqJGF8y6YeQHWRrQ-XWCE8QI7bD3Em_d_u-Lp7pgXGUrwo1IKAi-Ft_ga-rQGEawGTFvYe1Jy5Ua9MZ9axO4gRVa5-7RwClD0KhXJ6OUPQLFzkdqoeytODo06qaMJ0K-HS0Cq3xYs-Ms5lCKdiv4-KkMn6IJtNKmplrwFjDOi1Blzb4r8MbjSfwybYWOc86Rgl3bE7g"/>
+</div>
+<div>
+<h3 class="font-headline-lg text-headline-lg text-on-background">Lakshmi Devi</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Female, 68 yrs</p>
+<span class="inline-block mt-xs px-sm py-xs bg-error-container text-on-error-container font-label-md text-caption rounded-full">
+                                    High Risk
+                                </span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-md mb-lg">
+<div class="bg-surface-container-low p-sm rounded-lg border border-outline-variant">
+<p class="font-caption text-caption text-on-surface-variant">Blood Type</p>
+<p class="font-headline-md text-headline-md text-on-surface">O+</p>
+</div>
+<div class="bg-surface-container-low p-sm rounded-lg border border-outline-variant">
+<p class="font-caption text-caption text-on-surface-variant">Primary Condition</p>
+<p class="font-label-md text-label-md text-on-surface">Hypertension</p>
+</div>
+</div>
+<div class="mt-auto space-y-sm border-t border-outline-variant pt-md">
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-xl">location_on</span>
+<span class="font-body-md text-body-md">Village Ramgarh, Ward 4</span>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-xl">badge</span>
+<span class="font-body-md text-body-md">Aadhar: XXXX-XXXX-9012</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Trend Chart (Right Column Top) -->
+<div class="lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-lg">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-md text-headline-md text-on-background">Blood Pressure Trend</h3>
+<div class="flex gap-2">
+<select class="bg-surface-container-low border border-outline-variant text-on-surface rounded-DEFAULT py-1 px-3 font-label-md text-caption h-[36px]">
+<option>Last 6 Months</option>
+<option>Last Year</option>
+</select>
+</div>
+</div>
+<!-- Simulated Chart Area -->
+<div class="w-full h-48 chart-grid relative rounded-lg border border-outline-variant overflow-hidden bg-surface-bright">
+<!-- Y-axis labels -->
+<div class="absolute left-2 top-0 bottom-6 flex flex-col justify-between text-caption text-outline py-2">
+<span>160</span>
+<span>140</span>
+<span>120</span>
+<span>100</span>
+</div>
+<!-- X-axis labels -->
+<div class="absolute bottom-1 left-10 right-2 flex justify-between text-caption text-outline px-4">
+<span>Jan</span>
+<span>Feb</span>
+<span>Mar</span>
+<span>Apr</span>
+<span>May</span>
+<span>Jun</span>
+</div>
+<!-- Data Points (Systolic) -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none">
+<polyline fill="none" points="50,140 150,120 250,90 350,110 450,60 550,50" stroke="#ba1a1a" stroke-linejoin="round" stroke-width="2"></polyline>
+<circle cx="50" cy="140" fill="#ba1a1a" r="4"></circle>
+<circle cx="150" cy="120" fill="#ba1a1a" r="4"></circle>
+<circle cx="250" cy="90" fill="#ba1a1a" r="4"></circle>
+<circle cx="350" cy="110" fill="#ba1a1a" r="4"></circle>
+<circle cx="450" cy="60" fill="#ba1a1a" r="4"></circle>
+<circle cx="550" cy="50" fill="#ba1a1a" r="4"></circle>
+<!-- Diastolic -->
+<polyline fill="none" points="50,170 150,160 250,140 350,150 450,120 550,110" stroke="#00478d" stroke-linejoin="round" stroke-width="2"></polyline>
+<circle cx="50" cy="170" fill="#00478d" r="4"></circle>
+<circle cx="150" cy="160" fill="#00478d" r="4"></circle>
+<circle cx="250" cy="140" fill="#00478d" r="4"></circle>
+<circle cx="350" cy="150" fill="#00478d" r="4"></circle>
+<circle cx="450" cy="120" fill="#00478d" r="4"></circle>
+<circle cx="550" cy="110" fill="#00478d" r="4"></circle>
+</svg>
+<!-- Legend -->
+<div class="absolute top-2 right-4 flex gap-4 bg-surface/80 p-1 rounded backdrop-blur-sm">
+<div class="flex items-center gap-1 font-caption text-caption text-on-surface">
+<span class="w-2 h-2 rounded-full bg-error"></span> Systolic
+                            </div>
+<div class="flex items-center gap-1 font-caption text-caption text-on-surface">
+<span class="w-2 h-2 rounded-full bg-primary"></span> Diastolic
+                            </div>
+</div>
+</div>
+</div>
+<!-- Check-up History Table (Full Width Bottom) -->
+<div class="lg:col-span-12 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-background">Encounter History</h3>
+<button class="text-primary font-label-md text-label-md flex items-center gap-xs hover:bg-surface-container p-xs rounded transition-colors">
+<span class="material-symbols-outlined text-xl">filter_list</span>
+                            Filter
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-bright">
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Date</th>
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant">Vitals Summary</th>
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant">Primary Symptoms</th>
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant">Risk Level</th>
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant">Action / Plan</th>
+<th class="p-sm px-md font-label-md text-label-md text-on-surface-variant text-right">Details</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant bg-surface-container-lowest">
+<!-- Row 1: High Risk -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="p-sm px-md font-body-md text-body-md text-on-surface whitespace-nowrap">
+                                        12 Jun 2024
+                                        <div class="font-caption text-caption text-on-surface-variant">Dr. Sharma</div>
+</td>
+<td class="p-sm px-md">
+<div class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-error">BP: 155/95</span></div>
+<div class="font-caption text-caption text-on-surface-variant">Wt: 62kg | Temp: 98.6°F</div>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface max-w-xs truncate" title="Severe headache, dizziness, mild chest discomfort">
+                                        Severe headache, dizziness, mild chest...
+                                    </td>
+<td class="p-sm px-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-error-container text-on-error-container font-label-md text-caption rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> High
+                                        </span>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface">
+                                        Medication adjusted. Referred to CHC.
+                                    </td>
+<td class="p-sm px-md text-right">
+<button class="text-primary p-1 rounded-full hover:bg-surface-variant transition-colors" title="View Full Record">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Moderate Risk -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="p-sm px-md font-body-md text-body-md text-on-surface whitespace-nowrap">
+                                        28 May 2024
+                                        <div class="font-caption text-caption text-on-surface-variant">ASHA Worker</div>
+</td>
+<td class="p-sm px-md">
+<div class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-tertiary-container">BP: 142/88</span></div>
+<div class="font-caption text-caption text-on-surface-variant">Wt: 63kg | Temp: 98.4°F</div>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface max-w-xs truncate" title="Fatigue, occasional mild headache">
+                                        Fatigue, occasional mild headache
+                                    </td>
+<td class="p-sm px-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-caption rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Moderate
+                                        </span>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface">
+                                        Advised salt reduction. Follow-up in 2 wks.
+                                    </td>
+<td class="p-sm px-md text-right">
+<button class="text-primary p-1 rounded-full hover:bg-surface-variant transition-colors" title="View Full Record">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Low Risk -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="p-sm px-md font-body-md text-body-md text-on-surface whitespace-nowrap">
+                                        15 Apr 2024
+                                        <div class="font-caption text-caption text-on-surface-variant">Dr. Patel</div>
+</td>
+<td class="p-sm px-md">
+<div class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-secondary">BP: 130/80</span></div>
+<div class="font-caption text-caption text-on-surface-variant">Wt: 64kg | Temp: 98.6°F</div>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface max-w-xs truncate" title="Routine check-up, feeling well">
+                                        Routine check-up, feeling well
+                                    </td>
+<td class="p-sm px-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-secondary-container text-on-secondary-container font-label-md text-caption rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Low
+                                        </span>
+</td>
+<td class="p-sm px-md font-body-md text-body-md text-on-surface">
+                                        Continue current regimen.
+                                    </td>
+<td class="p-sm px-md text-right">
+<button class="text-primary p-1 rounded-full hover:bg-surface-variant transition-colors" title="View Full Record">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

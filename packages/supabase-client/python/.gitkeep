@@ -1,0 +1,54 @@
+# Python Supabase client for ASHA Sathi
+# Provides thin wrappers around the supabase Python client
+# with project-specific utilities and helpers for the FastAPI backend.
+#
+# Currently scaffolded - add your Supabase clients here:
+#
+# - Supabase client initialization
+# - Database query helpers
+# - Realtime subscription wrappers
+# - Storage upload/download helpers
+# - Authentication utilities
+#
+# Example:
+#
+# from supabase import create_client, Client
+# import os
+#
+# # Initialize Supabase client
+# url: str = os.getenv('SUPABASE_URL') or 'https://xyz.supabase.co'
+# key: str = os.getenv('SUPABASE_ANON_KEY') or 'public-anon-key'
+# supa: Client = create_client(url, key)
+#
+# # Database helper
+# async def fetch_ashas() -> list[dict]:
+#     """Fetch all active ASHA workers."""
+#     response = supa.table('ashas').select('*').eq('is_active', True).execute()
+#     return response.data
+#
+# # Realtime helper
+# def subscribe_to_beneficiary_changes(
+#     callback: callable,
+# ) -> None:
+#     """Subscribe to new beneficiary insertions."""
+#     supa.table('beneficiaries').on(
+#         'postgres_changes',
+#         {'event': 'INSERT', 'schema': 'public', 'table': 'beneficiaries'},
+#         callback,
+#     ).subscribe()
+#
+# # Storage helper
+# def upload_profile_image(
+#     bucket: str,
+#     path: str,
+#     file_path: str,
+# ) -> dict:
+#     """Upload a profile image to Supabase Storage."""
+#     return supa.storage.from_(bucket).upload(path, file_path)
+#
+# # Auth helper
+# def get_current_user() -> dict | None:
+#     """Get current authenticated user."""
+#     return supa.auth.get_user()
+#
+# TODO: Add project-specific Supabase client wrappers

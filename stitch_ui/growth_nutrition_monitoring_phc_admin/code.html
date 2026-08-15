@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Growth &amp; Nutrition Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#00478d",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "tertiary-container": "#006880",
+                        "on-surface": "#091c35",
+                        "on-surface-variant": "#424752",
+                        "outline": "#727783",
+                        "on-primary-container": "#c8daff",
+                        "tertiary-fixed": "#b6ebff",
+                        "tertiary": "#004e61",
+                        "surface-tint": "#005db6",
+                        "surface-bright": "#f9f9ff",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#ecf0ff",
+                        "surface-dim": "#cadbfc",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006e28",
+                        "background": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d6e3ff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-secondary-container": "#00752a",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-container": "#005eb8",
+                        "inverse-surface": "#20314b",
+                        "on-background": "#091c35",
+                        "primary-fixed": "#d6e3ff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "secondary-fixed": "#82fc90",
+                        "surface-variant": "#d6e3ff",
+                        "surface-container": "#e7eeff",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#82fc90",
+                        "on-tertiary-container": "#9be4ff",
+                        "inverse-primary": "#a9c7ff",
+                        "on-tertiary-fixed": "#001f28",
+                        "surface-container-high": "#dfe8ff",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c2c6d4",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#65df77",
+                        "on-secondary-fixed": "#002107",
+                        "on-primary-fixed": "#001b3d",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "touch-target": "48px",
+                        "unit": "4px",
+                        "xxl": "48px",
+                        "sm": "8px",
+                        "form-gap": "20px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "caption": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                        "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen pt-touch-target md:pt-0 md:pl-64 pb-touch-target md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm md:hidden">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="child_care">child_care</span>
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile md:font-headline-lg md:text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</h1>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-xs text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors rounded-full flex items-center justify-center h-touch-target w-touch-target">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button class="p-xs text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors rounded-full flex items-center justify-center h-touch-target w-touch-target">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular profile picture of a female healthcare worker. She has a warm smile and is wearing a professional, culturally appropriate outfit. The background is a soft, out-of-focus clinic setting. The lighting is bright and modern, conveying trust and competence in a healthcare context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5BN7RtG5I_64mquODGFWJYhg4Y_DQDC_iUAjJku6PWKOGkxiFhAEqcW1Py88UP1QIzquMbKIXRqs6ydo4Elu04ojDtYiEUaRfCA3hNaQulXwx5NUfLnxKNt-4wPj2oo-bMvg6-6W4kKzhEQyLps6985wxKgYlEODCgkJSjpkmqNx6dbtzlsrN-WjwG-gQ5Mm7DEGJy9JkY8Y3v9K-NdqbOBcbsyrgLVjmp5l4-t1-991wsGED4NQtjQ"/>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 z-50">
+<div class="flex flex-col mb-xl">
+<div class="flex items-center gap-sm mb-lg">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim text-[32px]" data-icon="health_and_safety">health_and_safety</span>
+<span class="font-headline-md text-headline-md font-black text-primary">ASHA Sathi</span>
+</div>
+<div class="flex items-center gap-md p-sm bg-surface dark:bg-on-background rounded-lg border border-outline-variant">
+<img alt="Admin Avatar" class="w-10 h-10 rounded-full object-cover" data-alt="A small, circular avatar image representing a system administrator. The image features a stylized, professional portrait or an abstract geometric representation of an admin user in shades of deep blue and crisp white, conveying authority and technical proficiency within a healthcare application context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKxrYQeachSYHXbizAVSWwIvL2NBDO1lA18D7Gtv7urzDE5BU5eXrV9CY1Dnriikq9LevRF7PuIa_cAYU6Kk86bbb_U-Ah9RWtuBW2AWj3_Bx63amV6UevGj6YJdJziWF6jSjX2usZ8kYEJqp_9cuOvTXI-J4heegp1mMbx7Jbmu3j1DBAnzW8qMV0fJxvr2hZ9hqFQbNE1qIuUm76x1TuNvKbfozCecQinqnVjNN2ylG6OCQ9TX6RSg"/>
+<div>
+<div class="font-label-md text-label-md text-on-surface">Admin Portal</div>
+<div class="font-caption text-caption text-on-surface-variant">District Health Office</div>
+</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-xs overflow-y-auto">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                Workers
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold scale-95 transition-transform duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="person_celebrate" style="font-variation-settings: 'FILL' 1;">person_celebrate</span>
+                Beneficiaries
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<div class="mt-auto flex flex-col gap-sm pt-md border-t border-outline-variant">
+<button class="w-full bg-primary-container text-on-primary-container hover:opacity-90 font-label-md text-label-md py-sm rounded-lg transition-opacity flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Add New Worker
+            </button>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="p-lg md:p-xl max-w-[1440px] mx-auto">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-md mb-xl">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-xs">Aarav Patel</h2>
+<div class="flex flex-wrap items-center gap-sm text-on-surface-variant font-body-md text-body-md">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span> 14 Months Old (Born: Oct 12, 2022)</span>
+<span class="hidden md:inline">•</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]" data-icon="male">male</span> Male</span>
+<span class="hidden md:inline">•</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]" data-icon="location_on">location_on</span> Village: Rampur, AWC: 04</span>
+</div>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-md h-touch-target rounded-full flex items-center gap-xs shadow-sm hover:opacity-90 transition-opacity w-full md:w-auto justify-center">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                Log Growth
+            </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Nutrition Status Summary (Spans full width on mobile, 4 cols on desktop) -->
+<div class="md:col-span-4 flex flex-col gap-lg">
+<!-- Status Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)] relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-error"></div> <!-- Red Risk Strip -->
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Nutrition Status</h3>
+<div class="flex flex-col gap-md">
+<div class="flex justify-between items-center p-sm bg-error-container text-on-error-container rounded-lg">
+<div>
+<div class="font-label-md text-label-md">Wasting (WHZ)</div>
+<div class="font-caption text-caption">-3.1 SD</div>
+</div>
+<span class="px-sm py-xs bg-error text-on-error font-caption text-caption rounded-full font-bold">Severe</span>
+</div>
+<div class="flex justify-between items-center p-sm bg-surface-container-high rounded-lg">
+<div>
+<div class="font-label-md text-label-md text-on-surface">Stunting (HAZ)</div>
+<div class="font-caption text-caption text-on-surface-variant">-1.8 SD</div>
+</div>
+<span class="px-sm py-xs bg-surface-variant text-on-surface-variant font-caption text-caption rounded-full">Normal</span>
+</div>
+<div class="flex justify-between items-center p-sm bg-[#fff3e0] text-[#e65100] rounded-lg">
+<div>
+<div class="font-label-md text-label-md">Underweight (WAZ)</div>
+<div class="font-caption text-caption">-2.4 SD</div>
+</div>
+<span class="px-sm py-xs bg-[#ff9800] text-white font-caption text-caption rounded-full font-bold">Moderate</span>
+</div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant flex items-center gap-sm text-error">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+<span class="font-label-md text-label-md">Immediate referral recommended.</span>
+</div>
+</div>
+<!-- Latest Measurements Snapshot -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Latest Snapshot</h3>
+<div class="grid grid-cols-2 gap-md">
+<div>
+<div class="font-caption text-caption text-on-surface-variant">Weight</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">7.2 <span class="text-body-md font-body-md text-on-surface-variant">kg</span></div>
+</div>
+<div>
+<div class="font-caption text-caption text-on-surface-variant">Height</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">74.5 <span class="text-body-md font-body-md text-on-surface-variant">cm</span></div>
+</div>
+<div>
+<div class="font-caption text-caption text-on-surface-variant">MUAC</div>
+<div class="font-headline-lg text-headline-lg text-error">11.2 <span class="text-body-md font-body-md text-error">cm</span></div>
+</div>
+<div>
+<div class="font-caption text-caption text-on-surface-variant">Date</div>
+<div class="font-body-md text-body-md text-on-surface">Dec 15, 2023</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Charts & Tables (Spans 8 cols on desktop) -->
+<div class="md:col-span-8 flex flex-col gap-lg">
+<!-- Chart Section -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Growth Charts (WHO)</h3>
+<select class="form-select border-outline-variant rounded-md font-label-md text-label-md text-on-surface bg-surface h-touch-target focus:ring-primary focus:border-primary">
+<option>Weight-for-Age</option>
+<option>Height-for-Age</option>
+<option>Weight-for-Height</option>
+</select>
+</div>
+<!-- Chart Placeholder (Stylized using Tailwind to look like a chart area) -->
+<div class="relative w-full h-64 md:h-80 bg-surface-container-low rounded-lg border border-outline-variant p-sm flex flex-col">
+<!-- Y-axis labels -->
+<div class="absolute left-sm top-sm bottom-xl flex flex-col justify-between text-caption font-caption text-on-surface-variant">
+<span>12kg</span>
+<span>10kg</span>
+<span>8kg</span>
+<span>6kg</span>
+<span>4kg</span>
+</div>
+<!-- Grid lines -->
+<div class="absolute left-10 right-sm top-sm bottom-xl flex flex-col justify-between">
+<div class="border-t border-outline-variant w-full h-0 opacity-50"></div>
+<div class="border-t border-outline-variant w-full h-0 opacity-50"></div>
+<div class="border-t border-outline-variant w-full h-0 opacity-50"></div>
+<div class="border-t border-outline-variant w-full h-0 opacity-50"></div>
+<div class="border-t border-outline-variant w-full h-0 opacity-50"></div>
+</div>
+<!-- Simulated Chart Data Paths (SVG) -->
+<svg class="absolute left-10 right-sm top-sm bottom-xl w-[calc(100%-2.5rem)] h-[calc(100%-2rem)]" preserveaspectratio="none" viewbox="0 0 100 100">
+<!-- Median Line (Green) -->
+<path class="opacity-50 border-dashed" d="M0,80 Q20,60 40,40 T80,20 T100,15" fill="none" stroke="#006e28" stroke-dasharray="4 4" stroke-width="2"></path>
+<!-- -2 SD Line (Orange) -->
+<path class="opacity-50" d="M0,90 Q20,75 40,60 T80,45 T100,40" fill="none" stroke="#ff9800" stroke-width="1"></path>
+<!-- -3 SD Line (Red) -->
+<path class="opacity-50" d="M0,95 Q20,85 40,75 T80,65 T100,60" fill="none" stroke="#ba1a1a" stroke-width="1"></path>
+<!-- Actual Child Data Line -->
+<path d="M0,85 L20,70 L40,65 L60,68 L80,75 L100,82" fill="none" stroke="#005eb8" stroke-width="3"></path>
+<!-- Data Points -->
+<circle cx="0" cy="85" fill="#005eb8" r="3"></circle>
+<circle cx="20" cy="70" fill="#005eb8" r="3"></circle>
+<circle cx="40" cy="65" fill="#005eb8" r="3"></circle>
+<circle cx="60" cy="68" fill="#ba1a1a" r="3"></circle> <!-- Dip -->
+<circle cx="80" cy="75" fill="#ba1a1a" r="3"></circle>
+<circle cx="100" cy="82" fill="#ba1a1a" r="3"></circle>
+</svg>
+<!-- X-axis labels -->
+<div class="absolute left-10 right-sm bottom-sm flex justify-between text-caption font-caption text-on-surface-variant">
+<span>Birth</span>
+<span>3m</span>
+<span>6m</span>
+<span>9m</span>
+<span>12m</span>
+<span>14m</span>
+</div>
+</div>
+<div class="flex justify-center gap-md mt-sm text-caption font-caption">
+<span class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-primary-container"></span> Actual Weight</span>
+<span class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-secondary"></span> Median (0 SD)</span>
+<span class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-error"></span> -3 SD (Severe)</span>
+</div>
+</div>
+<!-- Measurement History Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_2px_4px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Measurement History</h3>
+<button class="text-primary font-label-md text-label-md hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface font-label-md text-label-md border-b border-outline-variant">
+<th class="p-sm md:p-md whitespace-nowrap">Date</th>
+<th class="p-sm md:p-md whitespace-nowrap">Age</th>
+<th class="p-sm md:p-md whitespace-nowrap">Weight (kg)</th>
+<th class="p-sm md:p-md whitespace-nowrap">Height (cm)</th>
+<th class="p-sm md:p-md whitespace-nowrap">MUAC (cm)</th>
+<th class="p-sm md:p-md whitespace-nowrap">Notes</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-sm md:p-md whitespace-nowrap">Dec 15, 2023</td>
+<td class="p-sm md:p-md">14m</td>
+<td class="p-sm md:p-md text-error font-bold">7.2</td>
+<td class="p-sm md:p-md">74.5</td>
+<td class="p-sm md:p-md text-error font-bold">11.2</td>
+<td class="p-sm md:p-md text-on-surface-variant font-caption text-caption">Referred to NRC</td>
+</tr>
+<tr class="border-b border-outline-variant bg-surface-container-low hover:bg-surface-container-lowest transition-colors">
+<td class="p-sm md:p-md whitespace-nowrap">Nov 12, 2023</td>
+<td class="p-sm md:p-md">13m</td>
+<td class="p-sm md:p-md text-error font-bold">7.3</td>
+<td class="p-sm md:p-md">74.0</td>
+<td class="p-sm md:p-md text-error">11.4</td>
+<td class="p-sm md:p-md text-on-surface-variant font-caption text-caption">Counseling provided</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-sm md:p-md whitespace-nowrap">Oct 12, 2023</td>
+<td class="p-sm md:p-md">12m</td>
+<td class="p-sm md:p-md text-[#e65100]">7.5</td>
+<td class="p-sm md:p-md">73.5</td>
+<td class="p-sm md:p-md">12.0</td>
+<td class="p-sm md:p-md text-on-surface-variant font-caption text-caption">-</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors bg-surface-container-low">
+<td class="p-sm md:p-md whitespace-nowrap">Jul 12, 2023</td>
+<td class="p-sm md:p-md">9m</td>
+<td class="p-sm md:p-md">7.8</td>
+<td class="p-sm md:p-md">71.0</td>
+<td class="p-sm md:p-md">12.5</td>
+<td class="p-sm md:p-md text-on-surface-variant font-caption text-caption">Normal growth</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant rounded-t-full shadow-lg h-[80px]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-full transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined mb-xs" data-icon="home">home</span>
+<span class="font-label-md text-label-md text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-full transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined mb-xs" data-icon="cottage">cottage</span>
+<span class="font-label-md text-label-md text-[10px]">Households</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-xs" data-icon="person_search" style="font-variation-settings: 'FILL' 1;">person_search</span>
+<span class="font-label-md text-label-md text-[10px] font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-full transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined mb-xs" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span class="font-label-md text-label-md text-[10px]">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-full transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined mb-xs" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+</body></html>

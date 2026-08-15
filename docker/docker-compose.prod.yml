@@ -1,0 +1,198 @@
+# =============================================================================
+# ASHA Sathi - Production overrides
+# -----------------------------------------------------------------------------
+# Run together with the base compose file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Overrides applied:
+#   * restart policies -> always
+#   * healthchecks + resource limits for every service
+#   * backend runs with a read-only root filesystem (tmpfs for /tmp)
+#   * no host volume mounts - images are baked with the code
+#   * an nginx ingress container terminates TLS and routes:
+#       /            -> web-dashboard (React dashboard)
+#       /api/        -> backend (FastAPI)
+#       /auth/v1, /rest/v1, /realtime/v1, /storage/v1 -> Supabase gateway
+#
+# TLS: mount your certificate chain + key under ./nginx/certs and enable the
+# 443 server block in nginx/nginx.conf. For a first rollout self-signed certs
+# can be generated with:
+#   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout nginx/certs/tls.key -out nginx/certs/tls.crt \
+#     -subj "/CN=api.asha-sathi.gov.in"
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: asha_sathi
+      POSTGRES_USER: asha
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in production}
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2"
+        reservations:
+          memory: 1g
+          cpus: "0.5"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asha -d asha_sathi"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+          cpus: "1"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/yourorg/asha-sathi-backend:${IMAGE_TAG:-latest}
+    restart: always
+    # No source volume mounts: the image is fully baked by CI.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in production}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL in production}
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in production}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY in production}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:?set SUPABASE_SERVICE_KEY in production}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://dashboard.asha-sathi.gov.in}
+      API_V1_PREFIX: /api/v1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "2"
+        reservations:
+          memory: 512m
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  web-dashboard:
+    image: ghcr.io/yourorg/asha-sathi-web-dashboard:${IMAGE_TAG:-latest}
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+
+  ml-serving:
+    image: ghcr.io/yourorg/asha-sathi-ml-serving:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      ML_MODEL_DIR: /models
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - ml-models:/models:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2"
+
+  # ---------------------------------------------------------------------------
+  # nginx ingress / reverse proxy + TLS termination
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: asha-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - web-dashboard
+      - supabase-kong
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+    networks:
+      - asha-net
+
+  # Production note: for a HA/cloud deployment prefer the Helm chart in
+  # docker/kubernetes (k3s/EKS/GKE/AKS + cert-manager). This compose target is
+  # intended for single-node VMs or disaster-recovery fallback.

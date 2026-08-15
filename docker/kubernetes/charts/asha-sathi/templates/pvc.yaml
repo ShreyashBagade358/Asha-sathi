@@ -1,0 +1,23 @@
+{{- if and .Values.postgresql.enabled .Values.postgresql.managePvc }}
+# Standalone PostgreSQL PVC.
+# Used when postgresql.managePvc=true (and postgresql.primary.persistence.enabled
+# is false), e.g. when replacing the Bitnami subchart with an external single
+# instance while keeping storage in-cluster.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "asha-sathi.fullname" . }}-postgres
+  labels:
+    {{- include "asha-sathi.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.postgresPvc.accessModes }}
+    - {{ . }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresPvc.size }}
+  {{- if .Values.postgresPvc.storageClass }}
+  storageClassName: {{ .Values.postgresPvc.storageClass }}
+  {{- end }}
+{{- end }}

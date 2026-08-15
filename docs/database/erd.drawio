@@ -1,0 +1,93 @@
+<mxfile host="app.diagrams.net" agent="5.0.0" version="24.0.0">
+  <diagram id="asha-erd" name="ERD">
+    <mxGraphModel dx="1500" dy="1500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================= Geography ================= -->
+        <mxCell id="states" value="states&#10;id · code · name · is_active" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="districts" value="districts&#10;id · state_id · code · name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="330" y="60" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="blocks" value="blocks&#10;id · district_id · code · name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="620" y="60" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="phcs" value="phcs&#10;id · block_id · code · name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="910" y="60" width="250" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="sub_centers" value="sub_centers&#10;id · phc_id · code · name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="40" y="240" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="villages" value="villages&#10;id · sub_center_id · code · name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="330" y="240" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= People / access ================= -->
+        <mxCell id="users" value="users&#10;id · auth_id · role · phone · full_name" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="620" y="240" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="asha_profiles" value="asha_profiles&#10;user_id (PK) · asha_id · bank_account" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="910" y="240" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Households / beneficiaries ================= -->
+        <mxCell id="households" value="households&#10;id · hhid · village_id · asha_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="40" y="420" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="beneficiaries" value="beneficiaries&#10;id · beneficiary_id · household_id · abha_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="330" y="420" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Maternal ================= -->
+        <mxCell id="pregnancies" value="pregnancies&#10;id · beneficiary_id · lmp · edd · risk_level" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="620" y="420" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="anc_visits" value="anc_visits&#10;id · pregnancy_id · visit_date · bp · hb" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="910" y="420" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Child ================= -->
+        <mxCell id="children" value="children&#10;id · beneficiary_id · birth_weight" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="40" y="600" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="immunizations" value="immunizations&#10;id · child_id · vaccine_code · dose · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="330" y="600" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= EC / NCD ================= -->
+        <mxCell id="eligible_couples" value="eligible_couples&#10;id · husband_id · wife_id · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="620" y="600" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="ncd_screenings" value="ncd_screenings&#10;id · beneficiary_id · bp · cbac_score" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="910" y="600" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Disease / Death ================= -->
+        <mxCell id="disease_cases" value="disease_cases&#10;id · disease_type · beneficiary_id · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="40" y="780" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="death_reports" value="death_reports&#10;id · beneficiary_id · cause · icd10" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="330" y="780" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Tasks / KPIs ================= -->
+        <mxCell id="asha_tasks" value="asha_tasks&#10;id · asha_id · task_type · task_date · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="620" y="780" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="asha_kpis" value="asha_kpis&#10;id · asha_id · period_start · anc_visits" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="910" y="780" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Incentives ================= -->
+        <mxCell id="incentive_claims" value="incentive_claims&#10;id · asha_id · claim_month · amount · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="40" y="960" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="village_forms" value="village_forms&#10;id · asha_id · form_type · form_date" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="330" y="960" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= ABDM ================= -->
+        <mxCell id="abha_records" value="abha_records&#10;id · beneficiary_id · abha_number · kyc_status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996685;" vertex="1" parent="1"><mxGeometry x="620" y="960" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="health_records" value="health_records&#10;id · abha_record_id · record_type · document_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996685;" vertex="1" parent="1"><mxGeometry x="910" y="960" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Platform ================= -->
+        <mxCell id="notifications" value="notifications&#10;id · user_id · type · title · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="1140" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="referrals" value="referrals&#10;id · beneficiary_id · from · to · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="330" y="1140" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="audit_logs" value="audit_logs&#10;id · user_id · action · entity · diff" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="620" y="1140" width="250" height="80" as="geometry" /></mxCell>
+        <mxCell id="sync_logs" value="sync_logs&#10;id · user_id · device_id · op · status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="910" y="1140" width="250" height="80" as="geometry" /></mxCell>
+
+        <mxCell id="app_configs" value="app_configs&#10;id · key · value · is_public" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="1320" width="250" height="80" as="geometry" /></mxCell>
+
+        <!-- ================= Relationships ================= -->
+        <mxCell id="r1" value="state_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="states" target="districts"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r2" value="district_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="districts" target="blocks"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r3" value="block_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="blocks" target="phcs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r4" value="phc_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="phcs" target="sub_centers"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r5" value="sub_center_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="sub_centers" target="villages"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r6" value="user_id" style="endArrow=ERone;startArrow=ERone;html=1;rounded=0;" edge="1" parent="1" source="users" target="asha_profiles"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r7" value="asha_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="households"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r8" value="village_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="villages" target="households"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r9" value="household_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="households" target="beneficiaries"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r10" value="beneficiary_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="pregnancies"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r11" value="pregnancy_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="pregnancies" target="anc_visits"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r12" value="beneficiary_id" style="endArrow=ERone;startArrow=ERone;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="children"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r13" value="child_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="children" target="immunizations"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r14" value="wife_id" style="endArrow=ERone;startArrow=ERone;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="eligible_couples"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r15" value="beneficiary_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="ncd_screenings"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r16" value="beneficiary_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="disease_cases"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r17" value="beneficiary_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="death_reports"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r18" value="asha_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="asha_tasks"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r19" value="asha_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="asha_kpis"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r20" value="asha_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="incentive_claims"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r21" value="asha_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="village_forms"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r22" value="beneficiary_id" style="endArrow=ERone;startArrow=ERone;html=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="abha_records"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r23" value="abha_record_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="abha_records" target="health_records"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r24" value="user_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="notifications"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r25" value="beneficiary_id" style="endArrow=ERone;startArrow=ERmany;html=1;dashed=1;rounded=0;" edge="1" parent="1" source="beneficiaries" target="referrals"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r26" value="user_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="audit_logs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r27" value="user_id" style="endArrow=ERone;startArrow=ERmany;html=1;rounded=0;" edge="1" parent="1" source="users" target="sync_logs"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

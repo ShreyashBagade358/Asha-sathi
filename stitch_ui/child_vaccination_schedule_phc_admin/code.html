@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Child Vaccination Management - ASHA Sathi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#00478d",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "tertiary-container": "#006880",
+                        "on-surface": "#091c35",
+                        "on-surface-variant": "#424752",
+                        "outline": "#727783",
+                        "on-primary-container": "#c8daff",
+                        "tertiary-fixed": "#b6ebff",
+                        "tertiary": "#004e61",
+                        "surface-tint": "#005db6",
+                        "surface-bright": "#f9f9ff",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#ecf0ff",
+                        "surface-dim": "#cadbfc",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006e28",
+                        "background": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d6e3ff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-secondary-container": "#00752a",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-container": "#005eb8",
+                        "inverse-surface": "#20314b",
+                        "on-background": "#091c35",
+                        "primary-fixed": "#d6e3ff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "secondary-fixed": "#82fc90",
+                        "surface-variant": "#d6e3ff",
+                        "surface-container": "#e7eeff",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#82fc90",
+                        "on-tertiary-container": "#9be4ff",
+                        "inverse-primary": "#a9c7ff",
+                        "on-tertiary-fixed": "#001f28",
+                        "surface-container-high": "#dfe8ff",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c2c6d4",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#65df77",
+                        "on-secondary-fixed": "#002107",
+                        "on-primary-fixed": "#001b3d",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "touch-target": "48px",
+                        "unit": "4px",
+                        "xxl": "48px",
+                        "sm": "8px",
+                        "form-gap": "20px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "caption": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "26px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for web */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f0f3ff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c2c6d4;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #727783;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col md:flex-row antialiased">
+<!-- TopAppBar (Mobile & Web) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm md:hidden md:flex">
+<div class="flex items-center gap-sm">
+<button aria-label="Open Menu" class="md:hidden p-xs rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center justify-center text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span>
+</div>
+<div class="flex items-center gap-md">
+<button aria-label="Sync" class="p-xs rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center justify-center text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button aria-label="Notifications" class="p-xs rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center justify-center text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small, circular profile picture of an ASHA worker in professional attire, set against a clean, light blue background. The image should be highly detailed, showing a warm, professional expression, fitting the modern healthcare aesthetic of the application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPfsqcAYXHvW-U1zG60TCpeVtqgppFHEON4nhYRJqfNDksOvML_RbPBdkYW8wB8PhH35CH_s40bZUjoao2P5wxCku_CiZU3OqbCCicTPMKJTgQUYdqNxPS7LFldr_2f_63TfOmPOydQwJRoxTtqb36QuAEJXvO4rcZknD4Pz_VUpSRLSvB4lWnMG1SxVGV3hgN0qg2xUxVMSWlT7rt8RqK_rMHz0ob_9q2lXhUGTPj9_3-3LmNSWvkoA"/>
+</div>
+</header>
+<!-- SideNavBar (Web Only) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 pt-[calc(48px+16px)] z-40">
+<div class="flex flex-col gap-xs flex-grow">
+<!-- Active State on Patients since this is a patient view -->
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-md text-label-md">Workers</span>
+</a>
+<a class="flex items-center gap-sm p-sm rounded-lg bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person_celebrate" data-weight="fill">person_celebrate</span>
+<span class="font-label-md text-label-md">Beneficiaries</span>
+</a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-xs pt-md border-t border-outline-variant">
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-[calc(48px+16px)] pb-[calc(60px+16px)] md:pb-lg md:ml-64 px-sm md:px-lg bg-background w-full">
+<!-- Header & Patient Info -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-lg gap-sm">
+<div>
+<a class="flex items-center text-primary font-label-md text-label-md hover:underline mb-xs" href="#">
+<span class="material-symbols-outlined text-[16px] mr-1">arrow_back</span>
+                    Back to Beneficiaries
+                </a>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Vaccination Record</h1>
+</div>
+<!-- Patient Mini Card -->
+<div class="flex items-center gap-md bg-surface-container-lowest border border-outline-variant rounded-lg p-sm shadow-sm w-full md:w-auto">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-primary font-bold">
+                    AK
+                </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Aarav Kumar</p>
+<p class="font-caption text-caption text-on-surface-variant">DOB: 12-May-2023 (10 Weeks)</p>
+</div>
+<div class="ml-auto md:ml-md bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full font-caption text-caption flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> On Track
+                </div>
+</div>
+</div>
+<!-- Bento Grid Layout for Vaccination Info -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-md lg:gap-lg">
+<!-- Left Column: Timeline / Schedule (Spans 2 cols on lg) -->
+<div class="lg:col-span-2 flex flex-col gap-md">
+<!-- Timeline Header -->
+<div class="flex justify-between items-center bg-surface-container-lowest border border-outline-variant rounded-t-xl p-md border-b-0">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+                        Immunization Schedule
+                    </h2>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-xs hover:bg-surface-tint transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span> Record Dose
+                    </button>
+</div>
+<!-- Timeline Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-b-xl rounded-t-none shadow-sm flex flex-col gap-0 overflow-hidden relative">
+<!-- Vertical Line for Timeline -->
+<div class="absolute left-[36px] top-0 bottom-0 w-[2px] bg-outline-variant z-0 hidden md:block"></div>
+<!-- Age Category: Birth -->
+<div class="flex flex-col relative z-10 border-b border-outline-variant last:border-b-0">
+<div class="bg-surface-container-low px-md py-sm sticky top-[48px] z-20 border-y border-outline-variant first:border-t-0 flex items-center">
+<div class="w-[24px] h-[24px] rounded-full bg-secondary flex items-center justify-center mr-md hidden md:flex border-2 border-surface-container-lowest z-10 shadow-sm">
+<span class="material-symbols-outlined text-on-secondary text-[14px]">check</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Birth</h3>
+</div>
+<div class="p-md md:pl-[68px] flex flex-col gap-sm">
+<!-- Vaccine Card: Administered -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant rounded-lg p-sm relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-secondary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">BCG</span>
+<span class="font-caption text-caption text-on-surface-variant">Tuberculosis</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-secondary flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">done_all</span> Administered
+                                        </span>
+<span class="font-caption text-caption text-on-surface-variant">12-May-2023 • Dr. Sharma</span>
+</div>
+</div>
+</div>
+<!-- Vaccine Card: Administered -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-secondary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">OPV 0</span>
+<span class="font-caption text-caption text-on-surface-variant">Polio</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-secondary flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">done_all</span> Administered
+                                        </span>
+<span class="font-caption text-caption text-on-surface-variant">12-May-2023 • Dr. Sharma</span>
+</div>
+</div>
+</div>
+<!-- Vaccine Card: Administered -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-secondary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Hepatitis B - Birth Dose</span>
+<span class="font-caption text-caption text-on-surface-variant">Hepatitis B</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-secondary flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">done_all</span> Administered
+                                        </span>
+<span class="font-caption text-caption text-on-surface-variant">12-May-2023 • Dr. Sharma</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Age Category: 6 Weeks -->
+<div class="flex flex-col relative z-10 border-b border-outline-variant last:border-b-0">
+<div class="bg-surface-container-low px-md py-sm sticky top-[48px] z-20 border-y border-outline-variant flex items-center">
+<div class="w-[24px] h-[24px] rounded-full bg-secondary flex items-center justify-center mr-md hidden md:flex border-2 border-surface-container-lowest z-10 shadow-sm">
+<span class="material-symbols-outlined text-on-secondary text-[14px]">check</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">6 Weeks</h3>
+</div>
+<div class="p-md md:pl-[68px] flex flex-col gap-sm">
+<!-- Vaccine Card: Administered -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-secondary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">OPV 1</span>
+<span class="font-caption text-caption text-on-surface-variant">Polio</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-secondary flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">done_all</span> Administered
+                                        </span>
+<span class="font-caption text-caption text-on-surface-variant">25-Jun-2023 • ASHA Worker Maya</span>
+</div>
+</div>
+</div>
+<!-- Vaccine Card: Administered -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-secondary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface">Pentavalent 1</span>
+<span class="font-caption text-caption text-on-surface-variant">DPT, Hep B, Hib</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-secondary flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">done_all</span> Administered
+                                        </span>
+<span class="font-caption text-caption text-on-surface-variant">25-Jun-2023 • ASHA Worker Maya</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Age Category: 10 Weeks (CURRENT) -->
+<div class="flex flex-col relative z-10 border-b border-outline-variant last:border-b-0 bg-primary-fixed opacity-95">
+<div class="bg-primary-container px-md py-sm sticky top-[48px] z-20 border-y border-primary-container flex items-center">
+<div class="w-[24px] h-[24px] rounded-full bg-primary flex items-center justify-center mr-md hidden md:flex border-2 border-surface-container-lowest z-10 shadow-sm animate-pulse">
+<div class="w-[10px] h-[10px] bg-on-primary rounded-full"></div>
+</div>
+<h3 class="font-label-md text-label-md text-on-primary-container uppercase tracking-wider font-bold">10 Weeks (Current)</h3>
+</div>
+<div class="p-md md:pl-[68px] flex flex-col gap-sm">
+<!-- Vaccine Card: Due Today -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border-2 border-primary rounded-lg p-sm relative overflow-hidden shadow-md">
+<div class="absolute left-0 top-0 bottom-0 w-[6px] bg-primary"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">OPV 2</span>
+<span class="font-caption text-caption text-on-surface-variant">Polio</span>
+</div>
+<div class="mt-sm md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-primary flex items-center gap-xs font-bold">
+<span class="material-symbols-outlined text-[16px]">schedule</span> Due Today
+                                        </span>
+</div>
+<button class="bg-primary text-on-primary px-3 py-1 rounded font-label-md text-label-md hover:bg-surface-tint">Mark Done</button>
+</div>
+</div>
+<!-- Vaccine Card: Missed (Example) -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-error-container border border-error rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-error"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-error-container">Rotavirus 2</span>
+<span class="font-caption text-caption text-on-error-container opacity-80">Rotavirus Diarrhea</span>
+</div>
+<div class="mt-sm md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<div class="flex flex-col text-left md:text-right">
+<span class="font-label-md text-label-md text-error flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">warning</span> Missed (Was due 20-Jul)
+                                        </span>
+</div>
+<button class="border border-error text-error px-3 py-1 rounded font-label-md text-label-md hover:bg-surface-container-highest">Reschedule</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Age Category: 14 Weeks (Future) -->
+<div class="flex flex-col relative z-10 border-b border-outline-variant last:border-b-0 opacity-70">
+<div class="bg-surface-container-low px-md py-sm sticky top-[48px] z-20 border-y border-outline-variant flex items-center">
+<div class="w-[24px] h-[24px] rounded-full bg-surface-container-highest flex items-center justify-center mr-md hidden md:flex border-2 border-surface-container-lowest z-10">
+<span class="w-[8px] h-[8px] bg-outline rounded-full"></span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">14 Weeks</h3>
+</div>
+<div class="p-md md:pl-[68px] flex flex-col gap-sm">
+<!-- Vaccine Card: Upcoming -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant border-dashed rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-outline-variant"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">OPV 3</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<span class="font-caption text-caption text-on-surface-variant">Due: 17-Aug-2023</span>
+</div>
+</div>
+<!-- Vaccine Card: Upcoming -->
+<div class="flex flex-col md:flex-row justify-between md:items-center bg-surface border border-outline-variant border-dashed rounded-lg p-sm relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-outline-variant"></div>
+<div class="pl-xs flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">Pentavalent 3</span>
+</div>
+<div class="mt-xs md:mt-0 flex items-center justify-between md:justify-end gap-md w-full md:w-auto">
+<span class="font-caption text-caption text-on-surface-variant">Due: 17-Aug-2023</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Sidebar Info (Side Effects, Next Visit) -->
+<div class="flex flex-col gap-md">
+<!-- Next Scheduled Visit Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="bg-tertiary-container p-sm flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-tertiary-container">event</span>
+<h3 class="font-label-md text-label-md text-on-tertiary-container">Next Appointment</h3>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<div class="flex justify-between items-center">
+<span class="font-display-lg text-display-lg text-tertiary">23 Jul</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed px-2 py-1 rounded font-caption text-caption">10:00 AM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Sub-Center Clinic, Ward 4</p>
+<p class="font-caption text-caption text-outline">Purpose: 10 Week Immunization</p>
+<button class="mt-sm w-full border border-tertiary text-tertiary py-2 rounded-lg font-label-md text-label-md hover:bg-tertiary-fixed transition-colors">Reschedule Visit</button>
+</div>
+</div>
+<!-- Reported Side Effects Section -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex-grow flex flex-col">
+<div class="bg-surface-container-low p-sm flex justify-between items-center border-b border-outline-variant">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-error">healing</span>
+<h3 class="font-label-md text-label-md text-on-surface">Adverse Events Following Immunization (AEFI)</h3>
+</div>
+</div>
+<div class="p-md flex flex-col gap-sm overflow-y-auto max-h-[300px]">
+<!-- Past Side Effect Item -->
+<div class="border-l-2 border-outline pl-sm pb-sm border-b border-outline-variant border-b-dashed mb-sm last:border-b-0 last:mb-0">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-label-md text-on-surface">Mild Fever</span>
+<span class="font-caption text-caption text-outline">26-Jun-2023</span>
+</div>
+<p class="font-caption text-caption text-on-surface-variant mb-1">Following Pentavalent 1 dose. Parents advised PCM syrup.</p>
+<span class="inline-block bg-surface-container text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">Resolved</span>
+</div>
+<!-- Log New Button -->
+<button class="mt-auto flex items-center justify-center gap-xs text-primary font-label-md text-label-md hover:bg-surface-container-high py-2 rounded transition-colors w-full border border-dashed border-primary">
+<span class="material-symbols-outlined text-[18px]">add_circle</span> Report New Reaction
+                        </button>
+</div>
+</div>
+<!-- Growth / Quick Stats Card (Glassmorphism inspired) -->
+<div class="relative rounded-xl overflow-hidden shadow-md border border-outline-variant p-md isolate">
+<!-- Glassmorphism Background layer -->
+<div class="absolute inset-0 bg-gradient-to-br from-surface-variant/50 to-surface-bright/80 backdrop-blur-md -z-10"></div>
+<h3 class="font-label-md text-label-md text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">monitor_weight</span> Vitals Summary
+                    </h3>
+<div class="grid grid-cols-2 gap-sm">
+<div class="bg-surface-container-lowest/70 p-sm rounded-lg border border-outline-variant/50 text-center">
+<span class="block font-caption text-caption text-on-surface-variant mb-1">Weight</span>
+<span class="block font-headline-md text-headline-md text-on-surface">4.2 <span class="text-label-md">kg</span></span>
+<span class="text-[10px] text-secondary flex items-center justify-center gap-0.5 mt-1"><span class="material-symbols-outlined text-[12px]">arrow_upward</span> Normal</span>
+</div>
+<div class="bg-surface-container-lowest/70 p-sm rounded-lg border border-outline-variant/50 text-center">
+<span class="block font-caption text-caption text-on-surface-variant mb-1">Height</span>
+<span class="block font-headline-md text-headline-md text-on-surface">58 <span class="text-label-md">cm</span></span>
+<span class="text-[10px] text-outline flex items-center justify-center gap-0.5 mt-1">Recorded 6 Wks</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant shadow-lg rounded-t-[1.5rem]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-label-md text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="cottage">cottage</span>
+<span class="font-label-md text-label-md text-[10px]">Households</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person_search" data-weight="fill">person_search</span>
+<span class="font-label-md text-label-md text-[10px] font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span class="font-label-md text-label-md text-[10px]">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+</body></html>

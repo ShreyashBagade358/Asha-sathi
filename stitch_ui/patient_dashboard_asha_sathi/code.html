@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Patient Dashboard</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts (Inter) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f9f9ff",
+                        "secondary-container": "#82fc90",
+                        "surface-container-high": "#dfe8ff",
+                        "on-primary-fixed": "#001b3d",
+                        "tertiary": "#004e61",
+                        "surface-dim": "#cadbfc",
+                        "secondary-fixed-dim": "#65df77",
+                        "secondary": "#006e28",
+                        "on-background": "#091c35",
+                        "inverse-on-surface": "#ecf0ff",
+                        "background": "#f9f9ff",
+                        "on-secondary-fixed": "#002107",
+                        "outline-variant": "#c2c6d4",
+                        "tertiary-container": "#006880",
+                        "on-primary-fixed-variant": "#00468c",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#00752a",
+                        "primary-container": "#005eb8",
+                        "on-tertiary-fixed": "#001f28",
+                        "surface-container-highest": "#d6e3ff",
+                        "surface-bright": "#f9f9ff",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#a9c7ff",
+                        "surface-tint": "#005db6",
+                        "surface-container-low": "#f0f3ff",
+                        "outline": "#727783",
+                        "on-surface-variant": "#424752",
+                        "surface-variant": "#d6e3ff",
+                        "secondary-fixed": "#82fc90",
+                        "inverse-surface": "#20314b",
+                        "on-primary-container": "#c8daff",
+                        "primary-fixed": "#d6e3ff",
+                        "tertiary-fixed": "#b6ebff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "surface-container": "#e7eeff",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#091c35",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "primary": "#00478d",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "form-gap": "20px",
+                        "xs": "4px",
+                        "xxl": "48px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "unit": "4px",
+                        "touch-target": "48px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #f9f9ff;
+            color: #091c35;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Hide scrollbar for clean UI but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen pb-[80px]"> <!-- pb to account for BottomNavBar -->
+<!-- TopAppBar (from JSON) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span>
+</div>
+<div class="flex items-center gap-sm">
+<button aria-label="Sync" class="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">sync</span>
+</button>
+<button aria-label="Notifications" class="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-variant overflow-hidden ml-sm border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A close-up portrait of a reassuring Indian patient, softly lit with warm daylight. The style is modern healthcare photography, focusing on empathetic and clear visual communication. The color palette features natural skin tones against a soft, blurred background to maintain a calm, professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGezzRQbUiGCfo8W7cwLEdIubdaU-a1b5cIyKshjGKx4jneiieWc9Az-RQydepSWSPqszpfSCB-s90LRozXM-9IIOHXmq5iYLzUGgZEhr9a5XQVsWjbdDyTHOr3xhM6cTkiy2usSku8PByi8o4EwmEeFfC9uqnKTtoH4zVE1DfnPrXTMopNJ1GQW_YHtbxEHnUxiWYj3J6nbOSFoJ9Y8hYT4Y5E69BgJswNuSvg6WS7zf3THi5yJWqLA"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-[64px] px-md md:px-lg max-w-7xl mx-auto space-y-lg mt-md">
+<!-- Welcome Header -->
+<section class="py-sm">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-background">Namaste, Aarav</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Here is your health overview for today.</p>
+</section>
+<!-- Next Action Card (Hero) -->
+<section>
+<div class="bg-primary text-on-primary rounded-xl p-md shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 opacity-10 pointer-events-none w-32 h-32 transform translate-x-8 -translate-y-8">
+<span class="material-symbols-outlined text-[120px]">vaccines</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-sm mb-xs">
+<span class="material-symbols-outlined text-secondary-container" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-label-md text-label-md text-secondary-container uppercase tracking-wider">Upcoming Task</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-bold mb-xs">Next Vaccination</h2>
+<p class="font-body-md text-body-md mb-md">Scheduled for 15 Oct 2023 at Primary Health Centre.</p>
+<button class="bg-on-primary text-primary font-label-md text-label-md py-sm px-md rounded-full hover:bg-surface-container transition-colors shadow-sm inline-flex items-center gap-xs">
+                        View Details
+                        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Quick Access Grid -->
+<section>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-sm">Quick Access</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-md">
+<!-- Card 1 -->
+<button class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">medical_information</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-background">My Health Records</h4>
+<p class="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">View lab results &amp; vitals</p>
+</div>
+</button>
+<!-- Card 2 -->
+<button class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">vaccines</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-background">Vaccination History</h4>
+<p class="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Past immunization records</p>
+</div>
+</button>
+<!-- Card 3 -->
+<button class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_note</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-background">My Appointments</h4>
+<p class="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Manage scheduled visits</p>
+</div>
+</button>
+<!-- Card 4 -->
+<button class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left">
+<div class="w-10 h-10 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">prescriptions</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-background">Prescriptions</h4>
+<p class="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Active medications</p>
+</div>
+</button>
+</div>
+</section>
+<!-- Recent Activity Feed -->
+<section class="pb-xl">
+<div class="flex justify-between items-center mb-sm">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Recent Activity</h3>
+<button class="text-primary font-label-md text-label-md hover:underline flex items-center">
+                    See All <span class="material-symbols-outlined text-[16px] ml-xs">arrow_forward</span>
+</button>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm divide-y divide-outline-variant">
+<!-- Activity Item 1 -->
+<div class="p-md flex gap-md hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex-shrink-0 mt-xs">
+<div class="w-2 h-2 mt-2 rounded-full bg-secondary"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-xs">
+<h4 class="font-label-md text-label-md text-on-background">Routine Check-up Completed</h4>
+<span class="font-caption text-caption text-on-surface-variant whitespace-nowrap">2 Days Ago</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs">ASHA Worker Sunita visited for a routine household check. Vitals are normal.</p>
+<div class="inline-flex items-center bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full font-caption text-caption">
+<span class="material-symbols-outlined text-[14px] mr-xs">check_circle</span> Status: Healthy
+                        </div>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="p-md flex gap-md hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex-shrink-0 mt-xs">
+<div class="w-2 h-2 mt-2 rounded-full bg-primary"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-xs">
+<h4 class="font-label-md text-label-md text-on-background">Dietary Advice Provided</h4>
+<span class="font-caption text-caption text-on-surface-variant whitespace-nowrap">1 Week Ago</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Received advice on incorporating more iron-rich foods into daily meals to prevent anemia.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (from JSON, modified logic for Patient context) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant shadow-lg rounded-t-full pb-safe">
+<!-- Active: Home -->
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-label-md mt-1">Home</span>
+</button>
+<!-- Inactive: Health Records -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">folder_shared</span>
+<span class="font-caption text-caption mt-1">Records</span>
+</button>
+<!-- Inactive: Appointments -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">calendar_month</span>
+<span class="font-caption text-caption mt-1">Visits</span>
+</button>
+<!-- Inactive: Tasks (Using Assignment Turned In as per JSON baseline structure, adapted for Patient) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment_turned_in</span>
+<span class="font-caption text-caption mt-1">Tasks</span>
+</button>
+<!-- Inactive: Profile -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+<span class="font-caption text-caption mt-1">Profile</span>
+</button>
+</nav>
+<!-- SideNavBar for Desktop (Hidden on mobile) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 z-40 pt-[80px]"> <!-- pt to clear top bar -->
+<div class="px-md mb-md">
+<h2 class="font-headline-md text-headline-md font-black text-primary">Patient Portal</h2>
+</div>
+<!-- Active -->
+<button class="flex items-center gap-md px-md py-sm bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold rounded-lg w-full text-left scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</button>
+<!-- Inactive -->
+<button class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">folder_shared</span>
+<span class="font-label-md text-label-md">Health Records</span>
+</button>
+<!-- Inactive -->
+<button class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">calendar_month</span>
+<span class="font-label-md text-label-md">Appointments</span>
+</button>
+<div class="mt-auto border-t border-outline-variant pt-sm">
+<button class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</div>
+</nav>
+<!-- Support for safe area on mobile devices with notches -->
+<style>
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+    </style>
+</body></html>

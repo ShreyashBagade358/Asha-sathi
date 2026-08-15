@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PHC Connect - Household Health Survey</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#005eb8",
+                      "outline": "#727783",
+                      "on-primary": "#ffffff",
+                      "background": "#f9f9ff",
+                      "on-primary-fixed": "#001b3d",
+                      "on-tertiary-fixed": "#001f28",
+                      "inverse-surface": "#20314b",
+                      "tertiary-fixed": "#b6ebff",
+                      "surface-container-highest": "#d6e3ff",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "on-tertiary-container": "#9be4ff",
+                      "on-secondary-container": "#00752a",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#006880",
+                      "surface-tint": "#005db6",
+                      "on-secondary-fixed": "#002107",
+                      "surface-container-low": "#f0f3ff",
+                      "tertiary": "#004e61",
+                      "secondary-container": "#82fc90",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "inverse-on-surface": "#ecf0ff",
+                      "error": "#ba1a1a",
+                      "secondary": "#006e28",
+                      "primary": "#00478d",
+                      "surface-container-lowest": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "on-background": "#091c35",
+                      "primary-fixed": "#d6e3ff",
+                      "secondary-fixed-dim": "#65df77",
+                      "surface-bright": "#f9f9ff",
+                      "surface-container": "#e7eeff",
+                      "surface": "#f9f9ff",
+                      "on-primary-container": "#c8daff",
+                      "outline-variant": "#c2c6d4",
+                      "surface-variant": "#d6e3ff",
+                      "on-surface-variant": "#424752",
+                      "secondary-fixed": "#82fc90",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#dfe8ff",
+                      "surface-dim": "#cadbfc",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "on-surface": "#091c35",
+                      "on-tertiary": "#ffffff",
+                      "inverse-primary": "#a9c7ff",
+                      "on-primary-fixed-variant": "#00468c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "form-gap": "20px",
+                      "xxl": "48px",
+                      "xs": "4px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "touch-target": "48px",
+                      "md": "16px",
+                      "sm": "8px",
+                      "xl": "32px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "caption": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container-lowest text-primary font-headline-md font-display-lg border-b border-outline-variant shadow-sm fixed top-0 left-0 w-full z-50 flex justify-between items-center px-lg h-touch-target">
+<div class="flex items-center gap-sm">
+<span class="font-display-lg text-display-lg font-bold text-primary">PHC Connect</span>
+</div>
+<div class="flex items-center gap-sm text-primary">
+<span class="material-symbols-outlined cursor-pointer active:opacity-80">sync</span>
+<span class="material-symbols-outlined cursor-pointer active:opacity-80">notifications</span>
+<span class="material-symbols-outlined cursor-pointer active:opacity-80">settings</span>
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="Administrator Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgmQPZcTykD-4kKS_Z-4nlkUZNSgpVlxVqS1v0jwxdO59HzZB-dnXz-xrN3Wp2ISXSEQ1pShPBtt7sJLt41vf1dMUAgVhBMynIKT8In3shMURdC7LM97Y38RuOF5OrWpRN4wV5CWCPrVCPaRI9yW3E-O4taBdD7DIz6Wlq0Wb8MQyRpD-DOTOCZ4qcXRfsgosCeD3QFXPyMsvItrfpGMWCkXt9DV7AJoIGqd_Kr8FQt4eEZpm6GwXk-A"/>
+</div>
+</nav>
+<!-- SideNavBar (Web Only) -->
+<nav class="hidden md:flex bg-surface-container-low text-primary font-label-md fixed left-0 top-0 h-full w-64 flex-col pt-xxl pb-lg z-40 border-r border-outline-variant">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-sm mb-md">
+<img class="w-10 h-10 rounded-full border border-outline-variant object-cover" data-alt="Primary Health Centre Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_yU76NmD6vNas1wrbNWojExUpiSfCcKaq08v33816Q8a8VtEZ38eumIpCwbbmNa1WVVE81ZfhmuTkX_gFwWC9f-rRmh3dx9DTpZnHaLdAjOCgn21jxe9YCMb1vuLJu6uL-oQFz3Ysv5-87Rsn8JXTPX2SBOgxaBA-cCD96JyKnSDJODwX3edHNwdijAWTpu70yxQdZrjy2lfC-GLZlNYchS8JEc3hXrgAiiguTG06Dkn2vmMiqqFCaA"/>
+<div>
+<h2 class="font-headline-lg text-headline-lg font-bold text-primary-container">PHC Rural Admin</h2>
+<p class="font-caption text-caption text-on-surface-variant">District Division A-12</p>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary rounded-lg py-sm font-bold flex items-center justify-center gap-xs hover:bg-primary-fixed-dim transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">sync</span>
+                Sync Records
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto">
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">groups</span>
+                Workers
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">person_heart</span>
+                Beneficiaries
+            </a>
+<a class="bg-primary-container text-on-primary-container font-bold mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">home_work</span>
+                Households
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">pregnant_woman</span>
+                Maternal Health
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all mx-sm my-xs px-md py-sm rounded-lg flex items-center gap-sm" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<div class="mt-auto px-md border-t border-outline-variant pt-md">
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all flex items-center gap-sm py-sm px-sm rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all flex items-center gap-sm py-sm px-sm rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Canvas -->
+<main class="md:ml-64 pt-touch-target md:pt-0 p-sm md:p-lg">
+<!-- Header -->
+<header class="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-md">
+<div>
+<p class="font-caption text-caption text-on-surface-variant mb-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                    Back to Households List
+                </p>
+<h1 class="font-display-lg text-display-lg md:text-[32px] text-on-background font-bold">Household Health Survey Report</h1>
+<p class="font-body-md text-body-md text-outline">Household ID: HH-9843-K • Village: Rampur • Head: Ramesh Kumar</p>
+</div>
+<div class="flex gap-sm">
+<div class="bg-surface-container-high rounded-full px-md py-xs flex items-center gap-xs border border-outline-variant">
+<span class="material-symbols-outlined text-secondary text-[20px]">cloud_done</span>
+<span class="font-label-md text-label-md text-on-surface">Synced: 10m ago</span>
+</div>
+</div>
+</header>
+<!-- Status Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-md mb-lg">
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm border-l-4 border-l-secondary flex flex-col justify-between min-h-[100px]">
+<p class="font-label-md text-label-md text-on-surface-variant">Overall Health Risk</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-headline-lg text-headline-lg font-bold text-secondary">Low</span>
+<span class="material-symbols-outlined text-secondary text-[32px]">health_and_safety</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm border-l-4 border-l-[#FF9800] flex flex-col justify-between min-h-[100px]">
+<p class="font-label-md text-label-md text-on-surface-variant">Sanitation Score</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-headline-lg text-headline-lg font-bold text-[#FF9800]">65/100</span>
+<span class="material-symbols-outlined text-[#FF9800] text-[32px]">water_drop</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm border-l-4 border-l-secondary flex flex-col justify-between min-h-[100px]">
+<p class="font-label-md text-label-md text-on-surface-variant">Immunization</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-headline-lg text-headline-lg font-bold text-secondary">100%</span>
+<span class="material-symbols-outlined text-secondary text-[32px]">vaccines</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm border-l-4 border-l-[#D50000] flex flex-col justify-between min-h-[100px]">
+<p class="font-label-md text-label-md text-on-surface-variant">Chronic Disease</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="font-headline-lg text-headline-lg font-bold text-[#D50000]">High</span>
+<span class="material-symbols-outlined text-[#D50000] text-[32px]">monitor_heart</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Sanitation & Water -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg">
+<h3 class="font-headline-md text-headline-md font-bold mb-md text-on-background flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary">clean_hands</span>
+                    Sanitation &amp; Water
+                </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs">Primary Water Source</p>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">Hand Pump (Public)</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs">Distance to Source</p>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">&lt; 500 meters</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs">Toilet Facility Type</p>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">Pit Latrine</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs">Waste Disposal</p>
+<p class="font-body-lg text-body-lg text-on-surface font-semibold bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">Open Dumping</p>
+</div>
+</div>
+</div>
+<!-- Immunization Coverage -->
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg">
+<h3 class="font-headline-md text-headline-md font-bold mb-md text-on-background flex items-center gap-xs">
+<span class="material-symbols-outlined text-secondary">immunology</span>
+                    Immunization
+                </h3>
+<div class="flex flex-col gap-md">
+<div>
+<div class="flex justify-between mb-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Children (&lt; 5 yrs)</span>
+<span class="font-label-md text-label-md font-bold text-secondary">100%</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Pregnant Women</span>
+<span class="font-label-md text-label-md font-bold text-secondary">100%</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="mt-sm p-sm bg-secondary-container/20 rounded-lg border border-secondary-container text-secondary flex items-start gap-xs">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+<p class="font-caption text-caption">All eligible members are fully vaccinated up to date.</p>
+</div>
+</div>
+</div>
+<!-- Nutrition -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg">
+<h3 class="font-headline-md text-headline-md font-bold mb-md text-on-background flex items-center gap-xs">
+<span class="material-symbols-outlined text-[#FF9800]">restaurant</span>
+                    Nutrition
+                </h3>
+<div class="space-y-md">
+<div class="flex justify-between items-center border-b border-outline-variant/30 pb-sm">
+<span class="font-body-md text-body-md text-on-surface-variant">Primary Diet</span>
+<span class="font-label-md text-label-md text-on-surface">Vegetarian</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/30 pb-sm">
+<span class="font-body-md text-body-md text-on-surface-variant">Salt Type Used</span>
+<span class="font-label-md text-label-md text-on-surface">Iodized</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/30 pb-sm">
+<span class="font-body-md text-body-md text-on-surface-variant">Meals per Day (Avg)</span>
+<span class="font-label-md text-label-md text-on-surface">3</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Food Security Status</span>
+<span class="font-label-md text-label-md px-sm py-[2px] bg-secondary-container/30 text-secondary rounded-full">Secure</span>
+</div>
+</div>
+</div>
+<!-- Chronic Diseases -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg">
+<h3 class="font-headline-md text-headline-md font-bold mb-md text-on-background flex items-center gap-xs">
+<span class="material-symbols-outlined text-error">coronavirus</span>
+                    Chronic Diseases Prevalence
+                </h3>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant">
+<th class="font-label-md text-label-md text-on-surface-variant py-sm px-xs">Condition</th>
+<th class="font-label-md text-label-md text-on-surface-variant py-sm px-xs">Members Affected</th>
+<th class="font-label-md text-label-md text-on-surface-variant py-sm px-xs">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors">
+<td class="font-body-md text-body-md py-sm px-xs">Hypertension (BP)</td>
+<td class="font-body-md text-body-md py-sm px-xs font-semibold">2</td>
+<td class="py-sm px-xs"><span class="font-caption text-caption px-sm py-[2px] bg-error-container text-on-error-container rounded-full">Under Meds</span></td>
+</tr>
+<tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors">
+<td class="font-body-md text-body-md py-sm px-xs">Diabetes (Sugar)</td>
+<td class="font-body-md text-body-md py-sm px-xs font-semibold">1</td>
+<td class="py-sm px-xs"><span class="font-caption text-caption px-sm py-[2px] bg-error-container text-on-error-container rounded-full">Under Meds</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="font-body-md text-body-md py-sm px-xs">Asthma</td>
+<td class="font-body-md text-body-md py-sm px-xs font-semibold">0</td>
+<td class="py-sm px-xs"><span class="font-caption text-caption px-sm py-[2px] bg-surface-variant text-on-surface-variant rounded-full">None</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</body></html>

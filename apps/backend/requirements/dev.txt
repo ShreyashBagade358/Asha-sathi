@@ -1,0 +1,10 @@
+-r base.txt
+ruff
+mypy
+pytest
+pytest-asyncio
+pytest-cov
+fakeredis
+aiosqlite
+factory-boy
+faker

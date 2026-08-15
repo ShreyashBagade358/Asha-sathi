@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - OTP Verification</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f9f9ff",
+                        "on-tertiary-fixed": "#001f28",
+                        "on-secondary-container": "#00752a",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#d6e3ff",
+                        "tertiary-container": "#006880",
+                        "primary-container": "#005eb8",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#d6e3ff",
+                        "surface-container": "#e7eeff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "surface-container-high": "#dfe8ff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#001b3d",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#004e61",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#82fc90",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-dim": "#cadbfc",
+                        "background": "#f9f9ff",
+                        "inverse-primary": "#a9c7ff",
+                        "surface": "#f9f9ff",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "inverse-surface": "#20314b",
+                        "on-background": "#091c35",
+                        "primary": "#00478d",
+                        "outline": "#727783",
+                        "inverse-on-surface": "#ecf0ff",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-primary-container": "#c8daff",
+                        "surface-container-low": "#f0f3ff",
+                        "secondary-fixed-dim": "#65df77",
+                        "on-secondary-fixed": "#002107",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "tertiary-fixed": "#b6ebff",
+                        "on-surface-variant": "#424752",
+                        "outline-variant": "#c2c6d4",
+                        "secondary": "#006e28",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#005db6",
+                        "secondary-fixed": "#82fc90",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d6e3ff",
+                        "on-surface": "#091c35"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "touch-target": "48px",
+                        "unit": "4px",
+                        "sm": "8px",
+                        "xxl": "48px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "form-gap": "20px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "caption": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide number input arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Note: Standard navigation shells (TopAppBar, BottomNavBar) are explicitly suppressed here 
+         as this is a linear/transactional screen (Login flow). -->
+<main class="flex-1 flex flex-col justify-center items-center p-md md:p-lg">
+<!-- Main Card Container -->
+<div class="w-full max-w-md bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-lg md:p-xl flex flex-col relative overflow-hidden">
+<!-- Contextual Back Button -->
+<button aria-label="Go back" class="absolute top-lg left-lg w-touch-target h-touch-target flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-primary -ml-sm -mt-sm">
+<span aria-hidden="true" class="material-symbols-outlined">arrow_back</span>
+</button>
+<!-- Brand / Header -->
+<div class="text-center mt-xl mb-xl">
+<h1 class="font-headline-md text-headline-md text-primary font-bold mb-xs">ASHA Sathi</h1>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-sm">Verify your identity</h2>
+<p class="font-body-md text-body-md text-on-surface-variant px-sm">
+                    Enter the 6-digit verification code sent to <br/>
+<strong class="font-semibold text-on-surface">+91 ******890</strong>
+</p>
+</div>
+<!-- Verification Form -->
+<form action="#" class="flex flex-col gap-form-gap w-full" method="POST" onsubmit="event.preventDefault();">
+<!-- OTP Inputs -->
+<div class="flex justify-between items-center gap-xs md:gap-sm mb-sm" id="otp-container">
+<input aria-label="Digit 1" autofocus="" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+<input aria-label="Digit 2" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+<input aria-label="Digit 3" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+<input aria-label="Digit 4" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+<input aria-label="Digit 5" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+<input aria-label="Digit 6" class="w-12 md:w-14 h-touch-target md:h-14 text-center font-headline-lg text-headline-lg border border-outline-variant rounded-lg bg-surface focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all" maxlength="1" pattern="\d*" required="" type="number"/>
+</div>
+<!-- Timer & Resend Action -->
+<div class="flex flex-row justify-between items-center mb-md">
+<span class="font-body-md text-body-md text-on-surface-variant">
+                        Didn't receive code?
+                    </span>
+<div class="flex items-center gap-xs">
+<span aria-hidden="true" class="material-symbols-outlined text-outline text-[18px]">schedule</span>
+<span class="font-label-md text-label-md text-outline" id="timer">00:45</span>
+<button class="hidden font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant focus:outline-none underline underline-offset-2" id="resend-btn" type="button">
+                            Resend Code
+                        </button>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-touch-target bg-primary text-on-primary font-label-md text-label-md rounded-full shadow-sm hover:bg-on-primary-fixed-variant focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all flex items-center justify-center gap-sm mt-sm" type="submit">
+                    Verify and Login
+                    <span aria-hidden="true" class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">login</span>
+</button>
+</form>
+<!-- Support / Troubleshooting -->
+<div class="mt-xl text-center">
+<a class="font-label-md text-label-md text-primary hover:underline underline-offset-4 flex items-center justify-center gap-xs" href="#">
+<span aria-hidden="true" class="material-symbols-outlined text-[16px]">help</span>
+                    Need help logging in?
+                </a>
+</div>
+</div>
+<!-- Footer / Environment Indicator (Common in Admin/Healthcare apps) -->
+<p class="font-caption text-caption text-on-surface-variant mt-lg opacity-70">
+            Secure Environment • District Health Office
+        </p>
+</main>
+<!-- Micro-interaction JS for OTP fields and Timer -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('otp-container');
+            const inputs = container.querySelectorAll('input');
+
+            // Handle Input behavior
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    // Restrict to numeric
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    
+                    if (e.target.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                        inputs[index - 1].value = '';
+                    }
+                });
+
+                // Handle paste event across all fields
+                input.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, inputs.length);
+                    
+                    for (let i = 0; i < pastedData.length; i++) {
+                        inputs[i].value = pastedData[i];
+                        if (i < inputs.length - 1) {
+                            inputs[i + 1].focus();
+                        } else {
+                            inputs[i].focus();
+                        }
+                    }
+                });
+            });
+
+            // Mock Timer logic
+            let timeLeft = 45;
+            const timerEl = document.getElementById('timer');
+            const resendBtn = document.getElementById('resend-btn');
+            
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                const seconds = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+                timerEl.textContent = `00:${seconds}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.classList.add('hidden');
+                    timerEl.previousElementSibling.classList.add('hidden'); // hide clock icon
+                    resendBtn.classList.remove('hidden');
+                }
+            }, 1000);
+        });
+    </script>
+</body></html>

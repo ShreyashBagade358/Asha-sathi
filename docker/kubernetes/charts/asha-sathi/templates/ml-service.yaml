@@ -1,0 +1,17 @@
+{{- if .Values.ml.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "asha-sathi.fullname" . }}-ml
+  labels:
+    {{- include "asha-sathi.componentLabels" (dict "context" . "component" "ml") | nindent 4 }}
+spec:
+  type: {{ .Values.ml.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.ml.service.port }}
+      targetPort: {{ .Values.ml.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "asha-sathi.componentSelectorLabels" (dict "context" . "component" "ml") | nindent 4 }}
+{{- end }}

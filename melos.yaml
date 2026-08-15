@@ -1,0 +1,42 @@
+name: asha_sathi
+version: 1.0.0
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+scripts:
+  bootstrap:
+    run: flutter pub get
+    description: Get dependencies for all packages
+  analyze:
+    run: flutter analyze
+    description: Analyze all packages
+  test:
+    run: flutter test
+    description: Run tests for all packages
+  format:
+    run: dart format --set-exit-if-changed .
+    description: Format all Dart files
+  build:apk:
+    run: flutter build apk --release --split-per-abi
+    description: Build release APKs for all Flutter apps
+  build:appbundle:
+    run: flutter build appbundle --release
+    description: Build release App Bundles for all Flutter apps
+  generate:code:
+    run: dart run build_runner build --delete-conflicting-outputs
+    description: Generate code (freezed, json_serializable, etc.)
+
+packages:
+  - apps/mobile-asha
+  - apps/mobile-phc-admin
+  - apps/mobile-patient
+  - packages/design-system/flutter
+  - packages/shared-types/dart
+  - packages/supabase-client/dart
+
+command:
+  bootstrap:
+    hooks:
+      pre: melos run generate:code
+      post: melos run analyze

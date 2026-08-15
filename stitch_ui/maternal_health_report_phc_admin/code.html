@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Maternal Health Report - ASHA Sathi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#005db6",
+                        "surface": "#f9f9ff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "background": "#f9f9ff",
+                        "inverse-on-surface": "#ecf0ff",
+                        "on-surface": "#091c35",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "secondary": "#006e28",
+                        "on-background": "#091c35",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "secondary-container": "#82fc90",
+                        "secondary-fixed-dim": "#65df77",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-low": "#f0f3ff",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#001f28",
+                        "primary-fixed": "#d6e3ff",
+                        "surface-container-highest": "#d6e3ff",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-secondary-fixed": "#002107",
+                        "tertiary-container": "#006880",
+                        "on-secondary-container": "#00752a",
+                        "primary-container": "#005eb8",
+                        "surface-dim": "#cadbfc",
+                        "tertiary": "#004e61",
+                        "on-primary-container": "#c8daff",
+                        "surface-container": "#e7eeff",
+                        "on-surface-variant": "#424752",
+                        "inverse-surface": "#20314b",
+                        "on-primary-fixed": "#001b3d",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f9f9ff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#a9c7ff",
+                        "surface-variant": "#d6e3ff",
+                        "tertiary-fixed": "#b6ebff",
+                        "surface-container-high": "#dfe8ff",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "outline": "#727783",
+                        "primary": "#00478d",
+                        "secondary-fixed": "#82fc90",
+                        "outline-variant": "#c2c6d4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "touch-target": "48px",
+                        "xxl": "48px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "unit": "4px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "form-gap": "20px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- TopAppBar (Mobile) -->
+<header class="md:hidden fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary">ASHA Sathi</span>
+</div>
+<div class="flex items-center gap-md">
+<button aria-label="sync" class="text-primary hover:bg-surface-container p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button aria-label="notifications" class="text-primary hover:bg-surface-container p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCg1kdwIdpGdHH_ir71oC-13lhSfwbbfeXpupTWme71x4YrXFKVb--frDLY-dWsinBphVShRuSiAMUGaLQyyKKxMiF6YhwSBmrAAQbyIim1g3xy98XDqiZuGySu-UxFixbQEt53SWWoImNAdaHA11ZzaPqfz2pUPVy2IK1jjcKpNdtYhoisEs0MtPkNPx5PjH83zUm6oJK6uqqDzoAmEZ49fvTrcV0DWNLCq62RuQfJmM8bXoQLX_bIlg"/>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant w-64 z-40">
+<div class="flex flex-col mb-lg">
+<span class="font-headline-md text-headline-md font-black text-primary mb-sm">ASHA Sathi</span>
+<div class="flex items-center gap-sm mt-md p-sm bg-surface rounded-lg border border-outline-variant">
+<img alt="Admin Avatar" class="w-10 h-10 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNjuCI8bRtoV4uFm1lVRb64tP531jufFopx07vXAW6j8QvRhcljvjq2PadlBd1pvRAv_glzwYXdn10Mp5ZbbdZ93r5g5IaNOGn1dYQ5A8iPuxawsO_Vd3cyPV8FeZ-kGEMi0WEb_Ud99Wjz-GYV6zmp9IfhavWrBw3AkuTvriG437cfmddUWBRXbL1rloL5mkOxGTPVI-LroJCPpHWeUlqIamOIqbpMuWHQV2FxeVKn3fUjMJHDEDZUQ"/>
+<div>
+<p class="font-label-md text-label-md text-on-surface">Admin Portal</p>
+<p class="font-caption text-caption text-on-surface-variant">District Health Office</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-unit flex-1">
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                Workers
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="person_celebrate">person_celebrate</span>
+                Beneficiaries
+            </a>
+<a class="flex items-center gap-md p-sm bg-secondary-container text-on-secondary-container font-bold rounded-lg transition-all scale-95 duration-150 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md py-sm px-md rounded-full hover:opacity-90 transition-opacity mb-md w-full flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">add</span> Add New Worker
+        </button>
+<div class="flex flex-col gap-unit mt-auto border-t border-outline-variant pt-sm">
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 pt-touch-target md:pt-0 p-md md:p-lg max-w-[1440px] mx-auto min-h-screen flex flex-col gap-lg pb-xxl">
+<!-- Header & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+<div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Maternal Health Report</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Comprehensive overview of ANC tracking and risk distribution.</p>
+</div>
+<div class="flex flex-wrap items-center gap-sm w-full md:w-auto">
+<div class="flex items-center gap-xs bg-surface border border-outline-variant rounded-lg p-unit">
+<span class="material-symbols-outlined text-on-surface-variant px-xs">calendar_month</span>
+<select class="bg-transparent border-none text-body-md text-on-surface focus:ring-0 p-xs cursor-pointer">
+<option>Last 30 Days</option>
+<option>This Quarter</option>
+<option>Year to Date</option>
+</select>
+</div>
+<div class="flex items-center gap-xs bg-surface border border-outline-variant rounded-lg p-unit">
+<span class="material-symbols-outlined text-on-surface-variant px-xs">location_on</span>
+<select class="bg-transparent border-none text-body-md text-on-surface focus:ring-0 p-xs cursor-pointer">
+<option>All Villages</option>
+<option>Rampur</option>
+<option>Sitapur</option>
+</select>
+</div>
+<div class="flex items-center gap-sm ml-auto md:ml-md">
+<button class="flex items-center gap-xs border border-primary text-primary hover:bg-surface-container font-label-md text-label-md py-sm px-md rounded-lg transition-colors h-10">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span> PDF
+                    </button>
+<button class="flex items-center gap-xs bg-primary-container text-on-primary-container hover:opacity-90 font-label-md text-label-md py-sm px-md rounded-lg transition-opacity h-10">
+<span class="material-symbols-outlined text-[18px]">table</span> Excel
+                    </button>
+</div>
+</div>
+</div>
+<!-- Summary KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<p class="font-label-md text-label-md text-on-surface-variant">Total Pregnancies (Active)</p>
+<span class="material-symbols-outlined text-primary bg-primary-container/20 p-xs rounded-full">pregnant_woman</span>
+</div>
+<p class="font-display-lg text-display-lg text-on-surface">342</p>
+<p class="font-caption text-caption text-secondary flex items-center gap-unit"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> +12 from last month</p>
+</div>
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<p class="font-label-md text-label-md text-on-surface-variant">ANC-4 Completion Rate</p>
+<span class="material-symbols-outlined text-secondary bg-secondary-container/30 p-xs rounded-full">task_alt</span>
+</div>
+<p class="font-display-lg text-display-lg text-on-surface">78%</p>
+<div class="w-full bg-surface-container-high rounded-full h-2 mt-unit">
+<div class="bg-secondary h-2 rounded-full" style="width: 78%"></div>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm flex flex-col gap-sm border-l-4 border-l-error">
+<div class="flex justify-between items-start">
+<p class="font-label-md text-label-md text-on-surface-variant">High-Risk Cases Identified</p>
+<span class="material-symbols-outlined text-error bg-error-container/50 p-xs rounded-full">warning</span>
+</div>
+<p class="font-display-lg text-display-lg text-on-surface">45</p>
+<p class="font-caption text-caption text-error">Requires immediate follow-up</p>
+</div>
+</div>
+<!-- Charts & Analysis -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-md">
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm lg:col-span-1 p-md flex flex-col h-[350px]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Risk Factor Distribution</h3>
+<div class="flex-1 relative">
+<canvas id="riskChart"></canvas>
+</div>
+</div>
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm lg:col-span-2 p-md overflow-hidden flex flex-col h-[350px]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Patient Registry (High Priority)</h3>
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant text-on-surface-variant font-label-md text-label-md">
+<th class="py-sm px-unit">Patient Name</th>
+<th class="py-sm px-unit">Village</th>
+<th class="py-sm px-unit">EDD</th>
+<th class="py-sm px-unit">Status</th>
+<th class="py-sm px-unit">Last ANC</th>
+<th class="py-sm px-unit">Assigned ASHA</th>
+<th class="py-sm px-unit text-right">Action</th>
+</tr>
+</thead>
+<tbody class="text-body-md text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors h-[40px]">
+<td class="py-xs px-unit font-bold">Sunita Devi</td>
+<td class="py-xs px-unit text-on-surface-variant">Rampur</td>
+<td class="py-xs px-unit">15 Oct 2023</td>
+<td class="py-xs px-unit"><span class="bg-error-container text-on-error-container text-[12px] px-2 py-1 rounded-full font-bold">High Risk</span></td>
+<td class="py-xs px-unit">02 Sep 2023</td>
+<td class="py-xs px-unit">Aarti K.</td>
+<td class="py-xs px-unit text-right">
+<button class="text-primary hover:bg-surface-container p-unit rounded-full"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors h-[40px] bg-surface-container-low/30">
+<td class="py-xs px-unit font-bold">Meena Kumari</td>
+<td class="py-xs px-unit text-on-surface-variant">Sitapur</td>
+<td class="py-xs px-unit">22 Nov 2023</td>
+<td class="py-xs px-unit"><span class="bg-surface-variant text-on-surface-variant text-[12px] px-2 py-1 rounded-full font-bold">Moderate</span></td>
+<td class="py-xs px-unit">10 Sep 2023</td>
+<td class="py-xs px-unit">Geeta S.</td>
+<td class="py-xs px-unit text-right">
+<button class="text-primary hover:bg-surface-container p-unit rounded-full"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors h-[40px]">
+<td class="py-xs px-unit font-bold">Lakshmi T.</td>
+<td class="py-xs px-unit text-on-surface-variant">Rampur</td>
+<td class="py-xs px-unit">05 Dec 2023</td>
+<td class="py-xs px-unit"><span class="bg-error-container text-on-error-container text-[12px] px-2 py-1 rounded-full font-bold">High Risk</span></td>
+<td class="py-xs px-unit">15 Aug 2023</td>
+<td class="py-xs px-unit">Aarti K.</td>
+<td class="py-xs px-unit text-right">
+<button class="text-primary hover:bg-surface-container p-unit rounded-full"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors h-[40px] bg-surface-container-low/30">
+<td class="py-xs px-unit font-bold">Radha B.</td>
+<td class="py-xs px-unit text-on-surface-variant">Paldi</td>
+<td class="py-xs px-unit">12 Jan 2024</td>
+<td class="py-xs px-unit"><span class="bg-secondary-container text-on-secondary-container text-[12px] px-2 py-1 rounded-full font-bold">Normal</span></td>
+<td class="py-xs px-unit">20 Sep 2023</td>
+<td class="py-xs px-unit">Pooja M.</td>
+<td class="py-xs px-unit text-right">
+<button class="text-primary hover:bg-surface-container p-unit rounded-full"><span class="material-symbols-outlined text-[20px]">visibility</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface border-t border-outline-variant shadow-lg rounded-t-full h-[72px]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors w-16 h-full rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-[10px] mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors w-16 h-full rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="cottage">cottage</span>
+<span class="font-label-md text-[10px] mt-1">Households</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors w-16 h-full rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="person_search">person_search</span>
+<span class="font-label-md text-[10px] mt-1">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 h-[48px] scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in" style="font-variation-settings: 'FILL' 1;">assignment_turned_in</span>
+<span class="font-label-md text-[10px] mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors w-16 h-full rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-[10px] mt-1">Profile</span>
+</a>
+</nav>
+<script>
+        // Chart.js implementation for Risk Distribution
+        document.addEventListener("DOMContentLoaded", function() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Anemia', 'Hypertension', 'Previous Complications', 'Age <18 or >35'],
+                    datasets: [{
+                        data: [40, 25, 20, 15],
+                        backgroundColor: [
+                            '#ba1a1a', // error
+                            '#ffdad6', // error-container
+                            '#005eb8', // primary-container
+                            '#d6e3ff'  // surface-variant
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body></html>

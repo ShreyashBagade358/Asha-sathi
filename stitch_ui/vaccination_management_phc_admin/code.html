@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vaccination Management - Admin Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "on-tertiary-container": "#9be4ff",
+                            "on-primary-fixed-variant": "#00468c",
+                            "on-background": "#091c35",
+                            "secondary-fixed": "#82fc90",
+                            "surface-variant": "#d6e3ff",
+                            "primary-fixed": "#d6e3ff",
+                            "surface-tint": "#005db6",
+                            "on-primary-container": "#c8daff",
+                            "outline": "#727783",
+                            "tertiary-fixed-dim": "#57d5fc",
+                            "primary": "#00478d",
+                            "tertiary": "#004e61",
+                            "error": "#ba1a1a",
+                            "surface-dim": "#cadbfc",
+                            "on-secondary": "#ffffff",
+                            "primary-container": "#005eb8",
+                            "surface": "#f9f9ff",
+                            "surface-container-high": "#dfe8ff",
+                            "on-primary": "#ffffff",
+                            "outline-variant": "#c2c6d4",
+                            "surface-container": "#e7eeff",
+                            "surface-bright": "#f9f9ff",
+                            "inverse-primary": "#a9c7ff",
+                            "on-surface": "#091c35",
+                            "inverse-surface": "#20314b",
+                            "on-secondary-fixed-variant": "#00531c",
+                            "primary-fixed-dim": "#a9c7ff",
+                            "surface-container-lowest": "#ffffff",
+                            "tertiary-container": "#006880",
+                            "secondary-fixed-dim": "#65df77",
+                            "secondary-container": "#82fc90",
+                            "on-secondary-container": "#00752a",
+                            "secondary": "#006e28",
+                            "tertiary-fixed": "#b6ebff",
+                            "on-tertiary-fixed-variant": "#004e60",
+                            "inverse-on-surface": "#ecf0ff",
+                            "on-tertiary-fixed": "#001f28",
+                            "on-surface-variant": "#424752",
+                            "surface-container-low": "#f0f3ff",
+                            "error-container": "#ffdad6",
+                            "on-secondary-fixed": "#002107",
+                            "on-error": "#ffffff",
+                            "on-primary-fixed": "#001b3d",
+                            "on-tertiary": "#ffffff",
+                            "surface-container-highest": "#d6e3ff",
+                            "on-error-container": "#93000a",
+                            "background": "#f9f9ff"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.125rem",
+                            "lg": "0.25rem",
+                            "xl": "0.5rem",
+                            "full": "0.75rem"
+                    },
+                    "spacing": {
+                            "xl": "32px",
+                            "xxl": "48px",
+                            "sm": "8px",
+                            "xs": "4px",
+                            "form-gap": "20px",
+                            "md": "16px",
+                            "touch-target": "48px",
+                            "lg": "24px",
+                            "unit": "4px"
+                    },
+                    "fontFamily": {
+                            "caption": ["Inter"],
+                            "headline-lg-mobile": ["Inter"],
+                            "headline-lg": ["Inter"],
+                            "body-lg": ["Inter"],
+                            "body-lg-mobile": ["Inter"],
+                            "headline-md": ["Inter"],
+                            "label-md": ["Inter"],
+                            "display-lg": ["Inter"],
+                            "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                            "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                            "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                            "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                            "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                            "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                            "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar (from JSON) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant docked left-0 h-full w-64 z-50">
+<div class="flex items-center gap-sm mb-lg px-sm">
+<span class="material-symbols-outlined fill text-primary text-[32px]">admin_panel_settings</span>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-primary">Admin Portal</h1>
+<p class="font-caption text-caption text-on-surface-variant">District Health Office</p>
+</div>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md rounded-lg py-sm px-md flex items-center justify-center gap-sm mb-md hover:bg-surface-container-highest transition-all min-h-[48px]">
+<span class="material-symbols-outlined">add</span>
+            Add New Worker
+        </button>
+<div class="flex flex-col gap-xs flex-grow">
+<!-- Navigation Items -->
+<!-- Dashboard is NOT active for Vaccination Management -->
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">groups</span>
+                Workers
+            </a>
+<!-- Beneficiaries is the closest conceptual match to Vaccination Management -->
+<a class="bg-secondary-container text-on-secondary-container font-bold rounded-lg py-sm px-md flex items-center gap-md scale-95 transition-transform duration-150 min-h-[48px]" href="#">
+<span class="material-symbols-outlined fill">person_celebrate</span>
+                Beneficiaries
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<div class="flex flex-col gap-xs mt-auto pt-md border-t border-outline-variant">
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md rounded-lg py-sm px-md flex items-center gap-md transition-all min-h-[48px]" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 p-md md:p-lg lg:p-xl overflow-y-auto">
+<!-- Header -->
+<header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-xl gap-md">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-background">Vaccination Management</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Overview of immunization programs across PHC jurisdiction.</p>
+</div>
+<div class="flex gap-sm">
+<button class="border border-primary text-primary font-label-md text-label-md rounded-lg px-md py-sm hover:bg-surface-container transition-colors min-h-[48px] flex items-center gap-sm">
+<span class="material-symbols-outlined">download</span>
+                    Export Due List
+                </button>
+<button class="bg-primary text-on-primary font-label-md text-label-md rounded-lg px-md py-sm hover:opacity-90 transition-opacity min-h-[48px] flex items-center gap-sm shadow-sm">
+<span class="material-symbols-outlined">notifications_active</span>
+                    Send Reminders to ASHA
+                </button>
+</div>
+</header>
+<!-- KPI Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md mb-xl">
+<!-- Total Target -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm">
+<div class="flex items-center justify-between mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant">Total Target (0-5 Yrs)</span>
+<span class="material-symbols-outlined text-primary">child_care</span>
+</div>
+<div class="font-display-lg text-display-lg">4,250</div>
+<div class="font-caption text-caption text-on-surface-variant mt-xs">+12% from last year</div>
+</div>
+<!-- Fully Immunized -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm">
+<div class="flex items-center justify-between mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant">Fully Immunized</span>
+<span class="material-symbols-outlined text-secondary">verified</span>
+</div>
+<div class="font-display-lg text-display-lg">3,100</div>
+<div class="flex items-center gap-xs mt-xs">
+<div class="w-full bg-surface-container-high rounded-full h-1.5">
+<div class="bg-secondary h-1.5 rounded-full" style="width: 73%"></div>
+</div>
+<span class="font-caption text-caption text-secondary">73%</span>
+</div>
+</div>
+<!-- Overdue Doses -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm">
+<div class="flex items-center justify-between mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant">Overdue Doses</span>
+<span class="material-symbols-outlined text-error">warning</span>
+</div>
+<div class="font-display-lg text-display-lg">450</div>
+<div class="font-caption text-caption text-error mt-xs">Requires immediate attention</div>
+</div>
+<!-- Inventory Alerts -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-sm">
+<div class="flex items-center justify-between mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant">Low Stock Alerts</span>
+<span class="material-symbols-outlined text-tertiary">inventory</span>
+</div>
+<div class="font-display-lg text-display-lg">2</div>
+<div class="font-caption text-caption text-on-surface-variant mt-xs">Polio, BCG below threshold</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Due & Overdue List (Span 2) -->
+<div class="lg:col-span-2 bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
+<h3 class="font-headline-md text-headline-md">Due &amp; Overdue List</h3>
+<div class="flex gap-sm">
+<select class="bg-surface border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-sm py-xs min-h-[36px]">
+<option>All Villages</option>
+<option>Rampur</option>
+<option>Shitla</option>
+</select>
+<select class="bg-surface border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-sm py-xs min-h-[36px]">
+<option>All Vaccines</option>
+<option>BCG</option>
+<option>Polio</option>
+</select>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low font-label-md text-label-md text-on-surface-variant border-b border-outline-variant">
+<th class="p-sm px-md font-semibold">Child Name</th>
+<th class="p-sm font-semibold">Village / ASHA</th>
+<th class="p-sm font-semibold">Due Vaccine</th>
+<th class="p-sm font-semibold">Due Date</th>
+<th class="p-sm font-semibold">Status</th>
+<th class="p-sm px-md font-semibold text-right">Action</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 1 (Overdue - Red) -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group">
+<td class="p-sm px-md relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+<div class="font-semibold">Aarav Kumar</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: VC-8921</div>
+</td>
+<td class="p-sm">
+<div>Rampur</div>
+<div class="font-caption text-caption text-on-surface-variant">Sita Devi</div>
+</td>
+<td class="p-sm">DPT-1</td>
+<td class="p-sm">12 Oct 2023</td>
+<td class="p-sm">
+<span class="bg-error-container text-on-error-container font-caption text-caption px-2 py-1 rounded-full whitespace-nowrap">Overdue by 14 days</span>
+</td>
+<td class="p-sm px-md text-right">
+<button class="text-primary hover:bg-primary-container p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 (Due - Orange/Warning) -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-sm px-md relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="font-semibold">Priya Sharma</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: VC-8933</div>
+</td>
+<td class="p-sm">
+<div>Shitla</div>
+<div class="font-caption text-caption text-on-surface-variant">Geeta</div>
+</td>
+<td class="p-sm">OPV-2</td>
+<td class="p-sm">26 Oct 2023</td>
+<td class="p-sm">
+<span class="bg-surface-container-highest text-on-surface font-caption text-caption px-2 py-1 rounded-full whitespace-nowrap">Due Today</span>
+</td>
+<td class="p-sm px-md text-right">
+<button class="text-primary hover:bg-primary-container p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 (Upcoming - Neutral) -->
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-sm px-md relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-outline-variant"></div>
+<div class="font-semibold">Rohan Singh</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: VC-8945</div>
+</td>
+<td class="p-sm">
+<div>Kheri</div>
+<div class="font-caption text-caption text-on-surface-variant">Sunita</div>
+</td>
+<td class="p-sm">Measles</td>
+<td class="p-sm">05 Nov 2023</td>
+<td class="p-sm">
+<span class="bg-surface-container text-on-surface font-caption text-caption px-2 py-1 rounded-full whitespace-nowrap">Upcoming</span>
+</td>
+<td class="p-sm px-md text-right">
+<button class="text-on-surface-variant hover:bg-surface-container p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-sm border-t border-outline-variant flex justify-center bg-surface-container-lowest mt-auto">
+<button class="text-primary font-label-md text-label-md hover:underline">View All Records</button>
+</div>
+</div>
+<!-- Inventory Status Widget -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-md flex flex-col">
+<div class="flex justify-between items-center mb-md border-b border-outline-variant pb-sm">
+<h3 class="font-headline-md text-headline-md">Inventory Status</h3>
+<button class="text-primary hover:bg-surface-container p-1 rounded">
+<span class="material-symbols-outlined">sync</span>
+</button>
+</div>
+<div class="flex flex-col gap-md flex-grow">
+<!-- BCG -->
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-xs">
+<span>BCG</span>
+<span class="text-error">150 Vials (Low)</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2">
+<div class="bg-error h-2 rounded-full" style="width: 15%"></div>
+</div>
+</div>
+<!-- Polio (OPV) -->
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-xs">
+<span>OPV</span>
+<span class="text-secondary">850 Vials</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 75%"></div>
+</div>
+</div>
+<!-- DPT -->
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-xs">
+<span>DPT</span>
+<span class="text-tertiary">420 Vials</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2">
+<div class="bg-tertiary h-2 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Measles -->
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-xs">
+<span>Measles</span>
+<span class="text-error">80 Vials (Critial)</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2">
+<div class="bg-error h-2 rounded-full" style="width: 8%"></div>
+</div>
+</div>
+</div>
+<button class="mt-md w-full border border-primary text-primary font-label-md text-label-md rounded-lg py-sm hover:bg-primary-container transition-colors min-h-[48px]">
+                    Request Indent
+                </button>
+</div>
+</div>
+<!-- Secondary Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-lg mt-lg">
+<!-- Vaccination Trend -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-md">
+<h3 class="font-headline-md text-headline-md mb-md border-b border-outline-variant pb-sm">Vaccination Trend (Monthly)</h3>
+<!-- Placeholder for Chart -->
+<div class="h-64 bg-surface-container-lowest rounded flex items-center justify-center relative overflow-hidden border border-outline-variant border-dashed">
+<span class="text-on-surface-variant font-label-md text-label-md z-10 bg-surface px-2 py-1 rounded">Chart: Doses Administered vs Target</span>
+<!-- Decorative CSS visual for chart -->
+<div class="absolute bottom-0 left-0 w-full h-full flex items-end px-md gap-sm opacity-20">
+<div class="w-1/6 bg-primary h-1/3 rounded-t"></div>
+<div class="w-1/6 bg-primary h-1/2 rounded-t"></div>
+<div class="w-1/6 bg-primary h-2/3 rounded-t"></div>
+<div class="w-1/6 bg-primary h-1/2 rounded-t"></div>
+<div class="w-1/6 bg-primary h-3/4 rounded-t"></div>
+<div class="w-1/6 bg-primary h-full rounded-t"></div>
+</div>
+</div>
+</div>
+<!-- Coverage by Village -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-md">
+<h3 class="font-headline-md text-headline-md mb-md border-b border-outline-variant pb-sm">Coverage by Village</h3>
+<!-- Placeholder for Chart -->
+<div class="h-64 bg-surface-container-lowest rounded flex items-center justify-center relative overflow-hidden border border-outline-variant border-dashed">
+<span class="text-on-surface-variant font-label-md text-label-md z-10 bg-surface px-2 py-1 rounded">Chart: % Fully Immunized by Village</span>
+<!-- Decorative CSS visual for horizontal bar chart -->
+<div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center px-md gap-md opacity-20">
+<div class="w-3/4 bg-secondary h-4 rounded-r"></div>
+<div class="w-1/2 bg-tertiary h-4 rounded-r"></div>
+<div class="w-5/6 bg-secondary h-4 rounded-r"></div>
+<div class="w-1/3 bg-error h-4 rounded-r"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (from JSON) - Only visible on mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface border-t border-outline-variant rounded-t-full shadow-lg h-[80px]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-[64px] h-[64px]" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-[64px] h-[64px]" href="#">
+<span class="material-symbols-outlined">cottage</span>
+<span class="font-label-md text-label-md text-[10px]">Households</span>
+</a>
+<!-- Patients/Beneficiaries active state logic -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined fill">person_search</span>
+<span class="font-label-md text-label-md text-[10px]">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-[64px] h-[64px]" href="#">
+<span class="material-symbols-outlined">assignment_turned_in</span>
+<span class="font-label-md text-label-md text-[10px]">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant w-[64px] h-[64px]" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-md text-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+</body></html>

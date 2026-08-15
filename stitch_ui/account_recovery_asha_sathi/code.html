@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Account Recovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f9f9ff",
+                        "on-tertiary-fixed": "#001f28",
+                        "on-secondary-container": "#00752a",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#d6e3ff",
+                        "tertiary-container": "#006880",
+                        "primary-container": "#005eb8",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#d6e3ff",
+                        "surface-container": "#e7eeff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "surface-container-high": "#dfe8ff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#001b3d",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#004e61",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#82fc90",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-dim": "#cadbfc",
+                        "background": "#f9f9ff",
+                        "inverse-primary": "#a9c7ff",
+                        "surface": "#f9f9ff",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "inverse-surface": "#20314b",
+                        "on-background": "#091c35",
+                        "primary": "#00478d",
+                        "outline": "#727783",
+                        "inverse-on-surface": "#ecf0ff",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-primary-container": "#c8daff",
+                        "surface-container-low": "#f0f3ff",
+                        "secondary-fixed-dim": "#65df77",
+                        "on-secondary-fixed": "#002107",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "tertiary-fixed": "#b6ebff",
+                        "on-surface-variant": "#424752",
+                        "outline-variant": "#c2c6d4",
+                        "secondary": "#006e28",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#005db6",
+                        "secondary-fixed": "#82fc90",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d6e3ff",
+                        "on-surface": "#091c35"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "touch-target": "48px",
+                        "unit": "4px",
+                        "sm": "8px",
+                        "xxl": "48px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "form-gap": "20px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "caption": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9ff;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex items-center justify-center p-md md:p-lg">
+<!-- Top Navigation (Simplified for transactional screen) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background shadow-sm border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span>
+</div>
+<a class="font-label-md text-label-md text-primary dark:text-primary-fixed-dim flex items-center gap-xs hover:bg-surface-container transition-colors p-sm rounded-lg" href="#">
+<span class="material-symbols-outlined">arrow_back</span>
+            Back to Login
+        </a>
+</header>
+<main class="w-full max-w-md mx-auto mt-xxl">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-lg md:p-xl">
+<div class="text-center mb-xl">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-container text-on-primary-container mb-md">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">lock_reset</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-sm">Account Recovery</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Enter your registered mobile number or email address below. We'll send you instructions to reset your password.
+                </p>
+</div>
+<form class="space-y-form-gap">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-xs" for="recovery_contact">Mobile Number or Email</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-sm">
+<span class="material-symbols-outlined text-outline">contact_mail</span>
+</span>
+<input class="block w-full pl-xl pr-sm py-sm min-h-[48px] bg-surface border border-outline-variant rounded-lg text-on-surface focus:ring-2 focus:ring-primary focus:border-primary placeholder-outline-variant font-body-md text-body-md transition-shadow" id="recovery_contact" name="recovery_contact" placeholder="e.g. +91 9876543210 or user@example.com" required="" type="text"/>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-sm border border-outline-variant/50 flex gap-sm items-start">
+<span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 1;">info</span>
+<p class="font-caption text-caption text-on-surface-variant">
+                        For mobile numbers, an SMS with a one-time password (OTP) will be sent. For email, you will receive a secure reset link valid for 15 minutes.
+                    </p>
+</div>
+<button class="w-full flex justify-center items-center gap-sm bg-primary text-on-primary font-label-md text-label-md min-h-[48px] rounded-lg shadow-sm hover:bg-on-primary-fixed-variant transition-colors active:scale-95" type="submit">
+                    Request Reset Link
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</form>
+<div class="mt-xl text-center border-t border-outline-variant pt-lg">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Having trouble? 
+                    <a class="font-label-md text-label-md text-primary hover:underline ml-xs" href="#">Contact Admin Support</a>
+</p>
+</div>
+</div>
+</main>
+</body></html>

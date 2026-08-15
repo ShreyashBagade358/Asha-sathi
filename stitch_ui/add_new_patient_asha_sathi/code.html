@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add/Edit Patient - ASHA Sathi</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-tint": "#005db6",
+                        "tertiary-fixed": "#b6ebff",
+                        "surface": "#f9f9ff",
+                        "surface-container-high": "#dfe8ff",
+                        "on-secondary-container": "#00752a",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f0f3ff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "on-secondary-fixed": "#002107",
+                        "outline-variant": "#c2c6d4",
+                        "on-primary-container": "#c8daff",
+                        "surface-container-highest": "#d6e3ff",
+                        "surface-bright": "#f9f9ff",
+                        "inverse-surface": "#20314b",
+                        "secondary-container": "#82fc90",
+                        "inverse-primary": "#a9c7ff",
+                        "on-primary-fixed": "#001b3d",
+                        "surface-container": "#e7eeff",
+                        "tertiary-container": "#006880",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#091c35",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#006e28",
+                        "on-surface": "#091c35",
+                        "secondary-fixed-dim": "#65df77",
+                        "outline": "#727783",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-dim": "#cadbfc",
+                        "on-tertiary-container": "#9be4ff",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "on-surface-variant": "#424752",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "tertiary": "#004e61",
+                        "primary-container": "#005eb8",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#d6e3ff",
+                        "secondary-fixed": "#82fc90",
+                        "background": "#f9f9ff",
+                        "on-tertiary-fixed": "#001f28",
+                        "inverse-on-surface": "#ecf0ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#00478d",
+                        "surface-variant": "#d6e3ff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "sm": "8px",
+                        "md": "16px",
+                        "unit": "4px",
+                        "xxl": "48px",
+                        "form-gap": "20px",
+                        "touch-target": "48px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "xs": "4px"
+                    },
+                    fontFamily: {
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "caption": ["Inter"]
+                    },
+                    fontSize: {
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg-mobile": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom Scrollbar for better UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c2c6d4; /* outline-variant */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #727783; /* outline */
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low text-on-surface h-screen flex flex-col overflow-hidden font-body-md">
+<!-- Task-Focused Header (Replacing Global Nav per Guidelines) -->
+<header class="bg-surface border-b border-outline-variant h-16 flex-shrink-0 flex items-center px-md lg:px-lg sticky top-0 z-50">
+<div class="flex items-center gap-sm w-full max-w-5xl mx-auto">
+<button aria-label="Go back" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<h1 class="font-headline-md text-headline-md text-on-surface leading-tight">Add New Patient</h1>
+<p class="font-caption text-caption text-on-surface-variant hidden md:block">Register a new beneficiary in the PHC database</p>
+</div>
+<div class="ml-auto flex items-center gap-sm">
+<div class="hidden md:flex items-center gap-xs px-sm py-xs bg-surface-container rounded-full text-primary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">cloud_sync</span>
+<span>Online</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto p-md md:p-lg pb-xxl">
+<form class="max-w-4xl mx-auto flex flex-col gap-lg">
+<!-- Section: Personal Information -->
+<section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<div class="bg-surface-container-lowest px-lg py-md border-b border-outline-variant flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">person</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Personal Information</h2>
+</div>
+<div class="p-lg grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<!-- Field: Full Name -->
+<div class="flex flex-col gap-xs md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface-variant" for="patient_name">Full Name *</label>
+<input class="h-touch-target px-md rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="patient_name" placeholder="Enter legal name" required="" type="text"/>
+</div>
+<!-- Field: UID / Health ID -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="uid">ABHA / Health ID</label>
+<input class="h-touch-target px-md rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="uid" placeholder="14-digit ID (Optional)" type="text"/>
+</div>
+<!-- Field: Mobile Number -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="mobile">Mobile Number *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-md text-on-surface-variant font-body-md text-body-md">+91</span>
+<input class="h-touch-target pl-12 pr-md w-full rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="mobile" pattern="[0-9]{10}" placeholder="10-digit number" required="" type="tel"/>
+</div>
+</div>
+<!-- Field: Date of Birth -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="dob">Date of Birth *</label>
+<input class="h-touch-target px-md rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="dob" required="" type="date"/>
+</div>
+<!-- Field: Gender -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="gender">Gender *</label>
+<div class="relative">
+<select class="h-touch-target px-md w-full rounded-lg border border-outline bg-surface text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="gender" required="">
+<option disabled="" selected="" value="">Select gender</option>
+<option value="male">Male</option>
+<option value="female">Female</option>
+<option value="other">Other</option>
+</select>
+<span class="material-symbols-outlined absolute inset-y-0 right-0 flex items-center pr-md pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Family / Household -->
+<section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<div class="bg-surface-container-lowest px-lg py-md border-b border-outline-variant flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">cottage</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Family &amp; Household</h2>
+</div>
+<div class="p-lg grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<!-- Field: Village -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="village">Village / Locality *</label>
+<div class="relative">
+<select class="h-touch-target px-md w-full rounded-lg border border-outline bg-surface text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="village" required="">
+<option disabled="" selected="" value="">Select assigned village</option>
+<option value="v1">Rampur</option>
+<option value="v2">Sitapur</option>
+<option value="v3">Lakshmanpur</option>
+</select>
+<span class="material-symbols-outlined absolute inset-y-0 right-0 flex items-center pr-md pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Field: Household ID -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="household_id">Household ID (Optional)</label>
+<input class="h-touch-target px-md rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="household_id" placeholder="Link to existing household" type="text"/>
+</div>
+</div>
+</section>
+<!-- Section: Initial Health Assessment -->
+<section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden relative">
+<!-- Color coded strip indicator on left for health section -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary-container rounded-l-xl"></div>
+<div class="bg-surface-container-lowest px-lg py-md border-b border-outline-variant flex items-center gap-sm pl-xl">
+<span class="material-symbols-outlined text-tertiary-container">medical_services</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Initial Health Assessment</h2>
+</div>
+<div class="p-lg pl-xl grid grid-cols-1 gap-form-gap">
+<!-- Field: ASHA Assignment -->
+<div class="flex flex-col gap-xs md:w-1/2">
+<label class="font-label-md text-label-md text-on-surface-variant" for="asha_worker">Assigned ASHA Worker *</label>
+<div class="relative">
+<select class="h-touch-target px-md w-full rounded-lg border border-outline bg-surface text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="asha_worker" required="">
+<option disabled="" selected="" value="">Select worker</option>
+<option value="w1">Sunita Devi (Rampur)</option>
+<option value="w2">Anita Kumari (Sitapur)</option>
+</select>
+<span class="material-symbols-outlined absolute inset-y-0 right-0 flex items-center pr-md pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Field: Initial Risk Level -->
+<div class="flex flex-col gap-sm mt-sm">
+<label class="font-label-md text-label-md text-on-surface-variant">Initial Risk Assessment</label>
+<div class="flex flex-col sm:flex-row gap-md">
+<label class="relative flex items-center p-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors w-full">
+<input class="peer sr-only" name="risk_level" type="radio" value="low"/>
+<div class="w-5 h-5 rounded-full border-2 border-outline peer-checked:border-secondary peer-checked:bg-secondary flex items-center justify-center mr-sm">
+<div class="w-2.5 h-2.5 rounded-full bg-surface hidden peer-checked:block"></div>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Routine / Low Risk</span>
+<div class="ml-auto w-3 h-3 rounded-full bg-secondary-container border border-secondary"></div>
+</label>
+<label class="relative flex items-center p-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors w-full">
+<input class="peer sr-only" name="risk_level" type="radio" value="medium"/>
+<div class="w-5 h-5 rounded-full border-2 border-outline peer-checked:border-[orange] peer-checked:bg-[orange] flex items-center justify-center mr-sm">
+<div class="w-2.5 h-2.5 rounded-full bg-surface hidden peer-checked:block"></div>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Monitor / Medium Risk</span>
+<div class="ml-auto w-3 h-3 rounded-full bg-[orange] border border-[darkorange] opacity-50"></div>
+</label>
+<label class="relative flex items-center p-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors w-full">
+<input class="peer sr-only" name="risk_level" type="radio" value="high"/>
+<div class="w-5 h-5 rounded-full border-2 border-outline peer-checked:border-error peer-checked:bg-error flex items-center justify-center mr-sm">
+<div class="w-2.5 h-2.5 rounded-full bg-surface hidden peer-checked:block"></div>
+</div>
+<span class="font-body-md text-body-md text-on-surface">Urgent / High Risk</span>
+<div class="ml-auto w-3 h-3 rounded-full bg-error-container border border-error"></div>
+</label>
+</div>
+</div>
+<!-- Field: Notes -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="notes">Clinical Notes / Presenting Conditions</label>
+<textarea class="p-md rounded-lg border border-outline bg-surface text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-y min-h-[100px]" id="notes" placeholder="Briefly describe any current symptoms or conditions..." rows="3"></textarea>
+</div>
+</div>
+</section>
+</form>
+</main>
+<!-- Sticky Footer Actions -->
+<footer class="bg-surface border-t border-outline-variant px-md py-sm md:px-lg md:py-md flex-shrink-0 z-40">
+<div class="max-w-4xl mx-auto flex items-center justify-end gap-md">
+<button class="h-touch-target px-lg rounded-full font-label-md text-label-md text-primary hover:bg-surface-container-highest transition-colors flex items-center justify-center" type="button">
+                Cancel
+            </button>
+<button class="h-touch-target px-xl rounded-full font-label-md text-label-md bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center shadow-sm" type="button">
+                Save Patient
+            </button>
+</div>
+</footer>
+</body></html>

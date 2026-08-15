@@ -1,0 +1,67 @@
+# DVC pipeline for ASHA Sathi ML training.
+#
+# Stages:
+#   prepare_data  -> generates/loads the three processed datasets
+#   train_*       -> trains each model family and writes joblib + metrics
+#   evaluate      -> consolidates all metrics into a final report
+#   export_onnx   -> exports, quantizes and verifies ONNX artefacts
+#
+# Run:  dvc repro
+stages:
+  prepare_data:
+    cmd: python -m src.training.pipeline --stage prepare_data
+    deps:
+      - src/data/loaders.py
+      - src/training/pipeline.py
+    outs:
+      - data/processed/maternal.parquet
+      - data/processed/child.parquet
+      - data/processed/ncd.parquet
+
+  train_maternal:
+    cmd: python -m src.training.pipeline --stage train_maternal
+    deps:
+      - data/processed/maternal.parquet
+      - src/features/engineering.py
+      - src/models/maternal_risk/train.py
+    outs:
+      - artifacts/maternal/
+      - artifacts/reports/maternal_metrics.json
+
+  train_child:
+    cmd: python -m src.training.pipeline --stage train_child
+    deps:
+      - data/processed/child.parquet
+      - src/features/engineering.py
+      - src/models/child_growth/train.py
+    outs:
+      - artifacts/child/
+      - artifacts/reports/child_metrics.json
+
+  train_ncd:
+    cmd: python -m src.training.pipeline --stage train_ncd
+    deps:
+      - data/processed/ncd.parquet
+      - src/features/engineering.py
+      - src/models/ncd_risk/train.py
+    outs:
+      - artifacts/ncd/
+      - artifacts/reports/ncd_metrics.json
+
+  evaluate:
+    cmd: python -m src.training.pipeline --stage evaluate
+    deps:
+      - artifacts/maternal/
+      - artifacts/child/
+      - artifacts/ncd/
+    outs:
+      - artifacts/reports/final_report.json
+
+  export_onnx:
+    cmd: python -m src.training.pipeline --stage export_onnx
+    deps:
+      - artifacts/maternal/
+      - artifacts/child/
+      - artifacts/ncd/
+    outs:
+      - artifacts/onnx/

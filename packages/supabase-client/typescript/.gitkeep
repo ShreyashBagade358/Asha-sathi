@@ -1,0 +1,65 @@
+// TypeScript Supabase client for ASHA Sathi
+// Provides thin wrappers around the @supabase/supabase-js client
+// with project-specific utilities and helpers for the React dashboard.
+//
+// Currently scaffolded - add your Supabase clients here:
+//
+// - Auth client helpers (signIn, signUp, signOut, getSession)
+// - Database query builders using Supabase types
+// - Storage helpers for file uploads/downloads
+// - Realtime subscription wrappers
+// - Query builders with type safety
+//
+// Example:
+//
+// import { createClient, SupabaseClient } from '@supabase/supabase-js';
+//
+// // Create single supabase client for the app
+// const supabase: SupabaseClient = createClient(
+//   import.meta.env.VITE_SUPABASE_URL!,
+//   import.meta.env.VITE_SUPABASE_ANON_KEY!,
+// );
+//
+// // Auth helper
+// export async function signIn(email: string, password: string) {
+//   const { data, error } = await supabase.auth.signInWithPassword({
+//     email,
+//     password,
+//   });
+//   if (error) throw error;
+//   return data.user;
+// }
+//
+// // Database helper
+// export async function fetchAshas() {
+//   const { data, error } = await supabase
+//     .from('ashas')
+//     .select('*');
+//   if (error) throw error;
+//   return data;
+// }
+//
+// // Storage helper
+// export async function uploadProfileImage(
+//   bucket: string,
+//   path: string,
+//  file: File,
+// ) {
+//   const { error } = await supava.storage
+//     .from(bucket)
+//     .upload(path, file);
+//   if (error) throw error;
+// }
+//
+// // Real-time helper
+// export function subscribeToBeneficiaryChanges(
+//   callback: (payload: any) => void,
+// ) {
+//   return supabase
+//     .channel('beneficiaries changes')
+//     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'beneficiaries' },
+//       callback)
+//     .subscribe();
+// }
+//
+// TODO: Add project-specific Supabase client wrappers

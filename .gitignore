@@ -1,0 +1,72 @@
+# Dependencies / build outputs
+node_modules/
+dist/
+build/
+coverage/
+.pnpm-store/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+eggs/
+*.egg-info/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock
+build/
+*.g.dart
+*.freezed.dart
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.production
+
+# Machine learning artifacts
+models/
+artifacts/
+*.onnx
+*.pkl
+*.joblib
+.mlflow/
+.dvc/
+*.dvc
+
+# Backups & data
+backups/
+*.dump
+*.sql.gz
+apps/backend/test.db
+
+# Logs & temp
+*.log
+tmp/
+.cache/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Mobile release artifacts
+*.apk
+*.aab
+*.ipa

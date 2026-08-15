@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi | PHC Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#f9f9ff",
+                    "tertiary-fixed-dim": "#57d5fc",
+                    "inverse-surface": "#20314b",
+                    "inverse-primary": "#a9c7ff",
+                    "outline-variant": "#c2c6d4",
+                    "surface-container-low": "#f0f3ff",
+                    "on-primary-fixed-variant": "#00468c",
+                    "background": "#f9f9ff",
+                    "primary-container": "#005eb8",
+                    "surface-dim": "#cadbfc",
+                    "tertiary": "#004e61",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#d6e3ff",
+                    "secondary-fixed": "#82fc90",
+                    "on-primary-container": "#c8daff",
+                    "secondary": "#006e28",
+                    "surface-container": "#e7eeff",
+                    "surface-container-high": "#dfe8ff",
+                    "inverse-on-surface": "#ecf0ff",
+                    "surface-tint": "#005db6",
+                    "on-surface-variant": "#424752",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface": "#f9f9ff",
+                    "on-background": "#091c35",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "primary-fixed": "#d6e3ff",
+                    "on-tertiary-fixed": "#001f28",
+                    "surface-container-highest": "#d6e3ff",
+                    "tertiary-container": "#006880",
+                    "on-secondary-container": "#00752a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#091c35",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#65df77",
+                    "on-primary-fixed": "#001b3d",
+                    "on-secondary-fixed": "#002107",
+                    "on-primary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#82fc90",
+                    "tertiary-fixed": "#b6ebff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed-variant": "#00531c",
+                    "outline": "#727783",
+                    "on-tertiary-fixed-variant": "#004e60",
+                    "primary": "#00478d",
+                    "on-tertiary-container": "#9be4ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "touch-target": "48px",
+                    "md": "16px",
+                    "unit": "4px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "xxl": "48px",
+                    "xl": "32px",
+                    "form-gap": "20px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg-mobile": ["Inter"],
+                    "caption": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chart-container { position: relative; width: 100%; height: 200px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden">
+<div class="flex h-screen overflow-hidden">
+<!-- Shared Sidebar -->
+<aside class="w-64 flex-shrink-0 bg-surface-container-lowest border-r border-outline-variant hidden lg:flex flex-col">
+<div class="p-6 border-b border-outline-variant flex items-center gap-3">
+<div class="size-8 bg-primary rounded flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+<div>
+<h1 class="text-headline-md leading-tight text-primary font-bold">ASHA Sathi</h1>
+<p class="text-caption text-outline">Admin Portal</p>
+</div>
+</div>
+<nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">group</span>
+<span>Workers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">volunteer_activism</span>
+<span>Beneficiaries</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">house</span>
+<span>Households</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">pregnant_woman</span>
+<span>Maternal Health</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">child_care</span>
+<span>Child Health</span>
+</a>
+<div class="pt-4 mt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Support</span>
+</a>
+</div>
+</nav>
+<div class="p-4 border-t border-outline-variant bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="A professional portrait of an Indian male healthcare administrator wearing a crisp white shirt and a blue tie, set against a blurred modern medical facility background with soft clinical lighting. The aesthetic is clean, trustworthy, and authoritative within a medical context." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBd4GyFucdZgq-ohro40xxlqnsGTOjiXBOmjB7MbTbrvfAM14eA6z0S3WKinkuVW8ntlMWitTUQcs9bTdgLkF8lHESV5GDyT4nEpnHhBMQ_zixrnqKhq0hQ3FnpSIpbr71bA0rkL9kUWl76TkcuzMRjUY5PC1k8c-wgJ9Bjl3EBcCoWUXR7MRWdPbO7aCoyMmGOZSi4EHdKW1i1L3yZ790jey_grD6XAW4fUPPWoy4SvLtGRsl5zHrqjw')"></div>
+<div class="overflow-hidden">
+<p class="text-label-md truncate">Dr. Rajesh Kumar</p>
+<p class="text-caption text-outline truncate">PHC Administrator</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden bg-surface-bright">
+<!-- Top Bar -->
+<header class="h-16 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-6 z-10">
+<div class="flex items-center gap-4">
+<button class="lg:hidden p-2 text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h2 class="text-headline-md text-on-surface">PHC Administrator - Rampur PHC</h2>
+<p class="text-caption text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1">fiber_manual_record</span>
+                        Live Dashboard Monitoring
+                    </p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-secondary mr-2" style="font-variation-settings: 'FILL' 1">sync</span>
+<span class="text-label-md text-on-surface">System Sync: <span class="text-secondary font-bold">Online</span></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-primary-container text-on-primary-container rounded-lg">
+<span class="material-symbols-outlined text-[28px]">groups</span>
+</div>
+<div>
+<p class="text-caption text-outline-variant font-medium">Total ASHA Workers</p>
+<h3 class="text-display-lg text-on-surface">24</h3>
+<p class="text-caption text-secondary font-bold">+2% reviews</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-tertiary-container text-on-tertiary-container rounded-lg">
+<span class="material-symbols-outlined text-[28px]">patient_list</span>
+</div>
+<div>
+<p class="text-caption text-outline-variant font-medium">Registered Patients</p>
+<h3 class="text-display-lg text-on-surface">1,250</h3>
+<p class="text-caption text-secondary font-bold">+120 this month</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-secondary-container text-on-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-[28px]">event_available</span>
+</div>
+<div>
+<p class="text-caption text-outline-variant font-medium">Today's Visits</p>
+<h3 class="text-display-lg text-on-surface">42</h3>
+<p class="text-caption text-secondary font-bold">+5 new scheduled</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-error-container bg-error-container/10 flex items-center gap-4">
+<div class="p-3 bg-error text-on-error rounded-lg">
+<span class="material-symbols-outlined text-[28px]">report_problem</span>
+</div>
+<div>
+<p class="text-caption text-on-error-container font-medium">High-Risk Patients</p>
+<h3 class="text-display-lg text-error">15</h3>
+<p class="text-caption text-error font-bold">-3 critical resolved</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Critical Alerts -->
+<section class="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+<h2 class="text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-error">notification_important</span>
+                            Critical Alerts
+                        </h2>
+<button class="text-label-md text-primary hover:underline">View All</button>
+</div>
+<div class="p-4 space-y-3">
+<div class="flex items-start gap-4 p-4 rounded-lg bg-error-container/20 border-l-4 border-error">
+<div class="text-error mt-0.5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">warning</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-on-error-container">High-risk pregnancy follow-up missed</h4>
+<p class="text-body-md text-on-surface-variant">Village A: Patient Sunita Sharma missed her 3rd trimester check-up. ASHA worker Anjali Devi notified.</p>
+<div class="mt-2 flex gap-2">
+<button class="px-3 py-1 bg-error text-on-error text-caption rounded-lg font-bold">Assign Task</button>
+<button class="px-3 py-1 border border-outline-variant text-caption rounded-lg hover:bg-surface">Contact ASHA</button>
+</div>
+</div>
+<span class="text-caption text-outline whitespace-nowrap">2h ago</span>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-lg bg-tertiary-container/10 border-l-4 border-tertiary">
+<div class="text-tertiary mt-0.5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">vaccines</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-on-tertiary-container">Vaccination stock low</h4>
+<p class="text-body-md text-on-surface-variant">Sub-center B: BCG and Pentavalent vaccine inventory below 10%. Restock required within 48 hours.</p>
+</div>
+<span class="text-caption text-outline whitespace-nowrap">5h ago</span>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container border-l-4 border-outline">
+<div class="text-on-surface-variant mt-0.5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">update</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-on-surface">Weekly Report Pending</h4>
+<p class="text-body-md text-on-surface-variant">4 ASHA workers from Rampur Sector-2 have not submitted their weekly maternal health logs.</p>
+</div>
+<span class="text-caption text-outline whitespace-nowrap">Yesterday</span>
+</div>
+</div>
+</section>
+<!-- Vaccination Donut Chart -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col items-center justify-center relative">
+<h3 class="text-label-md text-outline-variant self-start mb-4 uppercase tracking-wider">Vaccination Coverage</h3>
+<div class="relative size-48">
+<svg class="size-full -rotate-90" viewbox="0 0 36 36">
+<circle class="stroke-surface-container" cx="18" cy="18" fill="none" r="16" stroke-width="3"></circle>
+<circle class="stroke-primary" cx="18" cy="18" fill="none" r="16" stroke-dasharray="85, 100" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-display-lg text-on-surface">85%</span>
+<span class="text-caption text-outline">Target Met</span>
+</div>
+</div>
+<div class="mt-6 w-full space-y-2">
+<div class="flex justify-between items-center">
+<span class="flex items-center gap-2 text-caption font-medium"><div class="size-2 rounded-full bg-primary"></div> Completed</span>
+<span class="text-label-md">1,063</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="flex items-center gap-2 text-caption font-medium"><div class="size-2 rounded-full bg-surface-container"></div> Pending</span>
+<span class="text-label-md">187</span>
+</div>
+</div>
+<button class="mt-4 w-full py-2 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-md text-primary font-bold transition-colors">Details Report</button>
+</section>
+</div>
+<!-- Trends and Activity Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Registration Trend -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-headline-md">Patient Registration Trend</h3>
+<select class="text-caption rounded-lg border-outline-variant bg-surface-bright focus:ring-primary">
+<option>Last 6 Months</option>
+<option>Last Year</option>
+</select>
+</div>
+<div class="h-64 flex items-end justify-between gap-2">
+<!-- Simplified bar-style line chart representation -->
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/20 rounded-t-lg h-[40%]" title="Jan: 450"></div>
+<span class="text-[10px] text-outline">JAN</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/30 rounded-t-lg h-[55%]" title="Feb: 580"></div>
+<span class="text-[10px] text-outline">FEB</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/50 rounded-t-lg h-[70%]" title="Mar: 720"></div>
+<span class="text-[10px] text-outline">MAR</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/70 rounded-t-lg h-[65%]" title="Apr: 680"></div>
+<span class="text-[10px] text-outline">APR</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/90 rounded-t-lg h-[85%]" title="May: 950"></div>
+<span class="text-[10px] text-outline">MAY</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary rounded-t-lg h-[100%]" title="Jun: 1250"></div>
+<span class="text-[10px] text-outline">JUN</span>
+</div>
+</div>
+<p class="mt-4 text-caption text-secondary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                        Registration increased by 14% since May
+                    </p>
+</section>
+<!-- Recent Activity -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low">
+<h2 class="text-headline-md text-on-surface">Recent Activity</h2>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-lowest">
+<tr>
+<th class="px-6 py-3 text-caption font-bold text-outline uppercase">Worker</th>
+<th class="px-6 py-3 text-caption font-bold text-outline uppercase">Activity</th>
+<th class="px-6 py-3 text-caption font-bold text-outline uppercase">Location</th>
+<th class="px-6 py-3 text-caption font-bold text-outline uppercase">Time</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary">AD</div>
+<span class="text-label-md">Anjali Devi</span>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md">Registered 3 new households</td>
+<td class="px-6 py-4 text-body-md">Gonda Sector-1</td>
+<td class="px-6 py-4 text-caption text-outline">10 mins ago</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary">SR</div>
+<span class="text-label-md">Sunita Rao</span>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md">Completed 5 vaccination visits</td>
+<td class="px-6 py-4 text-body-md">Rampur West</td>
+<td class="px-6 py-4 text-caption text-outline">45 mins ago</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary">MK</div>
+<span class="text-label-md">Meera Kumari</span>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md">Submitted antenatal care report</td>
+<td class="px-6 py-4 text-body-md">Sultanpur Village</td>
+<td class="px-6 py-4 text-caption text-outline">2 hours ago</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary">PK</div>
+<span class="text-label-md">Priyanka K.</span>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md">Flagged high-risk case (Fever)</td>
+<td class="px-6 py-4 text-body-md">Gonda Sector-3</td>
+<td class="px-6 py-4 text-caption text-outline text-error font-bold">Urgent</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 text-center">
+<button class="text-primary text-label-md font-bold hover:underline">View Full Activity Log</button>
+</div>
+</section>
+</div>
+<!-- PHC Map Preview -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden p-6">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-headline-md">Regional Monitoring Map</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-caption font-medium"><div class="size-2 rounded-full bg-error"></div> High Risk Zone</span>
+<span class="flex items-center gap-1 text-caption font-medium"><div class="size-2 rounded-full bg-secondary"></div> Safe Zone</span>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden h-[300px] border border-outline-variant">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A stylized digital map of a rural Indian region showing villages and agricultural lands interspersed with small health centers. The map features interactive data overlays with glowing green and red clusters indicating health metrics, rendered in a modern clean UI aesthetic with professional cartographic detail." data-location="Rampur, India" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFQQ00wv39cR0P2TmI4F3hSv5iHIRtyYoa68DWN-kPlB9p8aqfDJ3SoneI4IrAsp-lj_zgf2wA9zSOjrkjFERXxdLu6U74YSv3OISsFZWp_HGTVS4aXiVCEMwZnTp67qFiLHgeKa1v_0HH3p4wGUGoX3xguwRjgwUSHLzdYDbDxgrvu_5Znx0x5oVGR0mdWKuknXZFusxEYaWooaKJopCsEZQXPi3VZHsslP0mu-LcWV8FWlf_xBCaTQ')"></div>
+<div class="absolute bottom-4 left-4 p-3 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-xl border border-outline-variant max-w-[200px]">
+<p class="text-label-md font-bold text-primary">Area Activity</p>
+<p class="text-caption text-on-surface">Rampur Sector-1 shows highest visit completion rate this week.</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<script>
+    // Micro-interactions and data simulations
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.classList.add('scale-95');
+            setTimeout(() => this.classList.remove('scale-95'), 100);
+        });
+    });
+
+    // Mock notification handler
+    const notifBtn = document.querySelector('button .material-symbols-outlined:contains("notifications")')?.parentElement;
+    if (notifBtn) {
+        notifBtn.onclick = () => {
+            alert("New notification: Vaccination stock at Sub-center B is critical.");
+        };
+    }
+</script>
+</body></html>

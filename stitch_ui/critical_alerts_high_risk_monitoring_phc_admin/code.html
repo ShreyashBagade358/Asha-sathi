@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Critical Alerts &amp; High-Risk Monitoring - PHC Connect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#a9c7ff",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#d6e3ff",
+                        "on-surface": "#091c35",
+                        "surface-container-low": "#f0f3ff",
+                        "on-error": "#ffffff",
+                        "secondary": "#006e28",
+                        "on-primary-fixed": "#001b3d",
+                        "surface-container": "#e7eeff",
+                        "primary-container": "#005eb8",
+                        "on-background": "#091c35",
+                        "on-secondary-fixed": "#002107",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#004e61",
+                        "surface-dim": "#cadbfc",
+                        "inverse-primary": "#a9c7ff",
+                        "primary": "#00478d",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "secondary-fixed": "#82fc90",
+                        "on-tertiary-fixed": "#001f28",
+                        "inverse-on-surface": "#ecf0ff",
+                        "outline": "#727783",
+                        "surface-tint": "#005db6",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#006880",
+                        "on-primary-container": "#c8daff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "surface-container-highest": "#d6e3ff",
+                        "on-secondary-container": "#00752a",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#d6e3ff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f9f9ff",
+                        "outline-variant": "#c2c6d4",
+                        "inverse-surface": "#20314b",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "secondary-container": "#82fc90",
+                        "surface-container-high": "#dfe8ff",
+                        "tertiary-fixed": "#b6ebff",
+                        "on-surface-variant": "#424752",
+                        "secondary-fixed-dim": "#65df77",
+                        "surface": "#f9f9ff",
+                        "background": "#f9f9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "xs": "4px",
+                        "xxl": "48px",
+                        "sm": "8px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "touch-target": "48px",
+                        "unit": "4px",
+                        "form-gap": "20px"
+                    },
+                    "fontFamily": {
+                        "body-lg-mobile": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "caption": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background m-0 p-0 antialiased h-screen overflow-hidden flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest border-b border-outline-variant shadow-sm fixed top-0 left-0 w-full z-50 flex justify-between items-center px-lg h-touch-target">
+<div class="flex items-center gap-sm">
+<span class="font-display-lg text-display-lg text-primary">PHC Connect</span>
+<span class="ml-sm font-label-md text-label-md bg-error-container text-on-error-container px-xs py-[2px] rounded-DEFAULT">CRITICAL ALERTS</span>
+</div>
+<div class="flex-1 flex justify-start px-lg">
+<div class="relative w-64 hidden md:block">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full h-10 pl-10 pr-sm rounded-DEFAULT border border-outline-variant bg-surface-container-lowest focus:outline-none focus:border-primary font-body-md text-body-md" placeholder="Search patients or ID..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors cursor-pointer active:opacity-80 text-on-surface-variant">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors cursor-pointer active:opacity-80 text-on-surface-variant relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors cursor-pointer active:opacity-80 text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden ml-sm border border-outline-variant">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a healthcare administrator in a well-lit modern office setting. The administrator is wearing a clean white coat over sensible business attire, smiling warmly. The background is slightly blurred showing medical charts, conveying a sense of competence and care in a clinical environment. Bright, modern lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoKXO2EasbwYwldExbBxICzW6Ms835tc-HC6tK4Kuqx8u85fLA0kVj29WdoB77Ba-DGsXLaq3PFiNXf6zzAcstvxTjnzUSR6ZTQ9jSlt6Ncg41ROsRAWa_smWLv0dZmWU7IkX0KzBQYI--kFrkr8L4P6t9S_tiOvZ83DLW1kxgk0uzM8j_q_k8HPAZG3LNZRsm4MVEztB_DvUtYg5UF4F_NRwC3Jpfp7qmeD634RkNIpUem9L4hhhGyQ"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-[48px] h-full overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col bg-surface-container-low border-r border-outline-variant w-64 h-full pt-xxl pb-lg z-40 shrink-0">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-sm mb-xs">
+<div class="w-10 h-10 bg-primary-container rounded-DEFAULT flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">local_hospital</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface leading-tight">PHC Rural Admin</h2>
+<p class="font-caption text-caption text-on-surface-variant">District Division A-12</p>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-sm mx-sm my-xs px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm mx-sm my-xs px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-md text-label-md">Workers</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm mx-sm my-xs px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">person_heart</span>
+<span class="font-label-md text-label-md">Beneficiaries</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm mx-sm my-xs px-md py-sm rounded-lg bg-error-container text-on-error-container font-bold hover:bg-error-container transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-md text-label-md flex-1">Critical Alerts</span>
+<span class="bg-error text-on-error font-caption text-caption px-xs rounded-full">12</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm mx-sm my-xs px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">pregnant_woman</span>
+<span class="font-label-md text-label-md">Maternal Health</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="px-md mt-auto pt-lg border-t border-outline-variant">
+<button class="w-full flex items-center justify-center gap-sm bg-primary-container text-on-primary-container py-sm rounded-DEFAULT font-label-md text-label-md hover:bg-primary transition-colors active:scale-95 mb-md">
+<span class="material-symbols-outlined">sync</span>
+                    Sync Records
+                </button>
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-DEFAULT transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-DEFAULT transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto bg-surface p-lg md:p-xl flex flex-col gap-lg">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-background mb-xs">Active Alerts</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Immediate administrative action required across division.</p>
+</div>
+<div class="flex gap-sm">
+<div class="bg-surface-container-highest px-md py-sm rounded-DEFAULT flex items-center gap-sm border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface">Live Sync Active</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout for Alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg h-full">
+<!-- Left Column: High-Risk Patients (Larger area) -->
+<div class="lg:col-span-8 flex flex-col gap-lg">
+<!-- Section Header -->
+<div class="flex items-center gap-sm border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-error">personal_injury</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Patient Emergencies</h2>
+<span class="bg-error-container text-on-error-container px-sm py-[2px] rounded-full font-caption text-caption ml-auto">6 Critical</span>
+</div>
+<div class="flex flex-col gap-md overflow-y-auto pr-sm" style="max-height: calc(100vh - 300px);">
+<!-- Alert Card 1: Maternal Health -->
+<div class="bg-surface-container-lowest border border-error-container rounded-xl p-md flex gap-md shadow-sm relative overflow-hidden group hover:border-error transition-colors">
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-error"></div>
+<div class="w-12 h-12 bg-error-container rounded-full flex items-center justify-center shrink-0 mt-xs">
+<span class="material-symbols-outlined text-on-error-container" style="font-variation-settings: 'FILL' 1;">pregnant_woman</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-xs">
+<div>
+<div class="flex items-center gap-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface">Asha Devi, 26y</h3>
+<span class="bg-error text-on-error px-xs py-[2px] rounded-DEFAULT font-caption text-caption uppercase tracking-wide">Critical</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Village: Rampur (ASHA: Sunita M.)</p>
+</div>
+<span class="font-caption text-caption text-error font-bold flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 15m ago
+                                    </span>
+</div>
+<div class="bg-surface-container-low p-sm rounded-DEFAULT mb-md">
+<p class="font-body-md text-body-md text-on-surface"><span class="font-bold text-error">High BP (180/110)</span> recorded during 3rd trimester checkup. Severe preeclampsia risk.</p>
+</div>
+<div class="flex gap-sm mt-auto">
+<button class="bg-error hover:bg-[#a30000] text-on-error font-label-md text-label-md px-md py-sm rounded-DEFAULT transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">emergency_share</span> Direct Ambulance
+                                    </button>
+<button class="border border-outline-variant hover:bg-surface-container-highest text-on-surface font-label-md text-label-md px-md py-sm rounded-DEFAULT transition-colors">
+                                        Contact ASHA
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Alert Card 2: SAM Child -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex gap-md shadow-sm relative overflow-hidden hover:border-tertiary-container transition-colors">
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-tertiary"></div>
+<div class="w-12 h-12 bg-tertiary-container rounded-full flex items-center justify-center shrink-0 mt-xs">
+<span class="material-symbols-outlined text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">child_care</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-xs">
+<div>
+<div class="flex items-center gap-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface">Rahul K., 14mo</h3>
+<span class="bg-tertiary text-on-tertiary px-xs py-[2px] rounded-DEFAULT font-caption text-caption uppercase tracking-wide">High Risk - SAM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Village: Sitapur (ASHA: Meena G.)</p>
+</div>
+<span class="font-caption text-caption text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 1h ago
+                                    </span>
+</div>
+<div class="bg-surface-container-low p-sm rounded-DEFAULT mb-md">
+<p class="font-body-md text-body-md text-on-surface"><span class="font-bold">MUAC reading red</span> (&lt; 11.5cm). Continuous weight loss over 2 months. NRC admission required.</p>
+</div>
+<div class="flex gap-sm mt-auto">
+<button class="bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-md py-sm rounded-DEFAULT transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">local_hospital</span> Initiate NRC Transfer
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Referrals & Actions (Smaller area) -->
+<div class="lg:col-span-4 flex flex-col gap-lg">
+<!-- Referral Alerts -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm flex flex-col h-1/2">
+<div class="p-md border-b border-outline-variant bg-surface-container-low flex justify-between items-center rounded-t-xl">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">directions_car</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Referral Status</h2>
+</div>
+<span class="bg-primary-container text-on-primary-container px-sm py-[2px] rounded-full font-caption text-caption">2 Pending</span>
+</div>
+<div class="flex-1 p-sm overflow-y-auto">
+<!-- Pending Transfer -->
+<div class="p-sm mb-sm bg-surface-container rounded-DEFAULT border border-primary-fixed-dim">
+<div class="flex justify-between mb-xs">
+<span class="font-label-md text-label-md text-primary">To District Hospital</span>
+<span class="font-caption text-caption bg-secondary-container text-on-secondary-container px-xs rounded-DEFAULT">Awaiting Acceptance</span>
+</div>
+<p class="font-body-sm text-body-md text-on-surface mb-xs">Patient ID: #9928 (Complicated Labor)</p>
+<button class="w-full border border-primary text-primary hover:bg-primary-container hover:text-on-primary-container font-label-md text-label-md py-xs rounded-DEFAULT transition-colors mt-xs">
+                                    Follow Up Call
+                                </button>
+</div>
+<!-- Ambulance Wait -->
+<div class="p-sm bg-surface-container rounded-DEFAULT border border-outline-variant">
+<div class="flex justify-between mb-xs">
+<span class="font-label-md text-label-md text-on-surface">Ambulance Dispatch</span>
+<span class="font-caption text-caption bg-surface-variant text-on-surface-variant px-xs rounded-DEFAULT">ETA 25m</span>
+</div>
+<p class="font-body-sm text-body-md text-on-surface-variant">Village: Kherwadi</p>
+</div>
+</div>
+</div>
+<!-- Action Log -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm flex flex-col h-1/2">
+<div class="p-md border-b border-outline-variant flex justify-between items-center">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant">check_circle</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Resolution Log</h2>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">Today</span>
+</div>
+<div class="flex-1 p-md overflow-y-auto">
+<ul class="relative border-l border-outline-variant ml-sm space-y-md">
+<li class="pl-md relative">
+<div class="absolute w-3 h-3 bg-secondary rounded-full -left-[6px] top-1"></div>
+<p class="font-body-md text-body-md text-on-surface">Ambulance dispatched for <span class="font-bold">Manoj T.</span></p>
+<p class="font-caption text-caption text-on-surface-variant">10:45 AM by Dr. Sharma</p>
+</li>
+<li class="pl-md relative">
+<div class="absolute w-3 h-3 bg-secondary rounded-full -left-[6px] top-1"></div>
+<p class="font-body-md text-body-md text-on-surface">Missed TB follow-up contacted.</p>
+<p class="font-caption text-caption text-on-surface-variant">09:15 AM by Admin A1</p>
+</li>
+<li class="pl-md relative">
+<div class="absolute w-3 h-3 bg-outline-variant rounded-full -left-[6px] top-1"></div>
+<p class="font-body-md text-body-md text-on-surface-variant">Daily sync completed.</p>
+<p class="font-caption text-caption text-on-surface-variant">08:00 AM System</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

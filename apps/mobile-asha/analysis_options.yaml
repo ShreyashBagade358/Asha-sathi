@@ -1,0 +1,17 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: false
+    unawaited_futures: true
+    avoid_print: true
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-inference: true
+    strict-raw-types: false
+  exclude:
+    - "**/*.freezed.dart"
+    - "**/*.g.dart"
+    - "**/generated/**"

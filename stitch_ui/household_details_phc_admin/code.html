@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PHC Admin - Household Details</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for data tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+        /* Tab transition */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#005eb8",
+                        "outline": "#727783",
+                        "on-primary": "#ffffff",
+                        "background": "#f9f9ff",
+                        "on-primary-fixed": "#001b3d",
+                        "on-tertiary-fixed": "#001f28",
+                        "inverse-surface": "#20314b",
+                        "tertiary-fixed": "#b6ebff",
+                        "surface-container-highest": "#d6e3ff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "on-tertiary-container": "#9be4ff",
+                        "on-secondary-container": "#00752a",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#006880",
+                        "surface-tint": "#005db6",
+                        "on-secondary-fixed": "#002107",
+                        "surface-container-low": "#f0f3ff",
+                        "tertiary": "#004e61",
+                        "secondary-container": "#82fc90",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "inverse-on-surface": "#ecf0ff",
+                        "error": "#ba1a1a",
+                        "secondary": "#006e28",
+                        "primary": "#00478d",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#57d5fc",
+                        "on-background": "#091c35",
+                        "primary-fixed": "#d6e3ff",
+                        "secondary-fixed-dim": "#65df77",
+                        "surface-bright": "#f9f9ff",
+                        "surface-container": "#e7eeff",
+                        "surface": "#f9f9ff",
+                        "on-primary-container": "#c8daff",
+                        "outline-variant": "#c2c6d4",
+                        "surface-variant": "#d6e3ff",
+                        "on-surface-variant": "#424752",
+                        "secondary-fixed": "#82fc90",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#dfe8ff",
+                        "surface-dim": "#cadbfc",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "on-surface": "#091c35",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#a9c7ff",
+                        "on-primary-fixed-variant": "#00468c"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "form-gap": "20px",
+                        "xxl": "48px",
+                        "xs": "4px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "touch-target": "48px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "xl": "32px"
+                    },
+                    fontFamily: {
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg-mobile": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    fontSize: {
+                        "label-md": ["14px", { lineHeight: "20px", fontWeight: "600" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "caption": ["12px", { lineHeight: "16px", fontWeight: "400" }],
+                        "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+                        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "body-lg-mobile": ["18px", { lineHeight: "26px", fontWeight: "400" }],
+                        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "700" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-bright text-on-surface font-body-md min-h-screen flex flex-col antialiased">
+<!-- Top Contextual Header (Sub-page level) -->
+<header class="bg-surface-container-lowest border-b border-outline-variant px-lg h-[72px] flex items-center justify-between sticky top-0 z-50">
+<div class="flex items-center gap-md">
+<button aria-label="Back to Households" class="flex items-center gap-sm text-primary hover:bg-surface-container-low px-sm py-xs rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+<span class="font-label-md text-label-md hidden sm:inline">Back to Households</span>
+</button>
+<div class="h-6 w-px bg-outline-variant mx-sm"></div>
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface flex items-center gap-sm">
+                    Household Details
+                    <span class="bg-surface-container text-on-surface-variant font-label-md text-label-md px-sm py-[2px] rounded-full border border-outline-variant">HHID: 10452-A</span>
+</h1>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="flex items-center gap-sm border border-outline hover:bg-surface-container-low text-primary font-label-md text-label-md h-touch-target px-md rounded-xl transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+<span class="hidden md:inline">Edit Details</span>
+</button>
+<button class="flex items-center gap-sm bg-primary text-on-primary hover:opacity-90 font-label-md text-label-md h-touch-target px-md rounded-xl transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_box</span>
+<span>Log Visit</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto p-lg md:p-xl space-y-xl">
+<!-- Household Summary Bento Box -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
+<!-- Address Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px] text-tertiary">home</span>
+<h2 class="font-label-md text-label-md uppercase tracking-wider">Address Location</h2>
+</div>
+<div class="font-body-lg text-body-lg text-on-surface mt-auto">
+                    Village Rampur, Ward 3<br/>
+                    House 42, Block C
+                </div>
+</div>
+<!-- Members Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px] text-primary">group</span>
+<h2 class="font-label-md text-label-md uppercase tracking-wider">Total Members</h2>
+</div>
+<div class="flex items-baseline gap-sm mt-auto">
+<span class="font-display-lg text-display-lg text-on-surface">6</span>
+<span class="font-caption text-caption text-on-surface-variant">Registered</span>
+</div>
+</div>
+<!-- Income Source Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px] text-secondary">payments</span>
+<h2 class="font-label-md text-label-md uppercase tracking-wider">Primary Income</h2>
+</div>
+<div class="font-body-lg text-body-lg text-on-surface mt-auto">
+                    Agriculture / Farming
+                </div>
+</div>
+<!-- ASHA Worker Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-[0_2px_4px_rgba(0,0,0,0.02)] relative overflow-hidden">
+<div class="absolute right-0 top-0 w-16 h-16 bg-primary-container/10 rounded-bl-full z-0"></div>
+<div class="flex items-center gap-sm text-on-surface-variant relative z-10">
+<span class="material-symbols-outlined text-[20px] text-primary">medical_services</span>
+<h2 class="font-label-md text-label-md uppercase tracking-wider">Assigned ASHA</h2>
+</div>
+<div class="flex items-center gap-md mt-auto relative z-10">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-headline-md text-headline-md">
+                        SD
+                    </div>
+<div>
+<div class="font-body-md text-body-md font-semibold">Sunita Devi</div>
+<div class="font-caption text-caption text-on-surface-variant">ID: AW-4092</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Tabs Navigation -->
+<section class="border-b border-outline-variant">
+<nav aria-label="Tabs" class="flex gap-lg overflow-x-auto custom-scrollbar">
+<button class="tab-button font-label-md text-label-md text-primary border-b-2 border-primary pb-sm whitespace-nowrap" data-target="tab-members">
+                    Members (6)
+                </button>
+<button class="tab-button font-label-md text-label-md text-on-surface-variant hover:text-on-surface border-b-2 border-transparent hover:border-outline-variant pb-sm whitespace-nowrap transition-colors" data-target="tab-visits">
+                    Visit History
+                </button>
+<button class="tab-button font-label-md text-label-md text-on-surface-variant hover:text-on-surface border-b-2 border-transparent hover:border-outline-variant pb-sm whitespace-nowrap transition-colors flex items-center gap-xs" data-target="tab-followups">
+                    Pending Follow-ups
+                    <span class="bg-error-container text-on-error-container text-[10px] font-bold px-xs rounded-sm">2</span>
+</button>
+<button class="tab-button font-label-md text-label-md text-on-surface-variant hover:text-on-surface border-b-2 border-transparent hover:border-outline-variant pb-sm whitespace-nowrap transition-colors" data-target="tab-survey">
+                    Health Survey Summary
+                </button>
+</nav>
+</section>
+<!-- Tab Content Area -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.02)] overflow-hidden min-h-[400px]">
+<!-- Tab: Members (Data Table) -->
+<div class="tab-content active w-full overflow-x-auto custom-scrollbar" id="tab-members">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant font-medium">Name</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant font-medium">Age</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant font-medium">Gender</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant font-medium">Health Status</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant font-medium text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- High Risk Row -->
+<tr class="hover:bg-surface-container-lowest transition-colors group relative">
+<!-- Vertical Status Strip -->
+<td class="absolute left-0 top-0 bottom-0 w-1 bg-error"></td>
+<td class="py-sm px-md h-[48px]">
+<div class="font-body-md text-body-md text-on-surface font-medium pl-xs">Ram Prasad</div>
+<div class="font-caption text-caption text-on-surface-variant pl-xs">Head of Household</div>
+</td>
+<td class="py-sm px-md font-body-md text-body-md">65</td>
+<td class="py-sm px-md font-body-md text-body-md">Male</td>
+<td class="py-sm px-md">
+<span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-error-container text-on-error-container font-caption text-caption font-semibold">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                                    Hypertension
+                                </span>
+</td>
+<td class="py-sm px-md text-right">
+<button aria-label="View Details" class="text-primary hover:text-primary-container p-xs rounded hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Normal Row -->
+<tr class="hover:bg-surface-container-lowest transition-colors relative">
+<td class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></td>
+<td class="py-sm px-md h-[48px]">
+<div class="font-body-md text-body-md text-on-surface font-medium pl-xs">Sita Devi</div>
+<div class="font-caption text-caption text-on-surface-variant pl-xs">Spouse</div>
+</td>
+<td class="py-sm px-md font-body-md text-body-md">60</td>
+<td class="py-sm px-md font-body-md text-body-md">Female</td>
+<td class="py-sm px-md">
+<span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-secondary-container text-on-secondary-container font-caption text-caption font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                    Healthy
+                                </span>
+</td>
+<td class="py-sm px-md text-right">
+<button aria-label="View Details" class="text-primary hover:text-primary-container p-xs rounded hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Maternal Health Risk -->
+<tr class="hover:bg-surface-container-lowest transition-colors relative">
+<td class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></td>
+<td class="py-sm px-md h-[48px]">
+<div class="font-body-md text-body-md text-on-surface font-medium pl-xs">Priya Kumari</div>
+<div class="font-caption text-caption text-on-surface-variant pl-xs">Daughter-in-law</div>
+</td>
+<td class="py-sm px-md font-body-md text-body-md">24</td>
+<td class="py-sm px-md font-body-md text-body-md">Female</td>
+<td class="py-sm px-md">
+<span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-tertiary-container text-on-tertiary-container font-caption text-caption font-semibold">
+<span class="material-symbols-outlined text-[14px]">pregnant_woman</span>
+                                    ANC - Trimester 2
+                                </span>
+</td>
+<td class="py-sm px-md text-right">
+<button aria-label="View Details" class="text-primary hover:text-primary-container p-xs rounded hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Tab: Visit History (Placeholder for structure) -->
+<div class="tab-content p-lg" id="tab-visits">
+<div class="text-center py-xl text-on-surface-variant">
+<span class="material-symbols-outlined text-[48px] opacity-50 mb-sm">history</span>
+<p class="font-body-lg text-body-lg">Visit history timeline will appear here.</p>
+</div>
+</div>
+<!-- Tab: Pending Follow-ups (Placeholder for structure) -->
+<div class="tab-content p-lg" id="tab-followups">
+<div class="text-center py-xl text-on-surface-variant">
+<span class="material-symbols-outlined text-[48px] opacity-50 mb-sm">event_upcoming</span>
+<p class="font-body-lg text-body-lg">Pending tasks and referrals will appear here.</p>
+</div>
+</div>
+<!-- Tab: Health Survey Summary (Placeholder for structure) -->
+<div class="tab-content p-lg" id="tab-survey">
+<div class="text-center py-xl text-on-surface-variant">
+<span class="material-symbols-outlined text-[48px] opacity-50 mb-sm">fact_check</span>
+<p class="font-body-lg text-body-lg">Survey data visualizations will appear here.</p>
+</div>
+</div>
+</section>
+</main>
+<script>
+        // Simple tab switching logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active styles from all buttons
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-primary', 'border-primary', 'font-bold');
+                        btn.classList.add('text-on-surface-variant', 'border-transparent');
+                    });
+
+                    // Add active style to clicked button
+                    button.classList.add('text-primary', 'border-primary', 'font-bold');
+                    button.classList.remove('text-on-surface-variant', 'border-transparent');
+
+                    // Hide all content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+
+                    // Show target content
+                    const targetId = button.getAttribute('data-target');
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body></html>

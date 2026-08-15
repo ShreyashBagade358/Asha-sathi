@@ -1,0 +1,54 @@
+// Flutter Supabase client for ASHA Sathi
+// Provides thin wrappers around the Supabase Flutter client
+// with project-specific utilities and helpers.
+//
+// Currently scaffolded - add your Supabase clients here:
+//
+// - Auth client helpers (signIn, signUp, signOut, getSession)
+// - Database query builders
+// - Storage helpers for file uploads
+// - Real-time subscription wrappers
+//
+// Example:
+//
+// import 'package:supabase_flutter/supabase_flutter.dart';
+//
+// final supa = SupabaseClient(
+//   Uri.parse('https://xyz.supabase.co'),
+//   'public-anon-key',
+// );
+//
+// // Auth helper
+// Future<User?> getCurrentUser() async {
+//   final session = await supa.auth.getSession();
+//   return session.user;
+// }
+//
+// // Database helper
+// Future<List<Map<String, dynamic>>> fetchAshas() async {
+//   final response = await supa
+//       .from('ashas')
+//       .select()
+//       .eq('is_active', true);
+//   return response;
+// }
+//
+// // Storage helper
+// Future<Uint8List?> downloadProfileImage(String path) async {
+//   final response = await supa.storage
+//       .from('images')
+//       .download(path);
+//   return response;
+// }
+//
+// // Real-time helper
+// Stream<Map<String, dynamic>> onNewBeneficiary(
+//   Function(Map<String, dynamic>) onEvent,
+// ) {
+//   return supa.channel(
+//     'beneficiaries',
+//     event: PostgresChangeEvent.INSERT,
+//   ).onListen((_) => onEvent(_));
+// }
+//
+// TODO: Add project-specific Supabase client wrappers

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background dark:bg-background" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PHC Connect - Households</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#005eb8",
+                      "outline": "#727783",
+                      "on-primary": "#ffffff",
+                      "background": "#f9f9ff",
+                      "on-primary-fixed": "#001b3d",
+                      "on-tertiary-fixed": "#001f28",
+                      "inverse-surface": "#20314b",
+                      "tertiary-fixed": "#b6ebff",
+                      "surface-container-highest": "#d6e3ff",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "on-tertiary-container": "#9be4ff",
+                      "on-secondary-container": "#00752a",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#006880",
+                      "surface-tint": "#005db6",
+                      "on-secondary-fixed": "#002107",
+                      "surface-container-low": "#f0f3ff",
+                      "tertiary": "#004e61",
+                      "secondary-container": "#82fc90",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "inverse-on-surface": "#ecf0ff",
+                      "error": "#ba1a1a",
+                      "secondary": "#006e28",
+                      "primary": "#00478d",
+                      "surface-container-lowest": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "on-background": "#091c35",
+                      "primary-fixed": "#d6e3ff",
+                      "secondary-fixed-dim": "#65df77",
+                      "surface-bright": "#f9f9ff",
+                      "surface-container": "#e7eeff",
+                      "surface": "#f9f9ff",
+                      "on-primary-container": "#c8daff",
+                      "outline-variant": "#c2c6d4",
+                      "surface-variant": "#d6e3ff",
+                      "on-surface-variant": "#424752",
+                      "secondary-fixed": "#82fc90",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#dfe8ff",
+                      "surface-dim": "#cadbfc",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "on-surface": "#091c35",
+                      "on-tertiary": "#ffffff",
+                      "inverse-primary": "#a9c7ff",
+                      "on-primary-fixed-variant": "#00468c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "form-gap": "20px",
+                      "xxl": "48px",
+                      "xs": "4px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "touch-target": "48px",
+                      "md": "16px",
+                      "sm": "8px",
+                      "xl": "32px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-md": [
+                              "Inter", "sans-serif"
+                      ],
+                      "caption": [
+                              "Inter", "sans-serif"
+                      ],
+                      "body-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "display-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter", "sans-serif"
+                      ],
+                      "headline-lg": [
+                              "Inter", "sans-serif"
+                      ],
+                      "body-md": [
+                              "Inter", "sans-serif"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+      </script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings:
+            'FILL' 1,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+    </style>
+</head>
+<body class="h-full flex overflow-hidden font-body-md text-on-surface">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 pt-xxl pb-lg z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant font-label-md text-label-md">
+<div class="px-lg mb-xl flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined icon-fill">local_hospital</span>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary-container dark:text-primary-fixed truncate">PHC Rural Admin</h1>
+<p class="font-caption text-caption text-on-surface-variant truncate">District Division A-12</p>
+</div>
+</div>
+<div class="px-md mb-lg">
+<button class="w-full flex items-center justify-center gap-sm bg-primary-container text-on-primary-container rounded-lg py-sm px-md font-bold hover:bg-surface-container-highest transition-all active:scale-95 duration-150 shadow-sm">
+<span class="material-symbols-outlined">sync</span>
+                Sync Records
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto overflow-x-hidden">
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                        Workers
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="person_heart">person_heart</span>
+                        Beneficiaries
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md bg-primary-container text-on-primary-container rounded-lg mx-sm my-xs px-md py-sm font-bold active:scale-95 duration-150 shadow-sm" href="#">
+<span class="material-symbols-outlined icon-fill" data-icon="home_work">home_work</span>
+                        Households
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="pregnant_woman">pregnant_woman</span>
+                        Maternal Health
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                        Inventory
+                    </a>
+</li>
+</ul>
+</div>
+<div class="mt-auto pt-md border-t border-outline-variant/50">
+<ul class="flex flex-col gap-xs">
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+                        Support
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-on-surface-variant mx-sm my-xs px-md py-sm hover:bg-surface-container-highest transition-all active:scale-95 duration-150 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                        Logout
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col md:ml-64 relative bg-background">
+<!-- Top App Bar (Mobile & Contextual Desktop) -->
+<header class="fixed md:sticky top-0 left-0 w-full z-30 flex justify-between items-center px-lg h-touch-target bg-surface-container-lowest border-b border-outline-variant shadow-sm md:w-auto">
+<div class="flex items-center gap-md w-full max-w-3xl">
+<button class="md:hidden p-sm -ml-sm text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex-1 flex items-center relative">
+<span class="material-symbols-outlined absolute left-sm text-outline">search</span>
+<input class="w-full pl-xl pr-md py-sm bg-surface-container-low border-none rounded-full font-body-md text-body-md focus:ring-2 focus:ring-primary-container outline-none h-[40px]" placeholder="Search households..." type="text"/>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-md ml-auto">
+<button class="p-sm text-outline hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-sm text-outline hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant cursor-pointer">
+<img class="w-full h-full rounded-full object-cover" data-alt="A small, professional circular avatar portrait of a healthcare administrator in a well-lit clinic setting, conveying a sense of calm authority. Modern corporate light mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9pq53F1_zJ-fiQekpFjYLhnXddzr-JmEsu9oRTFSSTKIvDelktmNqfRBfQAjJ52DO4Z8tBMV1YHHpQqTBjzVctU0z9T4XEDLO0zL3PXbHl-UyIB0pBWzMzutSJrnfXfTXHYiGOtCL8sT9NXM48ZasHpgpKVndJ9lW62ieCaO2eFoNM6un8raAKFU5rtZUgt-wn48VMYUbfHpuixpqF5qmEgNwlXRJM9VhGF_yRyP9U8r-pC0P94tK3g"/>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-md md:p-lg pt-[64px] md:pt-lg">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-md mb-lg">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Household Directory</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Manage and monitor all registered households across jurisdictions.</p>
+</div>
+<button class="flex items-center justify-center gap-sm bg-[#005EB8] text-on-primary font-label-md text-label-md rounded-lg px-lg py-sm hover:bg-[#00478d] transition-colors shadow-sm min-h-[48px] whitespace-nowrap">
+<span class="material-symbols-outlined">add</span>
+                    Register New Household
+                </button>
+</div>
+<!-- Filters & Controls Bar -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-t-xl p-md flex flex-wrap gap-md items-center justify-between shadow-sm">
+<div class="flex flex-wrap gap-sm">
+<select class="bg-surface-container-low border-none rounded-lg px-md py-sm font-label-md text-label-md text-on-surface focus:ring-2 focus:ring-primary-container outline-none h-10 appearance-none pr-xl relative">
+<option value="">All Villages</option>
+<option value="v1">Rampur</option>
+<option value="v2">Sitapur</option>
+<option value="v3">Govindpur</option>
+</select>
+<select class="bg-surface-container-low border-none rounded-lg px-md py-sm font-label-md text-label-md text-on-surface focus:ring-2 focus:ring-primary-container outline-none h-10 appearance-none pr-xl">
+<option value="">All Risk Levels</option>
+<option value="high">High Risk</option>
+<option value="medium">Medium Risk</option>
+<option value="low">Low Risk</option>
+</select>
+</div>
+<div class="flex items-center gap-sm text-sm text-on-surface-variant font-label-md">
+<span class="material-symbols-outlined text-outline">sort</span>
+<span>Sort by: Last Visit (Newest)</span>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface-container-lowest border border-t-0 border-outline-variant rounded-b-xl overflow-x-auto shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container text-on-surface-variant font-label-md text-label-md border-b border-outline-variant sticky top-0 z-10">
+<tr>
+<th class="py-sm px-md font-semibold w-24">HH ID</th>
+<th class="py-sm px-md font-semibold">Head of Family</th>
+<th class="py-sm px-md font-semibold">Village</th>
+<th class="py-sm px-md font-semibold">Assigned ASHA</th>
+<th class="py-sm px-md font-semibold text-center w-24">Members</th>
+<th class="py-sm px-md font-semibold text-center w-32">Risk Status</th>
+<th class="py-sm px-md font-semibold w-32">Last Visit</th>
+<th class="py-sm px-md font-semibold text-right w-16"></th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md divide-y divide-outline-variant/30">
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer h-12">
+<td class="py-sm px-md font-label-md text-primary-container">#HH-4829</td>
+<td class="py-sm px-md font-semibold text-on-surface">Ramesh Kumar</td>
+<td class="py-sm px-md text-on-surface-variant">Rampur</td>
+<td class="py-sm px-md text-on-surface-variant">Sunita Devi</td>
+<td class="py-sm px-md text-center text-on-surface-variant">5</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-error-container text-on-error-container">
+                                    2 High Risk
+                                </span>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-caption text-caption">12 Oct 2023</td>
+<td class="py-sm px-md text-right">
+<button class="text-outline hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity p-1">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer h-12">
+<td class="py-sm px-md font-label-md text-primary-container">#HH-4830</td>
+<td class="py-sm px-md font-semibold text-on-surface">Sita Sharma</td>
+<td class="py-sm px-md text-on-surface-variant">Sitapur</td>
+<td class="py-sm px-md text-on-surface-variant">Geeta Rani</td>
+<td class="py-sm px-md text-center text-on-surface-variant">3</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container">
+                                    No Risk
+                                </span>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-caption text-caption">10 Oct 2023</td>
+<td class="py-sm px-md text-right">
+<button class="text-outline hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity p-1">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer h-12">
+<td class="py-sm px-md font-label-md text-primary-container">#HH-4831</td>
+<td class="py-sm px-md font-semibold text-on-surface">Mohammad Ali</td>
+<td class="py-sm px-md text-on-surface-variant">Rampur</td>
+<td class="py-sm px-md text-on-surface-variant">Sunita Devi</td>
+<td class="py-sm px-md text-center text-on-surface-variant">7</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#fff3cd] text-[#856404]">
+                                    1 Medium Risk
+                                </span>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-caption text-caption">05 Oct 2023</td>
+<td class="py-sm px-md text-right">
+<button class="text-outline hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity p-1">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer h-12">
+<td class="py-sm px-md font-label-md text-primary-container">#HH-4832</td>
+<td class="py-sm px-md font-semibold text-on-surface">Lakshmi Bai</td>
+<td class="py-sm px-md text-on-surface-variant">Govindpur</td>
+<td class="py-sm px-md text-on-surface-variant">Aarti Patel</td>
+<td class="py-sm px-md text-center text-on-surface-variant">2</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-error-container text-on-error-container">
+                                    1 High Risk
+                                </span>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-caption text-caption">01 Oct 2023</td>
+<td class="py-sm px-md text-right">
+<button class="text-outline hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity p-1">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer h-12">
+<td class="py-sm px-md font-label-md text-primary-container">#HH-4833</td>
+<td class="py-sm px-md font-semibold text-on-surface">Vikram Singh</td>
+<td class="py-sm px-md text-on-surface-variant">Sitapur</td>
+<td class="py-sm px-md text-on-surface-variant">Geeta Rani</td>
+<td class="py-sm px-md text-center text-on-surface-variant">4</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-secondary-container text-on-secondary-container">
+                                    No Risk
+                                </span>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-caption text-caption">28 Sep 2023</td>
+<td class="py-sm px-md text-right">
+<button class="text-outline hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity p-1">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination (Simple) -->
+<div class="mt-md flex items-center justify-between px-sm text-on-surface-variant font-caption text-caption">
+<span>Showing 1 to 5 of 124 Households</span>
+<div class="flex gap-sm">
+<button class="p-1 rounded hover:bg-surface-container-low disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

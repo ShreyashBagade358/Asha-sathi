@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Authenticating</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS & Config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#f9f9ff",
+                    "on-tertiary-fixed": "#001f28",
+                    "on-secondary-container": "#00752a",
+                    "on-error": "#ffffff",
+                    "surface-variant": "#d6e3ff",
+                    "tertiary-container": "#006880",
+                    "primary-container": "#005eb8",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#d6e3ff",
+                    "surface-container": "#e7eeff",
+                    "on-primary-fixed-variant": "#00468c",
+                    "surface-container-high": "#dfe8ff",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#001b3d",
+                    "on-secondary": "#ffffff",
+                    "tertiary": "#004e61",
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary-container": "#82fc90",
+                    "on-secondary-fixed-variant": "#00531c",
+                    "surface-dim": "#cadbfc",
+                    "background": "#f9f9ff",
+                    "inverse-primary": "#a9c7ff",
+                    "surface": "#f9f9ff",
+                    "tertiary-fixed-dim": "#57d5fc",
+                    "inverse-surface": "#20314b",
+                    "on-background": "#091c35",
+                    "primary": "#00478d",
+                    "outline": "#727783",
+                    "inverse-on-surface": "#ecf0ff",
+                    "on-tertiary-container": "#9be4ff",
+                    "on-primary-container": "#c8daff",
+                    "surface-container-low": "#f0f3ff",
+                    "secondary-fixed-dim": "#65df77",
+                    "on-secondary-fixed": "#002107",
+                    "on-tertiary-fixed-variant": "#004e60",
+                    "tertiary-fixed": "#b6ebff",
+                    "on-surface-variant": "#424752",
+                    "outline-variant": "#c2c6d4",
+                    "secondary": "#006e28",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#005db6",
+                    "secondary-fixed": "#82fc90",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "on-primary": "#ffffff",
+                    "surface-container-highest": "#d6e3ff",
+                    "on-surface": "#091c35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "touch-target": "48px",
+                    "unit": "4px",
+                    "sm": "8px",
+                    "xxl": "48px",
+                    "xs": "4px",
+                    "xl": "32px",
+                    "form-gap": "20px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter", "sans-serif"],
+                    "body-lg-mobile": ["Inter", "sans-serif"],
+                    "caption": ["Inter", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "headline-lg-mobile": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "label-md": ["Inter", "sans-serif"],
+                    "headline-md": ["Inter", "sans-serif"],
+                    "body-md": ["Inter", "sans-serif"]
+            },
+            "fontSize": {
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .loader-ring {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-top-color: #005eb8; /* primary-container */
+            border-bottom-color: #006880; /* tertiary-container */
+            animation: spin 1.5s linear infinite;
+            position: relative;
+        }
+        .loader-ring::before {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-left-color: #82fc90; /* secondary-container */
+            border-right-color: #a9c7ff; /* inverse-primary */
+            animation: spin-reverse 2s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+        
+        .pulse-subtle { animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulseSubtle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.98); } }
+        
+        /* Background ambient blobs */
+        .ambient-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            animation: float 10s ease-in-out infinite alternate;
+        }
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, -30px) scale(1.1); } }
+    </style>
+</head>
+<!-- 
+  Navigation Suppressed: This is a post-login interstitial screen. 
+  According to logic rules, TopAppBar, SideNavBar, and BottomNavBar are excluded.
+-->
+<body class="bg-surface-bright min-h-screen flex items-center justify-center p-md relative overflow-hidden font-body-md text-body-md">
+<!-- Ambient Background Decorations -->
+<div class="ambient-blob bg-primary-container w-[40vw] h-[40vw] -top-[10vw] -left-[10vw]"></div>
+<div class="ambient-blob bg-tertiary-container w-[30vw] h-[30vw] bottom-[5vw] right-[5vw]" style="animation-delay: -5s;"></div>
+<!-- Main Content Container -->
+<main class="bg-surface/80 backdrop-blur-xl border border-outline-variant/30 rounded-xl shadow-xl w-full max-w-md p-lg md:p-xl flex flex-col items-center relative z-10 text-center pulse-subtle">
+<!-- Brand Header -->
+<header class="mb-xl flex flex-col items-center">
+<span class="material-symbols-outlined text-primary-container text-[48px] mb-sm" style="font-variation-settings: 'FILL' 1;">
+                health_and_safety
+            </span>
+<h1 class="font-display-lg text-display-lg text-primary">ASHA Sathi</h1>
+<div class="h-px w-16 bg-outline-variant mt-sm"></div>
+</header>
+<!-- Loading Indicator -->
+<div class="relative flex items-center justify-center mb-lg">
+<div class="loader-ring"></div>
+<span class="material-symbols-outlined absolute text-on-surface text-[32px] opacity-70">
+                admin_panel_settings
+            </span>
+</div>
+<!-- Status Text -->
+<h2 class="font-headline-md text-headline-md text-on-surface mb-xs transition-opacity duration-300" id="status-title">Authenticating Identity</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-[280px]" id="status-desc">Verifying credentials and preparing your secure workspace...</p>
+<!-- Role Discovery Bento Grid -->
+<div class="grid grid-cols-3 gap-sm w-full mt-xl">
+<!-- Admin Role -->
+<div class="flex flex-col items-center justify-center p-sm rounded-lg bg-surface-container border border-outline-variant/50 transition-all duration-300 opacity-40 grayscale" id="role-admin">
+<span class="material-symbols-outlined text-on-surface-variant mb-xs" style="font-variation-settings: 'FILL' 0;">
+                    account_balance
+                </span>
+<span class="font-label-md text-label-md text-on-surface-variant">Admin</span>
+</div>
+<!-- ASHA Role -->
+<div class="flex flex-col items-center justify-center p-sm rounded-lg bg-surface-container border border-outline-variant/50 transition-all duration-300 opacity-40 grayscale" id="role-asha">
+<span class="material-symbols-outlined text-on-surface-variant mb-xs" style="font-variation-settings: 'FILL' 0;">
+                    medical_services
+                </span>
+<span class="font-label-md text-label-md text-on-surface-variant">ASHA</span>
+</div>
+<!-- Patient Role -->
+<div class="flex flex-col items-center justify-center p-sm rounded-lg bg-surface-container border border-outline-variant/50 transition-all duration-300 opacity-40 grayscale" id="role-patient">
+<span class="material-symbols-outlined text-on-surface-variant mb-xs" style="font-variation-settings: 'FILL' 0;">
+                    family_restroom
+                </span>
+<span class="font-label-md text-label-md text-on-surface-variant">Patient</span>
+</div>
+</div>
+</main>
+<!-- Simulated Routing Logic for Demo Purposes -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const roles = [
+                { id: 'role-admin', name: 'PHC Admin', icon: 'account_balance' },
+                { id: 'role-asha', name: 'ASHA Worker', icon: 'medical_services' },
+                { id: 'role-patient', name: 'Patient', icon: 'family_restroom' }
+            ];
+            
+            const titleEl = document.getElementById('status-title');
+            const descEl = document.getElementById('status-desc');
+            const centerIcon = document.querySelector('.loader-ring + span');
+            
+            let currentIndex = 0;
+            
+            // Phase 1: Scanning Roles
+            const scanInterval = setInterval(() => {
+                // Reset all
+                roles.forEach(role => {
+                    const el = document.getElementById(role.id);
+                    el.classList.remove('bg-primary-container', 'border-primary', 'opacity-100', 'grayscale-0', 'scale-105');
+                    el.classList.add('bg-surface-container', 'opacity-40', 'grayscale');
+                    el.querySelector('span:first-child').classList.remove('text-on-primary-container');
+                    el.querySelector('span:first-child').style.fontVariationSettings = "'FILL' 0";
+                    el.querySelector('span:last-child').classList.remove('text-on-primary-container');
+                });
+
+                // Highlight current
+                const currentRole = roles[currentIndex];
+                const activeEl = document.getElementById(currentRole.id);
+                activeEl.classList.remove('bg-surface-container', 'opacity-40', 'grayscale');
+                activeEl.classList.add('bg-surface-variant', 'border-primary', 'opacity-80', 'grayscale-0');
+                
+                centerIcon.textContent = currentRole.icon;
+                
+                currentIndex = (currentIndex + 1) % roles.length;
+            }, 600);
+
+            // Phase 2: Role Identified (Simulate ASHA Worker found after 2.5s)
+            setTimeout(() => {
+                clearInterval(scanInterval);
+                
+                const targetRole = roles[1]; // ASHA Worker
+                centerIcon.textContent = targetRole.icon;
+                
+                // Dim others completely
+                roles.forEach(role => {
+                    if(role.id !== targetRole.id) {
+                        document.getElementById(role.id).style.opacity = '0.2';
+                    }
+                });
+
+                // Highlight found role with high contrast
+                const foundEl = document.getElementById(targetRole.id);
+                foundEl.className = 'flex flex-col items-center justify-center p-sm rounded-lg bg-primary-container border-2 border-primary transition-all duration-500 opacity-100 scale-105 shadow-md';
+                foundEl.querySelector('span:first-child').className = 'material-symbols-outlined text-on-primary-container mb-xs';
+                foundEl.querySelector('span:first-child').style.fontVariationSettings = "'FILL' 1";
+                foundEl.querySelector('span:last-child').className = 'font-label-md text-label-md text-on-primary-container font-bold';
+
+                // Update text
+                titleEl.style.opacity = 0;
+                descEl.style.opacity = 0;
+                
+                setTimeout(() => {
+                    titleEl.textContent = `Welcome, ${targetRole.name}`;
+                    descEl.textContent = "Routing you to your specialized dashboard. Data sync in progress...";
+                    titleEl.style.opacity = 1;
+                    descEl.style.opacity = 1;
+                    
+                    // Add success color hint to loader
+                    document.querySelector('.loader-ring').style.borderTopColor = '#006e28'; // secondary
+                }, 300);
+
+            }, 2500);
+        });
+    </script>
+</body></html>

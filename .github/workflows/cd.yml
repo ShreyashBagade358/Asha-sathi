@@ -1,0 +1,198 @@
+name: CD
+
+on:
+  push:
+    branches: [develop, main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (staging/production)"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  HELM_VERSION: 3.15.3
+  KUBECTL_VERSION: v1.30.0
+  CHART_PATH: docker/kubernetes/charts/asha-sathi
+
+jobs:
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy to staging
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Add helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+
+      - name: Deploy (helm upgrade --install)
+        run: |
+          helm upgrade --install asha-sathi ${{ env.CHART_PATH }} \
+            --namespace staging \
+            --create-namespace \
+            -f ${{ env.CHART_PATH }}/values.yaml \
+            -f ${{ env.CHART_PATH }}/values.staging.yaml \
+            --set global.imageTag=staging \
+            --set-file 'secretOverride.DATABASE_URL=/dev/null' \
+            --wait \
+            --timeout 10m
+
+      - name: Smoke test /health
+        run: |
+          set -e
+          NAMESPACE=staging
+          kubectl -n $NAMESPACE rollout status deployment/asha-sathi-backend --timeout=180s
+          kubectl -n $NAMESPACE wait --for=condition=available deployment/asha-sathi-backend --timeout=180s
+          POD=$(kubectl -n $NAMESPACE get pods -l app.kubernetes.io/component=backend -o jsonpath='{.items[0].metadata.name}')
+          kubectl -n $NAMESPACE exec $POD -- \
+            python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read())"
+
+      - name: Notify Slack (staging)
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "channel": "#deployments",
+              "text": "staging deploy ${{ job.status }} (${{ github.sha }})",
+              "attachments": [
+                {
+                  "color": "${{ job.status == 'success' && 'good' || (job.status == 'cancelled' && 'warning' || 'danger') }}",
+                  "blocks": [
+                    { "type": "section", "text": { "type": "mrkdwn", "text": "*ASHA Sathi staging deploy* `${{ job.status }}`\nSHA: <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\nTriggered by: ${{ github.actor }}" } }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===========================================================================
+  deploy-production:
+    name: Deploy to production
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.asha-sathi.gov.in
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Add helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+
+      - name: Compute image tag
+        id: image-tag
+        run: |
+          if [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy (helm upgrade --install)
+        run: |
+          helm upgrade --install asha-sathi ${{ env.CHART_PATH }} \
+            --namespace production \
+            --create-namespace \
+            -f ${{ env.CHART_PATH }}/values.yaml \
+            -f ${{ env.CHART_PATH }}/values.prod.yaml \
+            --set global.imageTag=${{ steps.image-tag.outputs.tag }} \
+            --set-file 'secretOverride.DATABASE_URL=${{ secrets.DATABASE_URL_FILE }}' \
+            --set-file 'secretOverride.JWT_SECRET=${{ secrets.JWT_SECRET_FILE }}' \
+            --set-file 'secretOverride.SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY_FILE }}' \
+            --wait \
+            --timeout 15m
+
+      - name: Smoke test production /health
+        run: |
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.asha-sathi.gov.in/health || true)
+            if [ "$CODE" = "200" ]; then
+              echo "Production /health returned 200"
+              exit 0
+            fi
+            echo "attempt $i: got $CODE, retrying..."
+            sleep 10
+          done
+          echo "Production smoke test failed"
+          exit 1
+
+      - name: Notify Slack (production)
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "channel": "#deployments",
+              "text": "production deploy ${{ job.status }} (${{ steps.image-tag.outputs.tag }})",
+              "attachments": [
+                {
+                  "color": "${{ job.status == 'success' && 'good' || (job.status == 'cancelled' && 'warning' || 'danger') }}",
+                  "blocks": [
+                    { "type": "section", "text": { "type": "mrkdwn", "text": "*ASHA Sathi production deploy* `${{ job.status }}`\nImage tag: `${{ steps.image-tag.outputs.tag }}`\nSHA: <https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\nTriggered by: ${{ github.actor }}" } }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

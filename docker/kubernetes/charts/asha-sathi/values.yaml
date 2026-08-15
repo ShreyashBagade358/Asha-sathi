@@ -1,0 +1,323 @@
+# =============================================================================
+# ASHA Sathi - Helm values
+# Environment overrides: values.dev.yaml / values.staging.yaml / values.prod.yaml
+# =============================================================================
+
+global:
+  environment: development
+  imageRegistry: ghcr.io/yourorg
+  imagePullSecrets: []
+  imageTag: latest
+  dnsDomain: cluster.local
+  labels:
+    app: asha-sathi
+    environment: development
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ---------------------------------------------------------------------------
+# PostgreSQL (Bitnami subchart). Disable to point the backend at a managed DB
+# by setting backend.env.DATABASE_URL externally.
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  fullnameOverride: asha-sathi-postgres
+  auth:
+    database: asha_sathi
+    username: asha
+    password: "CHANGE_ME_POSTGRES_PASSWORD"
+    postgresPassword: "CHANGE_ME_POSTGRES_ADMIN_PASSWORD"
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: ""
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 4Gi
+        cpu: "2"
+  replicaCount: 1
+  # Set this to true when you want the chart-managed PVC (templates/pvc.yaml)
+  # instead of the subchart's own persistent volume claim.
+  managePvc: false
+
+# ---------------------------------------------------------------------------
+# Redis (Bitnami subchart)
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+  fullnameOverride: asha-sathi-redis
+  auth:
+    password: "CHANGE_ME_REDIS_PASSWORD"
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 1Gi
+        cpu: "1"
+
+# ---------------------------------------------------------------------------
+# FastAPI backend
+# ---------------------------------------------------------------------------
+backend:
+  replicaCount: 3
+  image:
+    repository: asha-sathi-backend
+    tag: null # falls back to .Values.global.imageTag
+    pullPolicy: IfNotPresent
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+  env:
+    - name: APP_ENV
+      valueFrom:
+        configMapKeyRef:
+          name: asha-sathi-config
+          key: APP_ENV
+    - name: API_V1_PREFIX
+      valueFrom:
+        configMapKeyRef:
+          name: asha-sathi-config
+          key: API_V1_PREFIX
+    - name: CORS_ORIGINS
+      valueFrom:
+        configMapKeyRef:
+          name: asha-sathi-config
+          key: CORS_ORIGINS
+    - name: SUPABASE_URL
+      valueFrom:
+        configMapKeyRef:
+          name: asha-sathi-config
+          key: SUPABASE_URL
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: asha-sathi-secrets
+          key: DATABASE_URL
+    - name: REDIS_URL
+      valueFrom:
+        secretKeyRef:
+          name: asha-sathi-secrets
+          key: REDIS_URL
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: asha-sathi-secrets
+          key: JWT_SECRET
+    - name: SUPABASE_SERVICE_KEY
+      valueFrom:
+        secretKeyRef:
+          name: asha-sathi-secrets
+          key: SUPABASE_SERVICE_KEY
+    - name: SUPABASE_ANON_KEY
+      valueFrom:
+        secretKeyRef:
+          name: asha-sathi-secrets
+          key: SUPABASE_ANON_KEY
+  probes:
+    liveness:
+      path: /health
+      port: 8000
+      initialDelaySeconds: 20
+      periodSeconds: 15
+      timeoutSeconds: 3
+      failureThreshold: 5
+    readiness:
+      path: /health
+      port: 8000
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8000"
+
+# ---------------------------------------------------------------------------
+# React dashboard (nginx)
+# ---------------------------------------------------------------------------
+web:
+  replicaCount: 2
+  image:
+    repository: asha-sathi-web-dashboard
+    tag: null
+    pullPolicy: IfNotPresent
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  probes:
+    liveness:
+      path: /
+      port: 80
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 3
+      failureThreshold: 5
+    readiness:
+      path: /
+      port: 80
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: false
+
+# ---------------------------------------------------------------------------
+# ML model serving
+# ---------------------------------------------------------------------------
+ml:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: asha-sathi-ml-serving
+    tag: null
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+    # Optional GPU node scheduling (uncomment when GPUs are provisioned):
+    # limits:
+    #   cpu: "2"
+    #   memory: 2Gi
+    #   nvidia.com/gpu: 1
+  nodeSelector: {}
+  tolerations: []
+
+# ---------------------------------------------------------------------------
+# Supabase (optional, in-cluster). DISABLED by default - ASHA Sathi uses
+# FastAPI for auth and Supabase Cloud / managed PostgREST+Realtime when needed.
+# When enabled, provision the gateway, auth, realtime and storage services
+# separately (out of scope for this chart) and point the backend at them.
+# ---------------------------------------------------------------------------
+supabase:
+  enabled: false
+  note: "Supabase is provided by a managed service. Set SUPABASE_URL/SUPABASE_SERVICE_KEY in the asha-sathi-secrets Secret instead."
+  authUrl: ""
+  restUrl: ""
+  realtimeUrl: ""
+  storageUrl: ""
+
+# ---------------------------------------------------------------------------
+# Ingress (nginx ingress controller + cert-manager)
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 25m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    - secretName: asha-sathi-tls
+      hosts:
+        - api.asha-sathi.gov.in
+        - dashboard.asha-sathi.gov.in
+  hosts:
+    - name: api.asha-sathi.gov.in
+      path: /api
+      pathType: Prefix
+      serviceName: asha-sathi-backend
+      servicePort: 8000
+    - name: dashboard.asha-sathi.gov.in
+      path: /
+      pathType: Prefix
+      serviceName: asha-sathi-web
+      servicePort: 80
+
+# ---------------------------------------------------------------------------
+# Network policies
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  ingressControllerNamespaces:
+    - ingress-nginx
+
+# ---------------------------------------------------------------------------
+# Postgres PVC (only used when postgresql.managePvc is true)
+# ---------------------------------------------------------------------------
+postgresPvc:
+  size: 100Gi
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+
+# ---------------------------------------------------------------------------
+# Observability subcharts
+# ---------------------------------------------------------------------------
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespaceSelector:
+        any: true
+  grafana:
+    enabled: true
+    adminPassword: "CHANGE_ME_GRAFANA_ADMIN_PASSWORD"
+    dashboards:
+      enabled: true

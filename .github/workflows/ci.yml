@@ -1,0 +1,340 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 8.15.0
+  PYTHON_VERSION: "3.11"
+  FLUTTER_VERSION: "3.22.4"
+  REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  DOCKER_CACHE_TTL: 24h
+
+jobs:
+  # ===========================================================================
+  lint:
+    name: Lint (web / backend / mobile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Turbo lint
+        run: pnpm lint
+
+      - name: Prettier check
+        run: pnpm exec prettier --check "**/*.{json,md,yaml,yml,ts,tsx,js,jsx,py}"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: apps/backend/requirements/dev.txt
+
+      - name: Install Python deps (backend)
+        working-directory: apps/backend
+        run: |
+          pip install -r requirements/base.txt -r requirements/dev.txt
+
+      - name: Ruff check (backend)
+        working-directory: apps/backend
+        run: ruff check app
+
+      - name: Ruff format check (backend)
+        working-directory: apps/backend
+        run: ruff format --check app
+
+      - name: Mypy (backend)
+        working-directory: apps/backend
+        run: mypy app
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get + codegen (design-system & mobile apps)
+        run: |
+          (cd packages/design-system/flutter && flutter pub get)
+          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
+            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
+          done
+
+      - name: Flutter analyze (design-system)
+        working-directory: packages/design-system/flutter
+        run: flutter analyze
+
+      - name: Flutter analyze (mobile-asha)
+        working-directory: apps/mobile-asha
+        run: flutter analyze
+
+      - name: Flutter analyze (mobile-patient)
+        working-directory: apps/mobile-patient
+        run: flutter analyze
+
+      - name: Flutter analyze (mobile-phc-admin)
+        working-directory: apps/mobile-phc-admin
+        run: flutter analyze
+
+  # ===========================================================================
+  test:
+    name: Test (backend / ml / mobile)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: asha_sathi_test
+          POSTGRES_USER: asha
+          POSTGRES_PASSWORD: asha_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U asha -d asha_sathi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: sqlite+aiosqlite:///./test.db
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: test-only-jwt-secret-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: apps/backend/requirements/dev.txt
+
+      - name: Install Python deps (backend)
+        working-directory: apps/backend
+        run: |
+          pip install -r requirements/base.txt -r requirements/dev.txt
+
+      - name: Pytest (backend)
+        working-directory: apps/backend
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage.xml
+
+      - name: Install Python deps (ml-training)
+        working-directory: apps/ml-training
+        run: |
+          pip install -r requirements.txt pytest pytest-cov
+
+      - name: Pytest (ml-training)
+        working-directory: apps/ml-training
+        run: pytest --cov=src --cov-report=term-missing
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get + codegen (design-system & mobile apps)
+        run: |
+          (cd packages/design-system/flutter && flutter pub get)
+          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
+            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
+          done
+
+      - name: Flutter test (mobile-asha)
+        working-directory: apps/mobile-asha
+        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
+
+      - name: Flutter test (mobile-patient)
+        working-directory: apps/mobile-patient
+        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
+
+      - name: Flutter test (mobile-phc-admin)
+        working-directory: apps/mobile-phc-admin
+        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
+
+  # ===========================================================================
+  build:
+    name: Build & push images
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ github.sha }}
+          restore-keys: |
+            buildx-
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "tag=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=pr-${{ github.event.pull_request.number || github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend
+          file: apps/backend/Dockerfile
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/asha-sathi-backend:${{ steps.meta.outputs.tag }}
+
+      - name: Build & push web-dashboard
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web-dashboard
+          file: apps/web-dashboard/Dockerfile
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') }}
+          build-args:
+            VITE_API_URL: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'https://api.asha-sathi.gov.in/api/v1' || 'https://staging.api.asha-sathi.gov.in/api/v1' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/asha-sathi-web-dashboard:${{ steps.meta.outputs.tag }}
+
+      - name: Build & push ml-serving
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/ml-training
+          file: apps/ml-training/Dockerfile
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/asha-sathi-ml-serving:${{ steps.meta.outputs.tag }}
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # -----------------------------------------------------------------------
+      # Flutter release builds for the three mobile apps
+      # -----------------------------------------------------------------------
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get + codegen (design-system & mobile apps)
+        run: |
+          (cd packages/design-system/flutter && flutter pub get)
+          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
+            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
+          done
+
+      - name: Build APK + AAB (mobile-asha)
+        working-directory: apps/mobile-asha
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build appbundle --release
+
+      - name: Build APK + AAB (mobile-patient)
+        working-directory: apps/mobile-patient
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build appbundle --release
+
+      - name: Build APK + AAB (mobile-phc-admin)
+        working-directory: apps/mobile-phc-admin
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build appbundle --release
+
+      - name: Upload mobile-asha artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-asha-builds
+          path: |
+            apps/mobile-asha/build/app/outputs/flutter-apk/*.apk
+            apps/mobile-asha/build/app/outputs/bundle/release/*.aab
+
+      - name: Upload mobile-patient artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-patient-builds
+          path: |
+            apps/mobile-patient/build/app/outputs/flutter-apk/*.apk
+            apps/mobile-patient/build/app/outputs/bundle/release/*.aab
+
+      - name: Upload mobile-phc-admin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-phc-admin-builds
+          path: |
+            apps/mobile-phc-admin/build/app/outputs/flutter-apk/*.apk
+            apps/mobile-phc-admin/build/app/outputs/bundle/release/*.aab

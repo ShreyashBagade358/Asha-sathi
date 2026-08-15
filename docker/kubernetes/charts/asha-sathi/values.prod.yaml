@@ -1,0 +1,108 @@
+# =============================================================================
+# ASHA Sathi - Production environment overrides
+#   helm upgrade --install asha-sathi . -f values.prod.yaml --namespace production
+#
+# SECRETS: pass via --set-file or a dedicated SOPS/SealedSecret values file.
+#   helm upgrade asha-sathi . -f values.prod.yaml \
+#     --set-file 'secretOverride.DATABASE_URL=./secrets/prod/DATABASE_URL'
+# =============================================================================
+global:
+  environment: production
+  imageTag: prod
+  imagePullSecrets:
+    - ghcr-asha-sathi
+
+backend:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+
+web:
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+ml:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+postgresql:
+  enabled: true
+  managePvc: false
+  primary:
+    persistence:
+      size: 100Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 4Gi
+        cpu: "2"
+
+redis:
+  enabled: true
+  master:
+    persistence:
+      size: 10Gi
+
+supabase:
+  enabled: false
+
+ingress:
+  enabled: true
+  hosts:
+    - name: api.asha-sathi.gov.in
+      path: /api
+      pathType: Prefix
+      serviceName: asha-sathi-backend
+      servicePort: 8000
+    - name: dashboard.asha-sathi.gov.in
+      path: /
+      pathType: Prefix
+      serviceName: asha-sathi-web
+      servicePort: 80
+
+networkPolicy:
+  enabled: true
+  ingressControllerNamespaces:
+    - ingress-nginx
+
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespaceSelector:
+        any: true
+  grafana:
+    enabled: true

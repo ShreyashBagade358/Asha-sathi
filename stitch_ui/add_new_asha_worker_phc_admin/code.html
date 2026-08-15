@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Register New ASHA Worker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#dfe8ff",
+                      "surface-tint": "#005db6",
+                      "on-secondary-container": "#00752a",
+                      "on-secondary": "#ffffff",
+                      "outline": "#727783",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-fixed": "#001b3d",
+                      "on-primary-container": "#c8daff",
+                      "inverse-primary": "#a9c7ff",
+                      "tertiary-fixed": "#b6ebff",
+                      "primary": "#00478d",
+                      "background": "#f9f9ff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "on-surface-variant": "#424752",
+                      "on-secondary-fixed": "#002107",
+                      "surface-container-low": "#f0f3ff",
+                      "surface-variant": "#d6e3ff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#82fc90",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "on-tertiary-fixed": "#001f28",
+                      "secondary": "#006e28",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#82fc90",
+                      "surface-container-highest": "#d6e3ff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "surface": "#f9f9ff",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#cadbfc",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#006880",
+                      "on-surface": "#091c35",
+                      "inverse-on-surface": "#ecf0ff",
+                      "surface-container": "#e7eeff",
+                      "secondary-fixed-dim": "#65df77",
+                      "primary-container": "#005eb8",
+                      "on-tertiary-container": "#9be4ff",
+                      "inverse-surface": "#20314b",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "outline-variant": "#c2c6d4",
+                      "surface-bright": "#f9f9ff",
+                      "tertiary": "#004e61",
+                      "surface-container-lowest": "#ffffff",
+                      "on-background": "#091c35"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "xl": "32px",
+                      "xs": "4px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "touch-target": "48px",
+                      "md": "16px",
+                      "xxl": "48px",
+                      "form-gap": "20px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "caption": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Custom scrollbar for form area */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f9f9ff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c2c6d4;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #727783;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md text-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant docked left-0 h-full w-64 z-40">
+<!-- Header -->
+<div class="flex items-center gap-md p-sm mb-lg">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface flex-shrink-0">
+<img alt="Admin Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of an administrative healthcare worker in a well-lit, modern office setting. The subject is wearing business casual attire suitable for a clinical administration role. The lighting is soft and neutral, conveying competence and approachability within a healthcare context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaESrhhVZVrca1_FOa0kfHfAwaQ1k5P9TMzLNECoZfv1PYzI1pkTltc8Tueza_prWuZ6xmNL8Zbn4fWbcvpFnmJb-UQjoQ50lwOLA8kMw6ZP5VhussQZncQd42QKjoMajz4BbV5HkuwIsNJMgtXV6_MaKHbPHDFiD3ACgtHx8yaA3T15Ldd_kwdHw8u2mWvZoCgBiriuQhHciuB7PKwaceYzDF4wV-LnIVYmz00B2k6i-xYRBCtM5vYw"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-primary">Admin Portal</h1>
+<p class="font-caption text-caption text-on-surface-variant">District Health Office</p>
+</div>
+</div>
+<!-- CTA Button -->
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-sm px-md rounded-lg mb-md hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-sm shadow-sm">
+<span class="material-symbols-outlined">add</span>
+            Add New Worker
+        </button>
+<!-- Main Navigation Links -->
+<div class="flex-grow flex flex-col gap-xs font-label-md text-label-md">
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<!-- Active State Navigation -->
+<a class="flex items-center gap-md p-sm bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold rounded-lg scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined fill-icon">groups</span>
+                Workers
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">person_celebrate</span>
+                Beneficiaries
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<!-- Footer Navigation Links -->
+<div class="mt-auto border-t border-outline-variant pt-md flex flex-col gap-xs font-label-md text-label-md">
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Area Wrapper -->
+<div class="flex-grow flex flex-col md:ml-64 w-full h-full relative">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm md:w-[calc(100%-16rem)]">
+<!-- Brand Logo / Title (Mobile visible, Web often relies on SideNav header, but keeping brand text as anchor) -->
+<div class="flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span>
+</div>
+<!-- Search (Right aligned as per JSON) & Trailing Icons -->
+<div class="flex items-center gap-md">
+<!-- Search Icon (Acting as placeholder for right search bar behavior) -->
+<button aria-label="Search" class="p-xs text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors rounded-full">
+<span class="material-symbols-outlined">search</span>
+</button>
+<!-- Trailing Icons -->
+<button aria-label="sync" class="p-xs text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors rounded-full">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button aria-label="notifications" class="p-xs text-on-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors rounded-full relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<!-- Profile Image -->
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container border border-outline-variant cursor-pointer ml-sm">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, circular profile picture of an administrative user. The image shows a generic, professional silhouette or a generic stock headshot suitable for a healthcare dashboard top navigation bar. Clean, light background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI5y61lApiLodDt9J8bLWByeO3wjuBLkwiH1L6JIQ9fk8OP5RwWyDD3HRAKduX435W0WumbhKzu3wLesrp8sB_tXVKH9M3TsEOuVBBuIHJkFAUTLlfqBXev0_czieGse8vD25xZLWRXiwadu142aBWeSHT1OXD1yL8zWTvVkOlfjAWf_4rvMtK7So4yPSi8_o_d1P_8ooKkHtMzpV1j50OyzCnFb-E8kR5JdPSDZX79xmaJpMQu9ARrA"/>
+</div>
+</div>
+</header>
+<!-- Page Content: Register New ASHA Worker Form Canvas -->
+<main class="flex-grow pt-[calc(var(--spacing-touch-target)+var(--spacing-lg))] px-md md:px-xl pb-xxl overflow-y-auto bg-surface-bright">
+<!-- Context Header -->
+<div class="max-w-4xl mx-auto mb-lg flex justify-between items-end">
+<div>
+<div class="flex items-center gap-sm text-on-surface-variant font-caption text-caption mb-xs">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<a class="hover:underline" href="#">Back to Workers List</a>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Register New ASHA Worker</h2>
+</div>
+<div class="hidden md:flex gap-sm">
+<!-- Status Indicator (Draft Mode) -->
+<span class="inline-flex items-center px-sm py-xs rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-outline mr-sm"></span> Draft
+                    </span>
+</div>
+</div>
+<!-- Form Container - Bento Grid Inspired Layout for Desktop -->
+<form class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-lg pb-xxl">
+<!-- Left Column (Profile & Actions) -->
+<div class="md:col-span-4 flex flex-col gap-lg">
+<!-- Photo Upload Card -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
+<div class="w-32 h-32 rounded-full bg-surface-container border-2 border-dashed border-outline-variant flex items-center justify-center mb-md relative overflow-hidden group cursor-pointer hover:bg-surface-container-high transition-colors">
+<div class="absolute inset-0 flex flex-col items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors z-10 bg-white/50 backdrop-blur-[2px]">
+<span class="material-symbols-outlined text-[32px] mb-xs">add_a_photo</span>
+<span class="font-caption text-caption">Upload Photo</span>
+</div>
+<!-- Placeholder image behind the overlay -->
+<img alt="Upload Placeholder" class="absolute inset-0 w-full h-full object-cover opacity-30" data-alt="A placeholder graphic indicating an image upload area. It features a soft, light blue-grey background with a subtle, stylized human silhouette icon in the center, representing a missing profile picture. The style is flat, modern, and clinical." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7RXgvg70h5xonRMW4SyGUceS36CBZ0D184xTcWGI65GfT8kXzsxceN25aCnAkHvYExsMDZ7mDjBswr_1vzgNtM54XNctW1WzuTdtQUP-yur8aQBXQSAGTWKndm618GONt9oOGvXFbvEmWl9cVhIfvZhrUEDhn-_46Pqchw2pzlreEwE5A2dDFEXtNPJZ7WtK1oOe73iIqpryFIf9oWktXmbZu0dcABsswYtXIfhxRE3UPJRxQCBXhtQ"/>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Profile Picture</h3>
+<p class="font-caption text-caption text-on-surface-variant mt-xs mb-md">JPG or PNG. Max size 5MB.</p>
+<div class="w-full bg-surface-container-low rounded-lg p-sm border border-outline-variant flex items-center gap-sm mt-auto">
+<span class="material-symbols-outlined text-secondary">verified_user</span>
+<div class="text-left">
+<span class="block font-label-md text-label-md text-on-surface">ID Verification</span>
+<span class="block font-caption text-caption text-on-surface-variant">Required for activation</span>
+</div>
+</div>
+</div>
+<!-- Credentials Preview Card -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">badge</span>
+                            Credentials
+                        </h3>
+<div class="space-y-form-gap">
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="username">Assigned Username / ID</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" id="username" name="username" placeholder="e.g. ASHA-1042" type="text"/>
+</div>
+<p class="font-caption text-caption text-on-surface-variant mt-xs">Auto-generated based on district code if left blank.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Main Form Data) -->
+<div class="md:col-span-8 flex flex-col gap-lg">
+<!-- Section 1: Personal Information -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-label-md text-label-md">1</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Personal Information</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<!-- Full Name -->
+<div class="col-span-1 md:col-span-2 flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="fullName">Full Name *</label>
+<input class="w-full px-md py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" id="fullName" name="fullName" required="" type="text"/>
+</div>
+<!-- Date of Birth -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="dob">Date of Birth *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px] appearance-none" id="dob" name="dob" required="" type="date"/>
+</div>
+</div>
+<!-- Gender -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="gender">Gender *</label>
+<div class="relative">
+<select class="w-full pl-sm pr-lg py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow appearance-none h-touch-target md:h-auto min-h-[48px]" id="gender" name="gender" required="">
+<option disabled="" selected="" value="">Select Gender</option>
+<option value="female">Female</option>
+<option value="male">Male</option>
+<option value="other">Other</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-sm text-on-surface-variant">
+<span class="material-symbols-outlined">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<!-- Aadhaar Number -->
+<div class="col-span-1 md:col-span-2 flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="aadhaar">Aadhaar Number *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">fingerprint</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow font-mono tracking-widest h-touch-target md:h-auto min-h-[48px]" id="aadhaar" name="aadhaar" pattern="\d{4}\s\d{4}\s\d{4}" placeholder="XXXX XXXX XXXX" required="" type="text"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Contact Details -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-label-md text-label-md">2</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Contact Details</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<!-- Mobile Number -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="mobile">Mobile Number *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">phone_iphone</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" id="mobile" name="mobile" placeholder="+91" required="" type="tel"/>
+</div>
+</div>
+<!-- Email -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="email">Email Address (Optional)</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" id="email" name="email" type="email"/>
+</div>
+</div>
+<!-- Emergency Contact -->
+<div class="col-span-1 md:col-span-2 flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="emergency">Emergency Contact *</label>
+<div class="flex flex-col md:flex-row gap-sm">
+<input class="w-full md:w-1/2 px-md py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" placeholder="Contact Name" required="" type="text"/>
+<div class="relative w-full md:w-1/2">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">sos</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow h-touch-target md:h-auto min-h-[48px]" placeholder="Emergency Number" required="" type="tel"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Work Assignment -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-label-md text-label-md">3</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Work Assignment</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-form-gap">
+<!-- Sub-center -->
+<div class="col-span-1 md:col-span-2 flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="subcenter">Reporting Sub-center *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">local_hospital</span>
+</span>
+<select class="w-full pl-[36px] pr-lg py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow appearance-none h-touch-target md:h-auto min-h-[48px]" id="subcenter" name="subcenter" required="">
+<option disabled="" selected="" value="">Select Sub-center</option>
+<option value="sc1">Rampur Sub-center</option>
+<option value="sc2">Shyamnagar Sub-center</option>
+<option value="sc3">Madhupur Sub-center</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-sm text-on-surface-variant">
+<span class="material-symbols-outlined">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<!-- Assigned Village -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="village">Assigned Village *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">location_on</span>
+</span>
+<select class="w-full pl-[36px] pr-lg py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow appearance-none h-touch-target md:h-auto min-h-[48px]" id="village" name="village" required="">
+<option disabled="" selected="" value="">Select Village</option>
+<option value="v1">Kalyanpur</option>
+<option value="v2">Bishanpur</option>
+<option value="v3">Govindpur</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-sm text-on-surface-variant">
+<span class="material-symbols-outlined">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<!-- Date of Joining -->
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface mb-xs" for="doj">Date of Joining *</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+</span>
+<input class="w-full pl-[36px] pr-sm py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-shadow appearance-none h-touch-target md:h-auto min-h-[48px]" id="doj" name="doj" required="" type="date"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Bar (Sticky at bottom for mobile, inline for desktop) -->
+<div class="mt-lg pt-lg border-t border-outline-variant flex flex-col-reverse md:flex-row justify-end gap-md sticky bottom-0 bg-surface-bright/95 backdrop-blur-sm z-20 pb-md md:static md:bg-transparent md:backdrop-blur-none">
+<button class="w-full md:w-auto px-xl py-[12px] bg-transparent border border-primary text-primary font-label-md text-label-md rounded-lg hover:bg-primary-fixed transition-colors h-touch-target flex items-center justify-center" type="button">
+                            Cancel
+                        </button>
+<button class="w-full md:w-auto px-xl py-[12px] bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary-fixed-variant transition-colors h-touch-target flex items-center justify-center shadow-md shadow-primary/20 gap-sm" type="submit">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                            Save Worker Details
+                        </button>
+</div>
+</div>
+</form>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) - Suppressed because this is a Form/Transactional page per guidelines -->
+</body></html>

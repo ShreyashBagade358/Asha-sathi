@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Sathi - Worker Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#dfe8ff",
+                    "surface-tint": "#005db6",
+                    "on-secondary-container": "#00752a",
+                    "on-secondary": "#ffffff",
+                    "outline": "#727783",
+                    "primary-fixed": "#d6e3ff",
+                    "on-primary-fixed": "#001b3d",
+                    "on-primary-container": "#c8daff",
+                    "inverse-primary": "#a9c7ff",
+                    "tertiary-fixed": "#b6ebff",
+                    "primary": "#00478d",
+                    "background": "#f9f9ff",
+                    "on-secondary-fixed-variant": "#00531c",
+                    "on-surface-variant": "#424752",
+                    "on-secondary-fixed": "#002107",
+                    "surface-container-low": "#f0f3ff",
+                    "surface-variant": "#d6e3ff",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#82fc90",
+                    "tertiary-fixed-dim": "#57d5fc",
+                    "on-tertiary-fixed": "#001f28",
+                    "secondary": "#006e28",
+                    "error": "#ba1a1a",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#82fc90",
+                    "surface-container-highest": "#d6e3ff",
+                    "on-primary-fixed-variant": "#00468c",
+                    "surface": "#f9f9ff",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#cadbfc",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#006880",
+                    "on-surface": "#091c35",
+                    "inverse-on-surface": "#ecf0ff",
+                    "surface-container": "#e7eeff",
+                    "secondary-fixed-dim": "#65df77",
+                    "primary-container": "#005eb8",
+                    "on-tertiary-container": "#9be4ff",
+                    "inverse-surface": "#20314b",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#004e60",
+                    "outline-variant": "#c2c6d4",
+                    "surface-bright": "#f9f9ff",
+                    "tertiary": "#004e61",
+                    "surface-container-lowest": "#ffffff",
+                    "on-background": "#091c35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "xl": "32px",
+                    "xs": "4px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "touch-target": "48px",
+                    "md": "16px",
+                    "xxl": "48px",
+                    "form-gap": "20px"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "display-lg": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-lg-mobile": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "caption": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "headline-lg-mobile": [
+                            "Inter"
+                    ],
+                    "label-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-lg-mobile": [
+                            "18px",
+                            {
+                                    "lineHeight": "26px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "caption": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "22px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span>
+</div>
+<div class="flex items-center gap-sm">
+<button aria-label="sync" class="w-touch-target h-touch-target flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors rounded-full rounded-full">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button aria-label="notifications" class="w-touch-target h-touch-target flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant ml-2" data-alt="A small circular avatar placeholder image for a user profile in a healthcare application, simple flat design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEVp1zZ3Ktn1P3f4_RrWs3X7lCB3Rj9TBC_JplKSNrPyWp5EBfQgcHqLhYvZAX1LtXNn7WcHK5GInjleKpSSfyttNurDBZIUn0kNpRTu1ZqzaTsI3aoroa-X0t5tG9TMxbmGWK8IYW_ivdACA7ez83tPILWDBZKMXX3Clty-u1KsUyuE3M-SI_c8He9IBiryZ03iFGXCz0q-_Qsxkw2qrBG8oOR27TwoZps313GgaT8quCSDG1Jxy7VQ"/>
+</div>
+</header>
+<!-- SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface w-64 pt-20 z-40">
+<div class="flex flex-col mb-xl px-sm">
+<div class="flex items-center gap-sm mb-2">
+<img alt="Admin Avatar" class="w-10 h-10 rounded-full object-cover" data-alt="A professional headshot of an administrative healthcare worker, suitable for an admin portal sidebar header." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7rdeSX9dpvunKFth_PRTQnwo-WYyeo3PnZkA3ynZgZaox-hakUz1SPBW8vyiFGcJsX-o9o-K6mxBcwgRfe5zk4Z_0r0YyP05fUTaRIBGOX0J2bD16yu4Qfr7ChXgJ_-BYI11-gsyUZbGfCM8bNIThhozAjBtGlW5O8fiHQRnTM6WgKaimuBvZouPh8tsMLjfgvvneS6sgDre2_zpm78wcXczO0pW5CPEV0RW4YLCSpe2wehRu2VdVYw"/>
+<div>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">Admin Portal</div>
+<div class="font-caption text-caption text-on-surface-variant">District Health Office</div>
+</div>
+</div>
+<button class="mt-md bg-primary-container text-on-primary-container font-label-md text-label-md py-2 px-4 rounded-full flex items-center justify-center gap-xs hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined">add</span>
+                 Add New Worker
+             </button>
+</div>
+<div class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold rounded-lg scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined fill-icon">groups</span>
+<span class="font-label-md text-label-md">Workers</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">person_celebrate</span>
+<span class="font-label-md text-label-md">Beneficiaries</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+</div>
+<div class="flex flex-col gap-1 mt-auto pb-4">
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="pt-20 pb-24 md:pb-md md:pl-64 min-h-screen">
+<div class="max-w-7xl mx-auto p-md md:p-lg">
+<!-- Contextual Header & Actions -->
+<div class="flex items-center justify-between mb-lg">
+<a class="flex items-center text-primary font-label-md text-label-md hover:underline gap-xs" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                    Back to Workers List
+                </a>
+<div class="flex items-center gap-xs text-on-surface-variant font-caption text-caption">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                    Last Sync: 10 mins ago
+                </div>
+</div>
+<!-- Profile Overview Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-md mb-xl">
+<!-- Identity Card (Col Span 1) -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
+<div class="relative mb-md">
+<img alt="Sunita Devi" class="w-24 h-24 rounded-full object-cover border-4 border-surface" data-alt="A professional portrait of an Indian ASHA healthcare worker in a rural setting, wearing a traditional saree with a blue border, smiling warmly, bright natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu6QsSjUT6XV-NgGEfedTWVIxX1STatH1jyOqwVua_QE0R3_aN6cOIOtY1MGFTc8i9vy8UsChVTsc8E9xRCjmXey8GKBBne2ibdybunhQWaX-4yKyAZ2bkVdjjWQ5YX5kxk7IMruoD1dbEh4rubL_UzBb9zeJ_JuWNiFQa_Z5Vx7PvQpe7t-YmCRBZ-7JO-RDFPDgxtDUeTxhLCaDWYeGNM_cGr4GsyRoDl4PUt5i4NyIc8Hmji9_8gA"/>
+<span class="absolute bottom-0 right-0 w-4 h-4 bg-secondary border-2 border-surface rounded-full"></span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-xs">Sunita Devi</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-sm">ASHA Worker ID: AW-2049-BR</p>
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md mb-lg">
+                        Active Field Worker
+                    </span>
+<div class="w-full flex justify-center gap-sm mt-auto">
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded-full font-label-md text-label-md flex items-center gap-xs hover:bg-primary hover:text-on-primary transition-colors flex-1 justify-center">
+<span class="material-symbols-outlined text-[18px]">call</span> Call
+                        </button>
+<button class="border border-outline-variant text-on-surface px-4 py-2 rounded-full font-label-md text-label-md flex items-center gap-xs hover:bg-surface-container transition-colors flex-1 justify-center">
+<span class="material-symbols-outlined text-[18px]">mail</span> Message
+                        </button>
+</div>
+</div>
+<!-- Metrics Cards (Col Span 2) -->
+<div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-md">
+<!-- Metric 1 -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-2 rounded-lg">cottage</span>
+<span class="font-label-md text-label-md text-secondary">Target: 100%</span>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-on-surface mb-xs">98%</div>
+<div class="font-body-md text-body-md text-on-surface-variant">Household Coverage</div>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-tertiary bg-tertiary-fixed p-2 rounded-lg">checklist</span>
+<span class="font-label-md text-label-md text-on-surface-variant">This Month</span>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-on-surface mb-xs">42<span class="text-headline-md text-on-surface-variant">/45</span></div>
+<div class="font-body-md text-body-md text-on-surface-variant">Visit Completion</div>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 mt-md">
+<div class="bg-tertiary h-1.5 rounded-full" style="width: 93%"></div>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-secondary bg-secondary-fixed p-2 rounded-lg">health_and_safety</span>
+</div>
+<div>
+<div class="font-display-lg text-display-lg text-on-surface mb-xs">95%</div>
+<div class="font-body-md text-body-md text-on-surface-variant">High-Risk Accuracy</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tab Navigation -->
+<div class="border-b border-outline-variant mb-lg overflow-x-auto">
+<nav aria-label="Tabs" class="flex gap-lg min-w-max px-xs">
+<button class="border-b-2 border-primary text-primary font-label-md text-label-md py-3 px-1 whitespace-nowrap">Overview</button>
+<button class="border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-label-md text-label-md py-3 px-1 whitespace-nowrap">Assigned Households</button>
+<button class="border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-label-md text-label-md py-3 px-1 whitespace-nowrap">Visit History</button>
+<button class="border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-label-md text-label-md py-3 px-1 whitespace-nowrap">Performance Analytics</button>
+</nav>
+</div>
+<!-- Tab Content: Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Bio & Contact -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Personal Information</h2>
+<div class="space-y-md">
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant">Phone Number</span>
+<span class="font-body-md text-body-md text-on-surface">+91 98765 43210</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant">Date of Joining</span>
+<span class="font-body-md text-body-md text-on-surface">12 March 2018 (6 Years)</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant">Primary Language</span>
+<span class="font-body-md text-body-md text-on-surface">Hindi, Bhojpuri</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant">Address</span>
+<span class="font-body-md text-body-md text-on-surface">House 42, Ward 3, Block A, Patna District, Bihar</span>
+</div>
+</div>
+</div>
+<!-- Assignment Details -->
+<div class="bg-surface border border-outline-variant rounded-xl p-lg shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Territory Assignment</h2>
+<div class="mb-lg">
+<div class="flex items-center justify-between mb-sm">
+<span class="font-body-md text-body-md text-on-surface font-semibold">Primary Sub-center:</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Danapur PHC</span>
+</div>
+<div class="w-full h-32 bg-surface-container-low rounded-lg flex items-center justify-center border border-outline-variant overflow-hidden relative">
+<!-- Map Placeholder -->
+<div class="absolute inset-0 bg-cover bg-center w-full h-full opacity-50" data-alt="A stylized map interface showing a rural district in Bihar, India with highlighted ward boundaries and scattered house icons representing a healthcare worker's assigned territory. Light mode map styling with soft blues and greens." data-location="Danapur, Bihar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD3F7VAyYSHV-AlxzzuVMztSAnSs-4SGyaxwT4dx1eZGv56y1F9MNf47PKSfsIDpW8VjxhoYHfKOtHRTAbAy_UtO14f-W0-RGdqSs5zVU9uRfNWVfgooL7blhc1T1OUoE_y_yYy25V-GuqNCjwxkwwAoEBLYyQyCezluxj-Vy3Y82eWcWMh8CrpOpOib6zANssGsRnh9dX-uTWQoeWKGT1usij7kY1X6yjRsWSjZYubGQtQDXAkIjPF6A')"></div>
+<span class="relative z-10 bg-surface px-3 py-1 rounded-full font-caption text-caption border border-outline-variant shadow-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">location_on</span> View Map
+                             </span>
+</div>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-sm">Assigned Wards / Villages</h3>
+<div class="flex flex-wrap gap-sm">
+<span class="bg-surface-container px-3 py-1 rounded-lg font-body-md text-body-md text-on-surface border border-outline-variant">Ward 3 (East)</span>
+<span class="bg-surface-container px-3 py-1 rounded-lg font-body-md text-body-md text-on-surface border border-outline-variant">Ward 4</span>
+<span class="bg-surface-container px-3 py-1 rounded-lg font-body-md text-body-md text-on-surface border border-outline-variant">Rampur Village</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant shadow-lg rounded-t-full pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant w-16 h-12 hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-caption text-[10px] leading-tight">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined fill-icon mb-1">groups</span>
+<span class="font-caption text-[10px] leading-tight font-bold">Workers</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant w-16 h-12 hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">person_search</span>
+<span class="font-caption text-[10px] leading-tight">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant w-16 h-12 hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">assignment_turned_in</span>
+<span class="font-caption text-[10px] leading-tight">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant w-16 h-12 hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">account_circle</span>
+<span class="font-caption text-[10px] leading-tight">Profile</span>
+</a>
+</nav>
+</body></html>

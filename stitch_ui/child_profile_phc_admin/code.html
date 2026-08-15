@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Beneficiary Profile - Aarav Kumar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#00478d",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "tertiary-container": "#006880",
+                      "on-surface": "#091c35",
+                      "on-surface-variant": "#424752",
+                      "outline": "#727783",
+                      "on-primary-container": "#c8daff",
+                      "tertiary-fixed": "#b6ebff",
+                      "tertiary": "#004e61",
+                      "surface-tint": "#005db6",
+                      "surface-bright": "#f9f9ff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-on-surface": "#ecf0ff",
+                      "surface-dim": "#cadbfc",
+                      "on-tertiary": "#ffffff",
+                      "secondary": "#006e28",
+                      "background": "#f9f9ff",
+                      "surface": "#f9f9ff",
+                      "error-container": "#ffdad6",
+                      "surface-container-highest": "#d6e3ff",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-secondary-container": "#00752a",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "surface-container-low": "#f0f3ff",
+                      "primary-container": "#005eb8",
+                      "inverse-surface": "#20314b",
+                      "on-background": "#091c35",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "secondary-fixed": "#82fc90",
+                      "surface-variant": "#d6e3ff",
+                      "surface-container": "#e7eeff",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#82fc90",
+                      "on-tertiary-container": "#9be4ff",
+                      "inverse-primary": "#a9c7ff",
+                      "on-tertiary-fixed": "#001f28",
+                      "surface-container-high": "#dfe8ff",
+                      "on-secondary": "#ffffff",
+                      "outline-variant": "#c2c6d4",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#65df77",
+                      "on-secondary-fixed": "#002107",
+                      "on-primary-fixed": "#001b3d",
+                      "on-error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xs": "4px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "xl": "32px",
+                      "touch-target": "48px",
+                      "unit": "4px",
+                      "xxl": "48px",
+                      "sm": "8px",
+                      "form-gap": "20px"
+              },
+              "fontFamily": {
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "caption": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                      "body-lg-mobile": ["18px", {"lineHeight": "26px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md text-body-md antialiased min-h-screen flex flex-col">
+<!-- TopAppBar (Mapped from Shared Components JSON) -->
+<!-- Suppressed SideNav and BottomNav as this is a task-focused/detail view, prioritizing the canvas -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-md">
+<button class="md:hidden flex items-center justify-center text-on-surface-variant hover:bg-surface-container rounded-full w-touch-target h-touch-target transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center justify-center text-primary dark:text-primary-fixed-dim hover:bg-surface-container rounded-full w-touch-target h-touch-target transition-colors">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="flex items-center justify-center text-primary dark:text-primary-fixed-dim hover:bg-surface-container rounded-full w-touch-target h-touch-target transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant ml-sm" data-alt="A small circular avatar showing a professional female Indian healthcare worker wearing a blue sari, smiling warmly. Bright, clean background, modern corporate healthcare style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdH3QFiZc7qsUfZPUdiZAERb2qYkuJFQ7WoAWtyCknNb7qqCryG53uhZo67ppMnLXeNkEbMBgtSVeiYgVfPmc68kGV9oIg2uQzUo2cH3mqeFeO00LYOqpIo4k35dJtJjRG2Td3HZ3Ee_PpejhBWQb89kXzBX0_w6zjDAGgKY3PcekooBvQMmhUafpBaXMuC4s-twHqISly-X5NPK0umUOdVZxWVhsbfoKWx-KRMHoYLMA_UBQKQEcWtA"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 pt-[64px] pb-xl px-md md:px-lg max-w-7xl mx-auto w-full flex flex-col gap-lg">
+<!-- Breadcrumb / Back Action (Desktop) -->
+<div class="hidden md:flex items-center gap-sm mt-md text-on-surface-variant font-label-md text-label-md">
+<button class="hover:text-primary transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                Back to Beneficiaries
+            </button>
+<span>/</span>
+<span>Child Profile</span>
+</div>
+<!-- Header Profile Block -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md mt-md md:mt-0">
+<div class="flex items-center gap-md">
+<div class="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-surface-container-high overflow-hidden shadow-sm relative shrink-0">
+<img alt="Aarav Kumar Profile Photo" class="w-full h-full object-cover" data-alt="A high-quality, closely cropped portrait of a 2-year-old Indian boy looking slightly tired but calm. He is sitting indoors in a brightly lit rural home with white walls. The lighting is soft and natural, creating a clean, modern, high-contrast healthcare aesthetic. Deep blacks, pristine whites, subtle skin tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq-EHUgaEXg7ItyrztXBcR_ffBL3GI5T9hfWjb8SeQ0CQtTaLfGV-exzRhkapqYl2bssAAV3c_buO0g6w4rVb7jePe8R9575glUbipUn9LlcCQQIDpXz_08WZvk13jFKK1PYyDRh2o5oFucPdFoXODszWs7JPnN0BmwaQGtmyjovEy40V8-V3Pmzo8lN2qEDK5XEQcSqpNV_maAu2tU14hY4npBfSjQKRQD8QHyJFy54JGrJ4wqizGiQ"/>
+</div>
+<div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-xs">Aarav Kumar</h1>
+<div class="flex flex-wrap items-center gap-sm font-body-md text-body-md text-on-surface-variant">
+<span>Male, 2 Years (26 Months)</span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+<span>ID: CH-9928-11</span>
+</div>
+<div class="mt-sm flex items-center gap-xs">
+<!-- High Risk Badge - Using semantic error color -->
+<div class="inline-flex items-center gap-xs bg-error-container text-on-error-container font-label-md text-label-md px-md py-xs rounded-full border border-error/20 shadow-sm">
+<span class="material-symbols-outlined text-[16px] fill">warning</span>
+                            High Risk (SAM)
+                        </div>
+</div>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="flex-1 md:flex-none h-touch-target flex items-center justify-center gap-xs bg-surface-container border border-outline-variant text-primary font-label-md text-label-md px-lg rounded-lg hover:bg-surface-container-high transition-colors shadow-sm">
+<span class="material-symbols-outlined">edit</span>
+                    Edit
+                </button>
+<button class="flex-1 md:flex-none h-touch-target flex items-center justify-center gap-xs bg-primary text-on-primary font-label-md text-label-md px-lg rounded-lg hover:opacity-90 transition-opacity shadow-sm">
+<span class="material-symbols-outlined">add_task</span>
+                    Log Visit
+                </button>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex overflow-x-auto border-b border-outline-variant hide-scrollbar mt-sm">
+<button class="px-md py-sm font-label-md text-label-md text-primary font-bold border-b-2 border-primary whitespace-nowrap">
+                Summary
+            </button>
+<button class="px-md py-sm font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-highest transition-colors whitespace-nowrap">
+                Growth Monitoring
+            </button>
+<button class="px-md py-sm font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-highest transition-colors whitespace-nowrap">
+                Vaccination
+            </button>
+<button class="px-md py-sm font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-highest transition-colors whitespace-nowrap">
+                Health History
+            </button>
+</div>
+<!-- Bento Grid Layout for Summary Content -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-md">
+<!-- Current Health Status Card (High Priority, spanning 8 cols) -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm relative overflow-hidden flex flex-col">
+<!-- Semantic Risk Strip -->
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-error"></div>
+<div class="p-md md:p-lg pl-xl border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-error">monitor_heart</span>
+                        Current Health Status
+                    </h2>
+<span class="font-caption text-caption text-on-surface-variant">Last Updated: 2 days ago</span>
+</div>
+<div class="p-md md:p-lg pl-xl flex-1 flex flex-col gap-lg">
+<!-- Vitals Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-md">
+<div class="bg-error-container/30 p-sm rounded-lg border border-error-container">
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Weight</div>
+<div class="font-headline-md text-headline-md text-error font-bold flex items-end gap-xs">
+                                9.2 <span class="font-body-md text-body-md mb-[2px]">kg</span>
+</div>
+<div class="font-caption text-caption text-error mt-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">trending_down</span> -0.3kg since last
+                            </div>
+</div>
+<div class="bg-surface-container p-sm rounded-lg border border-outline-variant">
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Height</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold flex items-end gap-xs">
+                                82 <span class="font-body-md text-body-md mb-[2px]">cm</span>
+</div>
+</div>
+<div class="bg-error-container/30 p-sm rounded-lg border border-error-container col-span-2 md:col-span-1">
+<div class="font-caption text-caption text-on-surface-variant mb-xs">MUAC</div>
+<div class="font-headline-md text-headline-md text-error font-bold flex items-end gap-xs">
+                                11.0 <span class="font-body-md text-body-md mb-[2px]">cm</span>
+</div>
+<div class="font-caption text-caption text-error mt-xs">Severe (Red Zone)</div>
+</div>
+<div class="bg-surface-container p-sm rounded-lg border border-outline-variant col-span-2 md:col-span-1">
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Edema</div>
+<div class="font-headline-md text-headline-md text-on-surface font-bold">
+                                Absent
+                            </div>
+</div>
+</div>
+<!-- Clinical Notes -->
+<div class="bg-surface-bright rounded-lg p-md border border-outline-variant">
+<h3 class="font-label-md text-label-md text-on-surface mb-xs">Latest Field Notes</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Child appears lethargic and has poor appetite. Mother reports loose stools for the past 2 days. Weight has dropped below the -3 SD curve. Immediate referral to Nutritional Rehabilitation Centre (NRC) recommended.</p>
+</div>
+</div>
+</div>
+<!-- Quick Actions / Interventions (spanning 4 cols) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-md border-b border-outline-variant bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface">Interventions</h2>
+</div>
+<div class="p-md flex flex-col gap-sm flex-1 bg-surface">
+<button class="w-full h-touch-target flex items-center justify-between px-md bg-error text-on-error rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+<div class="flex items-center gap-sm font-label-md text-label-md">
+<span class="material-symbols-outlined">local_hospital</span>
+                            Refer to NRC
+                        </div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<button class="w-full h-touch-target flex items-center justify-between px-md bg-surface-container border border-outline-variant text-primary rounded-lg hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-sm font-label-md text-label-md">
+<span class="material-symbols-outlined">medication</span>
+                            Dispense Supplements
+                        </div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<div class="mt-auto pt-md border-t border-outline-variant">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-sm">Upcoming Tasks</h3>
+<div class="flex items-start gap-sm bg-surface-bright p-sm rounded border border-outline-variant border-l-4 border-l-primary">
+<span class="material-symbols-outlined text-primary text-[20px] mt-[2px]">calendar_today</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface">Follow-up Visit</div>
+<div class="font-caption text-caption text-error">Overdue by 1 day</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Family & Household Information (spanning 6 cols) -->
+<div class="md:col-span-6 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">family_home</span>
+                        Household Information
+                    </h2>
+</div>
+<div class="p-md grid grid-cols-1 md:grid-cols-2 gap-md">
+<div>
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Mother's Name</div>
+<div class="font-body-md text-body-md text-on-surface font-semibold">Priya Kumar</div>
+<div class="font-caption text-caption text-primary flex items-center gap-xs mt-[2px]">
+<span class="material-symbols-outlined text-[14px]">call</span> +91 98765 43210
+                        </div>
+</div>
+<div>
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Father's Name</div>
+<div class="font-body-md text-body-md text-on-surface">Rahul Kumar</div>
+</div>
+<div class="md:col-span-2 mt-sm pt-sm border-t border-outline-variant">
+<div class="font-caption text-caption text-on-surface-variant mb-xs">Address</div>
+<div class="font-body-md text-body-md text-on-surface flex items-start gap-xs">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mt-[2px]">location_on</span>
+                            House No. 42, Ward 3, Village Rampur, Block A, District Health.
+                        </div>
+</div>
+</div>
+</div>
+<!-- Program Enrollment (spanning 6 cols) -->
+<div class="md:col-span-6 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">assignment_ind</span>
+                        Program Details
+                    </h2>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<div class="flex justify-between items-center py-xs border-b border-outline-variant/50">
+<span class="font-body-md text-body-md text-on-surface-variant">RCH Number</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">102938475612</span>
+</div>
+<div class="flex justify-between items-center py-xs border-b border-outline-variant/50">
+<span class="font-body-md text-body-md text-on-surface-variant">Birth Weight</span>
+<span class="font-body-md text-body-md text-on-surface">2.5 kg</span>
+</div>
+<div class="flex justify-between items-center py-xs">
+<span class="font-body-md text-body-md text-on-surface-variant">Associated ASHA</span>
+<span class="font-body-md text-body-md text-primary flex items-center gap-xs">
+                            Sunita Devi <span class="material-symbols-outlined text-[16px]">info</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

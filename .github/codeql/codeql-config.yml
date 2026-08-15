@@ -1,0 +1,15 @@
+name: "CodeQL configuration"
+
+paths:
+  - apps/backend
+  - apps/ml-training
+  - apps/web-dashboard
+  - packages
+
+paths-ignore:
+  - "**/node_modules"
+  - "**/build"
+  - "**/dist"
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
+  - "**/__pycache__"

@@ -1,0 +1,40 @@
+# =============================================================================
+# ASHA Sathi - CODEOWNERS
+# Last unmatched pattern has the highest precedence.
+# =============================================================================
+
+# Default owners for everything not matched below
+* @asha-sathi/backend
+
+# Backend service
+/apps/backend/ @asha-sathi/backend
+
+# Mobile apps
+/apps/mobile-*/ @asha-sathi/mobile
+/packages/design-system/flutter/ @asha-sathi/mobile
+/packages/shared-types/dart/ @asha-sathi/mobile
+/packages/supabase-client/dart/ @asha-sathi/mobile
+
+# Web dashboard
+/apps/web-dashboard/ @asha-sathi/web
+/packages/design-system/web/ @asha-sathi/web
+/packages/shared-types/typescript/ @asha-sathi/web
+
+# ML pipeline
+/apps/ml-training/ @asha-sathi/ml
+/packages/ml-common/ @asha-sathi/ml
+
+# DevOps: CI/CD, docker, kubernetes, scripts, docs on infra
+/.github/ @asha-sathi/devops
+/docker/ @asha-sathi/devops
+/scripts/ @asha-sathi/devops
+/kubernetes/ @asha-sathi/devops
+
+# Documentation
+/docs/ @asha-sathi/docs
+
+# Root tooling
+/package.json @asha-sathi/devops
+/pnpm-workspace.yaml @asha-sathi/devops
+/turbo.json @asha-sathi/devops
+/melos.yaml @asha-sathi/mobile

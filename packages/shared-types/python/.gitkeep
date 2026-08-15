@@ -1,0 +1,32 @@
+# Shared type definitions for Python platform
+# ASHA Sathi monorepo
+# Purpose: Cross-platform type definitions shared between Django/FastAPI, Flutter, and TypeScript
+#
+# Currently scaffolded - add your types here:
+#
+# - Pydantic 2 models for request/response validation
+# - Typed dictionaries for configuration
+# - Shared enums and constants
+# - Type aliases for common patterns
+#
+# Example:
+#
+# from pydantic import BaseModel, Field
+# from typing import Literal, Optional
+#
+#
+# class ASHAProfile(BaseModel):
+#     id: str
+#     name: str = Field(min_length=1, max_length=100)
+#     phone: str = Field(min_length=10, max_length=15)
+#     role: Literal['asha', 'phc_admin', 'patient'] = 'asha'
+#     created_at: datetime
+#
+#
+# # Type alias for common use
+# ASHAStatus = Literal['active', 'inactive', 'on_leave']
+#
+# # Export commonly used types
+# __all__ = ['ASHAProfile', 'ASHAStatus']
+#
+# TODO: Add more Pydantic models and type definitions

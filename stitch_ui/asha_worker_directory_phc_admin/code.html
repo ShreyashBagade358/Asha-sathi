@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASHA Workers - Admin Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#dfe8ff",
+                      "surface-tint": "#005db6",
+                      "on-secondary-container": "#00752a",
+                      "on-secondary": "#ffffff",
+                      "outline": "#727783",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-fixed": "#001b3d",
+                      "on-primary-container": "#c8daff",
+                      "inverse-primary": "#a9c7ff",
+                      "tertiary-fixed": "#b6ebff",
+                      "primary": "#00478d",
+                      "background": "#f9f9ff",
+                      "on-secondary-fixed-variant": "#00531c",
+                      "on-surface-variant": "#424752",
+                      "on-secondary-fixed": "#002107",
+                      "surface-container-low": "#f0f3ff",
+                      "surface-variant": "#d6e3ff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#82fc90",
+                      "tertiary-fixed-dim": "#57d5fc",
+                      "on-tertiary-fixed": "#001f28",
+                      "secondary": "#006e28",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#82fc90",
+                      "surface-container-highest": "#d6e3ff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "surface": "#f9f9ff",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#cadbfc",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#006880",
+                      "on-surface": "#091c35",
+                      "inverse-on-surface": "#ecf0ff",
+                      "surface-container": "#e7eeff",
+                      "secondary-fixed-dim": "#65df77",
+                      "primary-container": "#005eb8",
+                      "on-tertiary-container": "#9be4ff",
+                      "inverse-surface": "#20314b",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#004e60",
+                      "outline-variant": "#c2c6d4",
+                      "surface-bright": "#f9f9ff",
+                      "tertiary": "#004e61",
+                      "surface-container-lowest": "#ffffff",
+                      "on-background": "#091c35"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "xl": "32px",
+                      "xs": "4px",
+                      "unit": "4px",
+                      "lg": "24px",
+                      "touch-target": "48px",
+                      "md": "16px",
+                      "xxl": "48px",
+                      "form-gap": "20px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-lg-mobile": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "caption": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg-mobile": [
+                              "18px",
+                              {
+                                      "lineHeight": "26px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for tables */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f0f3ff;
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c2c6d4;
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #727783;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex antialiased">
+<!-- SideNavBar (Shared Component) -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant docked left-0 h-full w-64 z-40">
+<!-- Header -->
+<div class="flex items-center gap-sm mb-lg px-xs py-sm border-b border-outline-variant pb-md">
+<img alt="Admin Avatar" class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="A professional headshot of a female healthcare administrator in her 40s. She is wearing a formal blouse and has a warm, confident expression. The lighting is bright and even, suited for a corporate ID badge. The background is a clean, neutral white to emphasize clarity and professionalism in a medical administrative context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRKXqR9LRQ2Xo8p9w3RVnKUgJfcgY86RZv4gWsCQtXizSkDdQCgg2V6d2r5mlskoDL_xg_dyZDAN0rkthe2IxZkGvILq2Yq09B0vsovVd0VSOR0fLMJ7BaSjhAJoF1XPKdJp068tJpvYhJaMx6UnLDDs7zZhJ6TItzjBeEBZyKUhJnm8ZyHrYlULnzuxub-LWpc8tvUyV3mkm9Ij8cD1Jb9mJ4KmALpmYEAqRezryHI9EwocG9C_g_QA"/>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-black text-primary">Admin Portal</span>
+<span class="font-caption text-caption text-on-surface-variant">District Health Office</span>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex flex-col gap-xs flex-1">
+<!-- Dashboard -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">dashboard</span>
+                Dashboard
+            </a>
+<!-- Workers (Active) -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg bg-secondary-container text-on-secondary-container font-bold rounded-lg transition-transform duration-150 font-label-md text-label-md opacity-100" href="#">
+<span class="material-symbols-outlined filled">groups</span>
+                Workers
+            </a>
+<!-- Beneficiaries -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">person_celebrate</span>
+                Beneficiaries
+            </a>
+<!-- Reports -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">analytics</span>
+                Reports
+            </a>
+<!-- Inventory -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">inventory_2</span>
+                Inventory
+            </a>
+</div>
+<!-- CTA Button -->
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-md rounded-xl flex items-center justify-center gap-sm hover:opacity-90 transition-opacity mt-md shadow-sm">
+<span class="material-symbols-outlined">add</span>
+            Add New Worker
+        </button>
+<!-- Footer Navigation -->
+<div class="flex flex-col gap-xs mt-md pt-md border-t border-outline-variant">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all font-label-md text-label-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">help</span>
+                Support
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen bg-background">
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-md h-touch-target md:px-lg sticky top-0 z-30">
+<!-- Brand (Mobile only, hidden on desktop due to sidebar) -->
+<div class="md:hidden flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary">ASHA Sathi</span>
+</div>
+<!-- Global Search & Sync Status -->
+<div class="flex-1 flex justify-end items-center gap-md w-full ml-auto md:w-auto">
+<!-- Sync Status Indicator -->
+<div class="hidden lg:flex items-center gap-xs px-sm py-xs rounded-full bg-surface-container-low border border-outline-variant mr-sm">
+<span class="material-symbols-outlined text-secondary text-[16px]">check_circle</span>
+<span class="font-caption text-caption text-on-surface-variant">District Sync: 2 mins ago</span>
+</div>
+<!-- Search Bar -->
+<div class="relative w-full max-w-xs hidden sm:block">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-xl pr-md py-sm rounded-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant/70 h-10 transition-all" placeholder="Search workers, villages..." type="text"/>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-sm">
+<button aria-label="Sync Data" class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container transition-colors relative">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button aria-label="Notifications" class="p-xs rounded-full text-on-surface-variant hover:bg-surface-container transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<!-- Mobile Search Toggle -->
+<button aria-label="Search" class="sm:hidden p-xs rounded-full text-on-surface-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 p-md md:p-lg overflow-y-auto w-full max-w-[1440px] mx-auto">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-lg">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-surface m-0">ASHA Workers</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Total Workers: <span class="font-bold text-on-surface">124</span></p>
+</div>
+<button class="bg-primary text-on-primary hover:bg-on-primary-fixed-variant transition-colors py-sm px-md rounded-full font-label-md text-label-md flex items-center gap-xs shadow-sm whitespace-nowrap h-touch-target">
+<span class="material-symbols-outlined">add</span>
+                    Add New Worker
+                </button>
+</div>
+<!-- Advanced Filters -->
+<div class="bg-surface rounded-xl border border-outline-variant p-md mb-lg shadow-sm flex flex-col lg:flex-row gap-md items-start lg:items-end">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-md flex-1 w-full">
+<!-- Village Filter -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Village</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm pr-xl h-10 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary">
+<option>All Villages</option>
+<option>Rampur</option>
+<option>Shivpur</option>
+<option>Gopalganj</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+<!-- Status Filter -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Status</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm pr-xl h-10 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary">
+<option>All Status</option>
+<option>Active</option>
+<option>On Leave</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+<!-- Performance Filter -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Performance</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm pr-xl h-10 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary">
+<option>All Performance</option>
+<option>High (Top 20%)</option>
+<option>Medium</option>
+<option>Low (Needs Review)</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<div class="flex gap-sm w-full lg:w-auto mt-sm lg:mt-0">
+<button class="px-md py-sm h-10 border border-outline-variant text-on-surface-variant font-label-md text-label-md rounded-lg hover:bg-surface-container-low transition-colors flex-1 lg:flex-none flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+                        Reset
+                    </button>
+<button class="px-md py-sm h-10 bg-surface-tint text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary transition-colors flex-1 lg:flex-none shadow-sm">
+                        Apply Filters
+                    </button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col mb-lg">
+<div class="overflow-x-auto table-container">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Worker Name</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Mobile Number</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Village</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-right whitespace-nowrap">Households</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-right whitespace-nowrap">Visits (Month)</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-right whitespace-nowrap">Pending</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-right whitespace-nowrap">High Risk</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-center whitespace-nowrap">Status</th>
+<th class="py-sm px-md font-label-md text-label-md text-on-surface-variant text-center whitespace-nowrap">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors h-[56px]">
+<td class="py-sm px-md">
+<div class="flex items-center gap-sm">
+<img alt="Sunita Devi" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A portrait of a young Indian woman, an ASHA healthcare worker, smiling warmly. She wears a traditional light blue sari signifying her role. Bright, natural daylight highlights her face. The background is a soft, blurred rural healthcare setting, conveying dedication and community care." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCTieljvsjaCLW3qC6ZpDJxCYQBtWYje8mz6FyTMzKNdNnhU-4srTHo70k0MT7KrCj3ROxZXzY09RHqfLwMqx-oDJkKrauMSwdL0U6U7zmtXNouypaEfu3hgrenNRRpYe3MUaWIFtvBVuj7mqvHQDDW8NzbnRiCIL9mSaGTbMWajWKTPQfjtVwZWVDkBQjxjfl7PPVKdvvbKHXPqmAbCX4ipFNaTAmxHwEgktxV_v_1SAcXh30kIrvLg"/>
+<span class="font-label-md font-bold text-on-surface">Sunita Devi</span>
+</div>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-mono text-sm">+91 98765 43210</td>
+<td class="py-sm px-md">Rampur</td>
+<td class="py-sm px-md text-right">145</td>
+<td class="py-sm px-md text-right">
+<div class="flex items-center justify-end gap-xs">
+<span>42</span>
+<span class="material-symbols-outlined text-secondary text-[16px]" title="High completion rate">trending_up</span>
+</div>
+</td>
+<td class="py-sm px-md text-right text-on-surface-variant">3</td>
+<td class="py-sm px-md text-right">
+<span class="inline-flex items-center justify-center bg-error-container text-on-error-container px-2 py-0.5 rounded-full font-label-md text-[12px] font-bold">
+                                        12
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<div class="flex items-center justify-center gap-sm">
+<button class="text-primary hover:text-surface-tint p-1 rounded hover:bg-surface-container-low transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="text-outline hover:text-on-surface-variant p-1 rounded hover:bg-surface-container-low transition-colors" title="Edit Worker">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors bg-surface-container-low/30 h-[56px]">
+<td class="py-sm px-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold text-sm">
+                                            KM
+                                        </div>
+<span class="font-label-md font-bold text-on-surface">Kavita Mishra</span>
+</div>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-mono text-sm">+91 87654 32109</td>
+<td class="py-sm px-md">Shivpur</td>
+<td class="py-sm px-md text-right">112</td>
+<td class="py-sm px-md text-right">28</td>
+<td class="py-sm px-md text-right text-on-surface-variant">15</td>
+<td class="py-sm px-md text-right">
+<span class="inline-flex items-center justify-center bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-md text-[12px]">
+                                        4
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-md text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span> On Leave
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<div class="flex items-center justify-center gap-sm">
+<button class="text-primary hover:text-surface-tint p-1 rounded hover:bg-surface-container-low transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="text-outline hover:text-on-surface-variant p-1 rounded hover:bg-surface-container-low transition-colors" title="Edit Worker">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors h-[56px]">
+<td class="py-sm px-md">
+<div class="flex items-center gap-sm">
+<img alt="Rekha Sharma" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A portrait of a middle-aged Indian woman, an ASHA healthcare worker, looking directly at the camera with a serious, professional demeanor. She wears a crisp uniform sari. The lighting is studio quality, emphasizing clarity and trust. The background is a plain, light grey clinical wall." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpXTek9XaaJSdFBiEeHI6HbnIl1PSiBZ4FpVDcTdK0DqDHrrB0T98C0uJ-x91Gv1-QpSXWB6vqo5ATSSXLNKilKNPAS0rQRscQc-m9z0guWGHJkJ7T070Jm9pQogKIyK-R5Kl6HgUuAC698K-Ly6FX8B7C_MGsKWpfLQs-dXbiOAKNmOQRAH_sYJlNJ0IoMwPgJiaRoFra2G8zkwuPvg4X2xu59ag3Mue5KzpU8H8B5q2VM_xjKQpUSw"/>
+<span class="font-label-md font-bold text-on-surface">Rekha Sharma</span>
+</div>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-mono text-sm">+91 76543 21098</td>
+<td class="py-sm px-md">Gopalganj</td>
+<td class="py-sm px-md text-right">189</td>
+<td class="py-sm px-md text-right">
+<div class="flex items-center justify-end gap-xs text-error">
+<span>12</span>
+<span class="material-symbols-outlined text-[16px]" title="Low completion rate">trending_down</span>
+</div>
+</td>
+<td class="py-sm px-md text-right font-bold text-error">45</td>
+<td class="py-sm px-md text-right">
+<span class="inline-flex items-center justify-center bg-error-container text-on-error-container px-2 py-0.5 rounded-full font-label-md text-[12px] font-bold">
+                                        18
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<div class="flex items-center justify-center gap-sm">
+<button class="text-primary hover:text-surface-tint p-1 rounded hover:bg-surface-container-low transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="text-outline hover:text-on-surface-variant p-1 rounded hover:bg-surface-container-low transition-colors" title="Edit Worker">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-lowest transition-colors bg-surface-container-low/30 h-[56px]">
+<td class="py-sm px-md">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">
+                                            PY
+                                        </div>
+<span class="font-label-md font-bold text-on-surface">Pooja Yadav</span>
+</div>
+</td>
+<td class="py-sm px-md text-on-surface-variant font-mono text-sm">+91 65432 10987</td>
+<td class="py-sm px-md">Rampur</td>
+<td class="py-sm px-md text-right">130</td>
+<td class="py-sm px-md text-right">35</td>
+<td class="py-sm px-md text-right text-on-surface-variant">8</td>
+<td class="py-sm px-md text-right">
+<span class="inline-flex items-center justify-center bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-label-md text-[12px]">
+                                        2
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Active
+                                    </span>
+</td>
+<td class="py-sm px-md text-center">
+<div class="flex items-center justify-center gap-sm">
+<button class="text-primary hover:text-surface-tint p-1 rounded hover:bg-surface-container-low transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="text-outline hover:text-on-surface-variant p-1 rounded hover:bg-surface-container-low transition-colors" title="Edit Worker">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="border-t border-outline-variant bg-surface-container-lowest p-sm px-md flex items-center justify-between">
+<span class="font-caption text-caption text-on-surface-variant hidden sm:inline-block">Showing 1 to 4 of 124 entries</span>
+<div class="flex items-center gap-xs ml-auto sm:ml-0">
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container disabled:opacity-50 transition-colors" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<div class="flex items-center gap-xs">
+<button class="w-8 h-8 rounded bg-primary text-on-primary font-label-md text-sm flex items-center justify-center">1</button>
+<button class="w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container font-label-md text-sm flex items-center justify-center transition-colors">2</button>
+<button class="w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container font-label-md text-sm flex items-center justify-center transition-colors">3</button>
+<span class="text-on-surface-variant px-1">...</span>
+<button class="w-8 h-8 rounded text-on-surface-variant hover:bg-surface-container font-label-md text-sm flex items-center justify-center transition-colors">31</button>
+</div>
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Shared Component - Mobile Only) -->
+<!-- Note: Following semantic shell mandate, bottom nav is rendered for top-level destinations on mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface border-t border-outline-variant shadow-lg docked full-width bottom-0 rounded-t-full pb-safe">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-xl transition-colors min-w-[64px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-md text-[11px] leading-tight text-center">Home</span>
+</a>
+<!-- Workers (Mapped to Households/Community in standard mobile app, but keeping label generic for this view context or overriding appropriately. In this admin view, we might not use the standard mobile bottom nav, but adhering to the JSON structure provided in the prompt) -->
+<!-- Based on JSON: ["Home", "Households", "Patients", "Tasks", "Profile"] -->
+<!-- Admin viewing workers doesn't perfectly map to the ASHA worker's own app bottom nav. However, to fulfill the shared component requirement, we render it. -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-xl transition-colors min-w-[64px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">cottage</span>
+<span class="font-label-md text-[11px] leading-tight text-center">Households</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 transition-transform duration-200 scale-90 min-w-[64px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined filled mb-1">person_search</span>
+<span class="font-label-md text-[11px] leading-tight text-center font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-xl transition-colors min-w-[64px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">assignment_turned_in</span>
+<span class="font-label-md text-[11px] leading-tight text-center">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-xl transition-colors min-w-[64px] min-h-[48px]" href="#">
+<span class="material-symbols-outlined mb-1">account_circle</span>
+<span class="font-label-md text-[11px] leading-tight text-center">Profile</span>
+</a>
+</nav>
+<!-- Support for safe area padding on mobile devices -->
+<style>
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</body></html>
