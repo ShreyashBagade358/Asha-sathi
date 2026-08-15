@@ -8,7 +8,7 @@ asha-sathi/
 ├── apps/                    # Application projects
 │   ├── backend/             # FastAPI + Python backend
 │   │   ├── app/             # Core application code
-│   │   │   ├── api/v1/      # 25+ versioned API routers
+│   │   │   ├── api/v1/      # One flat router module per domain
 │   │   │   ├── core/        # Config, DB, security, supabase
 │   │   │   ├── models/      # 21+ SQLAlchemy models
 │   │   │   ├── schemas/     # Pydantic request/response schemas
@@ -21,8 +21,9 @@ asha-sathi/
 │   │   └── .env.example     # Environment variables template
 │   ├── ml-training/         # ML pipeline (ONNX models)
 │   │   ├── src/             # Models, features, serving, training
+│   │   ├── artifacts/       # Trained model artifacts + config (gitignored)
+│   │   ├── data/            # Raw + processed datasets
 │   │   ├── notebooks/       # EDA + training notebooks
-│   │   ├── data/            # Datasets and utilities
 │   │   └── pyproject.toml   # ML common dependencies
 │   ├── mobile-asha/         # Flutter app for ASHA workers
 │   │   ├── lib/             # Main Dart code
@@ -37,6 +38,9 @@ asha-sathi/
 │       ├── lib/             # Main Dart code
 │       ├── features/        # 6 feature modules
 │       └── pubspec.yaml
+│   └── web-dashboard/       # React + Vite admin dashboard
+│       └── src/pages/       # Role-based pages (auth, asha, phc, phc-admin,
+│                            # district, state, super)
 ├── packages/                # Shared monorepo packages
 │   ├── design-system/       # Shared UI components
 │   │   ├── flutter/         # Flutter widgets (8 components)
@@ -57,6 +61,8 @@ asha-sathi/
 │   ├── kubernetes/          # Helm charts
 │   └── monitoring/          # Prometheus, Grafana, Loki, Tempo
 ├── docs/                    # Project documentation
+│   ├── design/              # Project designs (drawio, synopsis PDFs)
+│   ├── design-mocks/        # Archived Stitch AI mockup screens
 │   ├── architecture/        # System design, ERD, sequence diagrams
 │   ├── api/                 # OpenAPI spec, Postman collection
 │   ├── abdm-integration/    # ABDM M1/M2/M3 guides
@@ -69,6 +75,7 @@ asha-sathi/
 │   ├── generate-types.sh    # OpenAPI → Dart/TS clients
 │   ├── db-migrate.sh        # Run alembic migrations
 │   └── deploy.sh            # Deployment script
+├── postman/                 # Postman workspace (globals, collections, specs)
 ├── .github/                 # CI/CD workflows
 │   ├── workflows/           # ci.yml, cd.yml, codeql.yml
 │   └── dependabot.yml
@@ -103,7 +110,7 @@ asha-sathi/
 - **State**: React Query + Zustand
 - **Supabase**: Auth, Realtime, Storage
 - **Design System**: via `asha-design-system` package
-- **Pages**: auth, state, district, PHC admin views
+- **Pages**: role-based — auth, asha, phc-admin, phc, district, state, super
 - **API**: `/api/v1` proxy to backend
 
 ### Shared Packages

@@ -87,21 +87,23 @@ asha-sathi/
 │   ├── backend/                # FastAPI service (REST API + sync + ABDM)
 │   │   ├── alembic/            # database migrations
 │   │   ├── app/
-│   │   │   ├── api/v1/         # versioned routers (16 modules)
+│   │   │   ├── api/v1/         # versioned routers (one flat module per domain)
 │   │   │   ├── core/           # config, db, security, supabase
 │   │   │   ├── models/         # SQLAlchemy models (24+ tables)
 │   │   │   ├── schemas/        # Pydantic request/response schemas
 │   │   │   ├── services/       # business logic
-│   │   │   ├── tasks/          # Celery tasks (reminders, sync jobs)
-│   │   │   └── workers/        # async workers
+│   │   │   └── tasks/          # Celery tasks (reminders, sync jobs)
 │   │   └── requirements/       # base / dev / prod dependency sets
 │   ├── ml-training/            # model training + serving (onnxruntime)
-│   │   ├── data/ notebooks/    # EDA + training notebooks
+│   │   ├── artifacts/          # trained model artifacts + config (gitignored)
+│   │   ├── data/               # raw + processed datasets
+│   │   ├── notebooks/          # EDA + training notebooks
 │   │   └── src/                # data, features, models, serving, export
 │   ├── mobile-asha/            # Flutter app for ASHA workers
 │   ├── mobile-patient/         # Flutter app for beneficiaries
 │   ├── mobile-phc-admin/       # Flutter app for PHC / ANM / MOIC
 │   └── web-dashboard/          # React + Vite admin dashboard
+│       └── src/pages/          # role-based pages (auth, asha, phc, phc-admin, ...)
 ├── packages/
 │   ├── design-system/          # shared Flutter + web design system
 │   ├── shared-types/           # shared types (Dart / TS / Python)
@@ -117,7 +119,11 @@ asha-sathi/
 │   ├── workflows/              # ci.yml, cd.yml, codeql.yml
 │   └── dependabot.yml
 ├── scripts/                    # setup, seed, migrate, backup, deploy
-├── docs/                       # architecture, api, abdm, ml, deployment
+├── docs/
+│   ├── design/                 # project designs (drawio, synopsis PDFs)
+│   ├── design-mocks/           # archived Stitch AI mockup screens
+│   └── architecture/ api/ abdm-integration/ database/ deployment/ ml-models/
+├── postman/                    # Postman workspace (globals, collections, specs)
 ├── melos.yaml                  # Flutter workspace bootstrap
 ├── pnpm-workspace.yaml
 └── turbo.json
