@@ -534,10 +534,49 @@ class ModelInfo(BaseModel):
 # ---------------------------------------------------------------------------
 # Sync
 # ---------------------------------------------------------------------------
+class SyncOperationItem(BaseModel):
+    """A single client-side change queued for upload.
+
+    `client_request_id` is the idempotency key: a device-generated UUID recorded
+    once per logical change. If the server already processed it (retry, app
+    restart, duplicate batch), the stored response is replayed and no duplicate
+    record is created.
+    """
+
+    client_request_id: str = Field(min_length=1, max_length=64)
+    entity: str = Field(min_length=1, max_length=60)
+    operation: Literal["create", "update", "delete"]
+    id: str = Field(min_length=1, max_length=64)
+    version: int = Field(default=1, ge=0)
+    data: dict[str, Any] = Field(default_factory=dict)
+    deleted_at: str | None = None
+
+
 class SyncPushRequest(BaseModel):
     device_id: str | None = None
     app_version: str | None = None
-    records: dict[str, list[dict[str, Any]]]
+    records: dict[str, list[dict[str, Any]]] | None = None
+    # Legacy(optional) path. Preferred: explicit operations with idempotency keys.
+    operations: list[SyncOperationItem] | None = None
+
+
+class SyncPushItemResult(BaseModel):
+    client_request_id: str | None = None
+    entity: str
+    operation: str
+    status: Literal["success", "failed", "conflict"]
+    server_id: str | None = None
+    version: int | None = None
+    error: str | None = None
+    conflict_reason: str | None = None
+    # Server-side snapshot for the affected record (used for conflict review + pull)
+    record: dict[str, Any] | None = None
+
+
+class SyncPushResponse(BaseModel):
+    results: list[SyncPushItemResult]
+    server_time: datetime
+    summary: dict[str, int]
 
 
 class SyncPullRequest(BaseModel):
@@ -564,6 +603,22 @@ class SyncStatusResponse(BaseModel):
     last_sync_at: datetime | None = None
     pending_push: int = 0
     pending_pull: int = 0
+    conflicts: int = 0
+
+
+class DeviceRegisterRequest(BaseModel):
+    """Register (or refresh) this device's push capability with the backend."""
+
+    device_id: str = Field(min_length=1, max_length=128)
+    app_version: str | None = None
+    platform: str | None = None
+    fcm_token: str | None = Field(default=None, max_length=512)
+
+
+class DeviceRegisterResponse(BaseModel):
+    device_id: str
+    registered: bool
+    server_time: datetime
 
 
 # ---------------------------------------------------------------------------

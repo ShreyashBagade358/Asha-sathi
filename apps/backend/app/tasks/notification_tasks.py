@@ -104,3 +104,33 @@ async def _cleanup_stale_sync_logs_async() -> dict[str, Any]:
         await db.commit()
         deleted = cast(CursorResult, result).rowcount or 0
     return {"deleted": deleted}
+
+
+@celery_app.task(name="app.tasks.notification_tasks.run_health_alerts")
+def run_health_alerts() -> dict[str, Any]:
+    """Generate + push health alerts (vaccination / high-risk / follow-ups)."""
+    import asyncio
+
+    return asyncio.run(_run_health_alerts_async())
+
+
+async def _run_health_alerts_async() -> dict[str, Any]:
+    from app.models.user import Role, User
+    from app.services.health_alerts import generate_alerts_for_user
+
+    async with async_session_maker() as db:
+        user_ids = (
+            await db.execute(select(User.id).where(User.role == Role.ASHA.value))
+        ).scalars().all()
+        generated = delivered = 0
+        for uid in user_ids:
+            for notification, payload in await generate_alerts_for_user(db, uid):
+                generated += 1
+                sent = await NotificationService.send_push_to_devices(
+                    db, uid, payload["title"], payload["message"], payload["data"]
+                )
+                delivered += sent
+                await NotificationService.mark_sent(db, notification, delivered=sent > 0)
+        await db.commit()
+    logger.info("health_alerts_ran", users=len(user_ids), generated=generated, delivered=delivered)
+    return {"users": len(user_ids), "generated": generated, "delivered": delivered}

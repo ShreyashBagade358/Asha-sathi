@@ -113,7 +113,7 @@ async def create_immunization(
     user: User = Depends(get_current_user),
 ):
     await _get_child(db, child_id)
-    imm = Immunization(**payload.model_dump(), child_id=child_id, recorded_by=user.id)
+    imm = Immunization(**payload.model_dump(exclude={"child_id"}), child_id=child_id, recorded_by=user.id)
     db.add(imm)
     await db.flush()
     await log_action(db, user.id, "immunization_created", "immunization", imm.id, new_values=payload.model_dump())

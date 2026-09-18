@@ -20,6 +20,7 @@ from app.api.v1 import (
     pregnancies,
     referrals,
     reporting,
+    sanitize,
     sync,
     users,
     vaccination,
@@ -52,3 +53,4 @@ api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(config.router, prefix="/config", tags=["config"])
 api_router.include_router(sync.router, prefix="/sync", tags=["sync"])
 api_router.include_router(abdm.router, prefix="/abdm", tags=["abdm"])
+api_router.include_router(sanitize.router, prefix="/sanitize", tags=["sanitize"])

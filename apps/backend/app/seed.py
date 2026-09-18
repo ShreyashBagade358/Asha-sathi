@@ -137,7 +137,7 @@ async def seed_demo() -> None:
             )
 
             # ------------------------------------------------------------------
-            # 2. Users: ASHA, ANM, MOIC
+            # 2. Users: ASHA, ANM, MOIC, DPM, State admin, Super admin, Patient
             # ------------------------------------------------------------------
             dev_password_hash = get_password_hash("asha@123")  # dev-only credential
 
@@ -199,6 +199,66 @@ async def seed_demo() -> None:
                     "is_active": True,
                 },
                 phone="9876543212",
+            )
+            await _get_or_create(
+                session,
+                User,
+                {
+                    "role": Role.DPM.value,
+                    "state_id": state.id,
+                    "district_id": district.id,
+                    "employee_id": "EMP-UP-0031001",
+                    "email": "dpm.lucknow@example.in",
+                    "full_name": "DPM Lucknow",
+                    "language": "en",
+                    "hashed_password": dev_password_hash,
+                    "is_active": True,
+                },
+                phone="9876543213",
+            )
+            await _get_or_create(
+                session,
+                User,
+                {
+                    "role": Role.STATE_ADMIN.value,
+                    "state_id": state.id,
+                    "employee_id": "EMP-UP-0040001",
+                    "email": "state.admin@example.in",
+                    "full_name": "State Admin",
+                    "language": "en",
+                    "hashed_password": dev_password_hash,
+                    "is_active": True,
+                },
+                phone="9876543214",
+            )
+            await _get_or_create(
+                session,
+                User,
+                {
+                    "role": Role.SUPER_ADMIN.value,
+                    "employee_id": "EMP-UP-0050001",
+                    "email": "super.admin@example.in",
+                    "full_name": "Super Admin",
+                    "language": "en",
+                    "hashed_password": dev_password_hash,
+                    "is_active": True,
+                },
+                phone="9876543215",
+            )
+            await _get_or_create(
+                session,
+                User,
+                {
+                    "role": Role.PATIENT.value,
+                    "state_id": state.id,
+                    "district_id": district.id,
+                    "village_id": village.id,
+                    "full_name": "Patient Test",
+                    "language": "hi",
+                    "hashed_password": dev_password_hash,
+                    "is_active": True,
+                },
+                phone="9876543216",
             )
 
             _, created = await _get_or_create(
@@ -725,7 +785,14 @@ async def seed_demo() -> None:
 async def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     await seed_demo()
-    print("Demo data seeded successfully. Login phone: 9876543210 (password: asha@123)")
+    print(
+        "Demo data seeded successfully.\n"
+        "Login phones (dev OTP bypass, password asha@123):\n"
+        "  9876543210 asha        9876543213 dpm\n"
+        "  9876543211 anm         9876543214 state_admin\n"
+        "  9876543212 moic        9876543215 super_admin\n"
+        "                         9876543216 patient"
+    )
 
 
 if __name__ == "__main__":

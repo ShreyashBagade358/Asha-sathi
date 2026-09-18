@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -124,6 +124,14 @@ class ASHACreate(BaseModel):
     phone: str = Field(pattern=r"^[6-9]\d{9}$")
     village: str | None = None
     status: str = "active"
+    email: EmailStr | None = None
+    date_of_birth: date | None = None
+    gender: str | None = Field(default=None, pattern=r"^(female|male|other)$")
+    aadhaar: str | None = Field(default=None, pattern=r"^\d{4}\s?\d{4}\s?\d{4}$")
+    emergency_contact_name: str | None = Field(default=None, max_length=200)
+    emergency_contact_phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
+    sub_center: str | None = Field(default=None, max_length=200)
+    date_of_joining: date | None = None
 
 
 class ASHAUpdate(BaseModel):

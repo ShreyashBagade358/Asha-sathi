@@ -1,4 +1,5 @@
-from datetime import datetime
+import hashlib
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, or_, select
@@ -217,7 +218,9 @@ def _scope_filter(user: User, stmt):
     return stmt
 
 
-def _build_asha_user_response(user: User, profile: ASHAProfile, village_name: str | None, households: int, last_sync_at) -> ASHAUserResponse:
+def _build_asha_user_response(
+    user: User, profile: ASHAProfile, village_name: str | None, households: int, last_sync_at
+) -> ASHAUserResponse:
     return ASHAUserResponse(
         id=user.id,
         asha_id=profile.asha_id,
@@ -249,11 +252,12 @@ async def _village_name_for(db: AsyncSession, user: User) -> str | None:
 
 @router.get("", response_model=PaginatedResponse[ASHAUserResponse])
 async def list_ashas(
-    q: str | None = Query(None),
-    village: str | None = Query(None),
-    status: str | None = Query(None),
+    q: str = Query(None),
+    status: str = Query(None),
+    role: str = Query(None),
+    phc_id: str = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=1000),
     user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -281,8 +285,6 @@ async def list_ashas(
         stmt = stmt.where(
             or_(User.full_name.ilike(like), ASHAProfile.asha_id.ilike(like), User.phone.ilike(like))
         )
-    if village:
-        stmt = stmt.where(Village.name == village)
     if status in ("active", "inactive"):
         stmt = stmt.where(User.is_active == (status == "active"))
 
@@ -416,21 +418,43 @@ async def create_asha(
         sub_center_id=user.sub_center_id,
         village_id=village_id,
         phone=payload.phone,
+        email=payload.email,
         full_name=payload.name,
         is_active=payload.status != "inactive",
         hashed_password=get_password_hash(f"dev-{payload.phone}"),
     )
     db.add(new_user)
     await db.flush()
+
+    aadhaar_hash = None
+    if payload.aadhaar:
+        aadhaar_hash = hashlib.sha256(payload.aadhaar.replace(" ", "").encode()).hexdigest()
+
     profile = ASHAProfile(
         user_id=new_user.id,
         asha_id=f"ASH-{new_user.id[:8].upper()}",
+        date_of_birth=payload.date_of_birth,
+        gender=payload.gender,
+        emergency_contact_name=payload.emergency_contact_name,
+        emergency_contact_phone=payload.emergency_contact_phone,
+        date_of_joining=payload.date_of_joining or datetime.now(UTC).date(),
+        aadhaar_hash=aadhaar_hash,
         catchment_villages=[village_id] if village_id else None,
     )
     db.add(profile)
     await db.commit()
     await db.refresh(new_user)
     await db.refresh(profile)
+
+    await log_action(
+        db,
+        user.id,
+        "asha_worker_registered",
+        "user",
+        new_user.id,
+    )
+    await db.commit()
+
     return _build_asha_user_response(new_user, profile, payload.village, 0, None)
 
 

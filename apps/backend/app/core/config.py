@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +9,22 @@ class Settings(BaseSettings):
 
     app_name: str = "ASHA Sathi API"
     app_env: str = "dev"  # dev | staging | prod
+    dev_otp_code: str = "1234"  # dev-only fixed OTP that always verifies
+    # Dev-only OTP bypass: phone -> role. These phones log in with dev_otp_code
+    # without a real OTP being generated or delivered (bypasses the OTP flow).
+    # Override with DEV_BYPASS_USERS as a JSON object, e.g.
+    #   DEV_BYPASS_USERS={"9876500001":"asha"}
+    dev_bypass_users: dict[str, str] = Field(
+        default_factory=lambda: {
+            "9876543210": "asha",         # ASHA test login
+            "9876543211": "anm",          # ANM test login
+            "9876543212": "moic",         # MOIC / medical officer test login
+            "9876543213": "dpm",          # District Programme Manager test login
+            "9876543214": "state_admin",  # State admin test login
+            "9876543215": "super_admin",  # Super admin test login
+            "9876543216": "patient",      # Patient portal test login
+        }
+    )
     api_v1_prefix: str = "/api/v1"
     debug: bool = False
 

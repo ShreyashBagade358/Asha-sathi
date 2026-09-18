@@ -7,6 +7,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.notification_tasks.send_due_reminders",
         "schedule": 900.0,
     },
+    "health-alerts-every-6-hours": {
+        "task": "app.tasks.notification_tasks.run_health_alerts",
+        "schedule": 21600.0,
+    },
     "process-notification-queue-every-minute": {
         "task": "app.tasks.notification_tasks.process_notification_queue",
         "schedule": 60.0,

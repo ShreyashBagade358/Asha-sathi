@@ -21,9 +21,38 @@ class OTPService:
     def _key(phone: str) -> str:
         return f"otp:{phone}"
 
+    @staticmethod
+    def _is_bypass(phone: str) -> bool:
+        """Dev-only: phone is enrolled in the fixed-OTP login bypass."""
+        return settings.app_env == "dev" and phone in settings.dev_bypass_users
+
+    @staticmethod
+    def _fixed_code_matches(code: str) -> bool:
+        """True if [code] equals the dev fixed OTP, in any sane digit layout."""
+        fixed = settings.dev_otp_code
+        if not fixed:
+            return False
+        try:
+            return int(code.strip()) == int(fixed)
+        except ValueError:
+            return False
+
+    @staticmethod
+    def bypass_role(phone: str) -> str | None:
+        """The role the bypass expects for [phone], if phone is a bypass login."""
+        if settings.app_env == "dev":
+            return settings.dev_bypass_users.get(phone)
+        return None
+
     @classmethod
     async def create(cls, phone: str) -> str:
-        code = f"{random.randint(0, 999999):06d}"
+        if cls._is_bypass(phone) and settings.dev_otp_code:
+            # Bypass login: fixed code, nothing is generated or stored.
+            return settings.dev_otp_code
+        if settings.app_env == "dev" and settings.dev_otp_code:
+            code = settings.dev_otp_code
+        else:
+            code = f"{random.randint(0, 999999):06d}"
         key = cls._key(phone)
         if _REDIS_AVAILABLE:
             try:
@@ -38,6 +67,13 @@ class OTPService:
 
     @classmethod
     async def verify(cls, phone: str, code: str) -> bool:
+        code = code.strip()
+        # Bypass: enrolled phones authenticate with the fixed code even if no OTP
+        # was ever sent/stored, i.e. login does not depend on the OTP lifecycle.
+        if cls._is_bypass(phone) and cls._fixed_code_matches(code):
+            return True
+        if settings.app_env == "dev" and settings.dev_otp_code and cls._fixed_code_matches(code):
+            return True
         key = cls._key(phone)
         if _REDIS_AVAILABLE:
             try:
