@@ -241,7 +241,7 @@ jobs:
           fi
 
       - name: Build & push backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/backend
           file: apps/backend/Dockerfile
@@ -252,7 +252,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/asha-sathi-backend:${{ steps.meta.outputs.tag }}
 
       - name: Build & push web-dashboard
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/web-dashboard
           file: apps/web-dashboard/Dockerfile
@@ -265,7 +265,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/asha-sathi-web-dashboard:${{ steps.meta.outputs.tag }}
 
       - name: Build & push ml-serving
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/ml-training
           file: apps/ml-training/Dockerfile
