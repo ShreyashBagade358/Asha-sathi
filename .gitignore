@@ -70,3 +70,8 @@ Thumbs.db
 *.apk
 *.aab
 *.ipa
+
+# Local scratch / exported docs at repo root
+*.pdf
+*.pptx
+apps/backend/temp_scan.py
