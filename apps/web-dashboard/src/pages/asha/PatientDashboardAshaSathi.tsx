@@ -1,33 +1,123 @@
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { useASHAStore } from '@/stores/asha.store'
+import { Icon, type IconName } from '@/components/common/Icons'
+import { PageHeader } from '@/components/layout/PageHeader'
+import type { RiskLevel } from '@/pages/asha/mockData'
+
+const riskChip: Record<RiskLevel, { label: string; cls: string; icon: IconName }> = {
+  low: { label: 'asha.riskLowLabel', cls: 'bg-secondary-container text-on-secondary-container', icon: 'checkCircle' },
+  medium: { label: 'asha.riskMediumLabel', cls: 'bg-[#FF8C00]/15 text-[#B34E00]', icon: 'alert' },
+  high: { label: 'asha.riskHighLabel', cls: 'bg-error-container text-on-error-container', icon: 'alert' },
+}
+
 export default function PatientDashboardAshaSathi() {
+  const { t } = useLocalization()
+  const patients = useASHAStore((s) => s.patients)
+  const [query, setQuery] = useState('')
+  const [risk, setRisk] = useState<'all' | RiskLevel>('all')
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return patients.filter((p) => {
+      const matchesQuery = !q || p.name.toLowerCase().includes(q) || p.abhaId.toLowerCase().includes(q) || p.village.toLowerCase().includes(q)
+      const matchesRisk = risk === 'all' || p.risk === risk
+      return matchesQuery && matchesRisk
+    })
+  }, [patients, query, risk])
+
+  const counts = useMemo(
+    () => ({
+      all: patients.length,
+      high: patients.filter((p) => p.risk === 'high').length,
+      medium: patients.filter((p) => p.risk === 'medium').length,
+      low: patients.filter((p) => p.risk === 'low').length,
+    }),
+    [patients],
+  )
+
   return (
-    <>
-<header className="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm"><div className="flex items-center gap-sm"><span className="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Sathi</span></div><div className="flex items-center gap-sm"><button aria-label="Sync" className="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors text-primary dark:text-primary-fixed-dim"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>sync</span></button><button aria-label="Notifications" className="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors text-primary dark:text-primary-fixed-dim"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>notifications</span></button><div className="h-8 w-8 rounded-full bg-surface-variant overflow-hidden ml-sm border border-outline-variant"><img alt="User Profile" className="w-full h-full object-cover" data-alt="A close-up portrait of a reassuring Indian patient, softly lit with warm daylight. The style is modern healthcare photography, focusing on empathetic and clear visual communication. The color palette features natural skin tones against a soft, blurred background to maintain a calm, professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGezzRQbUiGCfo8W7cwLEdIubdaU-a1b5cIyKshjGKx4jneiieWc9Az-RQydepSWSPqszpfSCB-s90LRozXM-9IIOHXmq5iYLzUGgZEhr9a5XQVsWjbdDyTHOr3xhM6cTkiy2usSku8PByi8o4EwmEeFfC9uqnKTtoH4zVE1DfnPrXTMopNJ1GQW_YHtbxEHnUxiWYj3J6nbOSFoJ9Y8hYT4Y5E69BgJswNuSvg6WS7zf3THi5yJWqLA" /></div></div></header>
-<main className="pt-[64px] px-md md:px-lg max-w-7xl mx-auto space-y-lg mt-md">
-<section className="py-sm"><h1 className="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-background">Namaste, Aarav</h1><p className="font-body-md text-body-md text-on-surface-variant mt-xs">Here is your health overview for today.</p></section>
-<section><div className="bg-primary text-on-primary rounded-xl p-md shadow-sm relative overflow-hidden"><div className="absolute top-0 right-0 opacity-10 pointer-events-none w-32 h-32 transform translate-x-8 -translate-y-8"><span className="material-symbols-outlined text-[120px]">vaccines</span></div><div className="relative z-10"><div className="flex items-center gap-sm mb-xs"><span className="material-symbols-outlined text-secondary-container" style={{ fontVariationSettings: '\'FILL\' 1' }}>calendar_today</span><span className="font-label-md text-label-md text-secondary-container uppercase tracking-wider">Upcoming Task</span></div><h2 className="font-headline-md text-headline-md font-bold mb-xs">Next Vaccination</h2><p className="font-body-md text-body-md mb-md">Scheduled for 15 Oct 2023 at Primary Health Centre.</p><button className="bg-on-primary text-primary font-label-md text-label-md py-sm px-md rounded-full hover:bg-surface-container transition-colors shadow-sm inline-flex items-center gap-xs">
-                        View Details
-                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span></button></div></div></section>
-<section><h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-sm">Quick Access</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-md">
-<button className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left"><div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>medical_information</span></div><div><h4 className="font-label-md text-label-md text-on-background">My Health Records</h4><p className="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">View lab results & vitals</p></div></button>
-<button className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left"><div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>vaccines</span></div><div><h4 className="font-label-md text-label-md text-on-background">Vaccination History</h4><p className="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Past immunization records</p></div></button>
-<button className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left"><div className="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>event_note</span></div><div><h4 className="font-label-md text-label-md text-on-background">My Appointments</h4><p className="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Manage scheduled visits</p></div></button>
-<button className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-start gap-sm hover:bg-surface-container transition-colors active:scale-95 text-left"><div className="w-10 h-10 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center border border-outline-variant"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>prescriptions</span></div><div><h4 className="font-label-md text-label-md text-on-background">Prescriptions</h4><p className="font-caption text-caption text-on-surface-variant mt-xs line-clamp-1">Active medications</p></div></button></div></section>
-<section className="pb-xl"><div className="flex justify-between items-center mb-sm"><h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Recent Activity</h3><button className="text-primary font-label-md text-label-md hover:underline flex items-center">
-                    See All <span className="material-symbols-outlined text-[16px] ml-xs">arrow_forward</span></button></div><div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm divide-y divide-outline-variant">
-<div className="p-md flex gap-md hover:bg-surface-container transition-colors cursor-pointer"><div className="flex-shrink-0 mt-xs"><div className="w-2 h-2 mt-2 rounded-full bg-secondary"></div></div><div className="flex-1"><div className="flex justify-between items-start mb-xs"><h4 className="font-label-md text-label-md text-on-background">Routine Check-up Completed</h4><span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">2 Days Ago</span></div><p className="font-body-md text-body-md text-on-surface-variant mb-xs">ASHA Worker Sunita visited for a routine household check. Vitals are normal.</p><div className="inline-flex items-center bg-secondary-container text-on-secondary-container px-sm py-xs rounded-full font-caption text-caption"><span className="material-symbols-outlined text-[14px] mr-xs">check_circle</span> Status: Healthy
-                        </div></div></div>
-<div className="p-md flex gap-md hover:bg-surface-container transition-colors cursor-pointer"><div className="flex-shrink-0 mt-xs"><div className="w-2 h-2 mt-2 rounded-full bg-primary"></div></div><div className="flex-1"><div className="flex justify-between items-start mb-xs"><h4 className="font-label-md text-label-md text-on-background">Dietary Advice Provided</h4><span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">1 Week Ago</span></div><p className="font-body-md text-body-md text-on-surface-variant">Received advice on incorporating more iron-rich foods into daily meals to prevent anemia.</p></div></div></div></section></main>
-<nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant shadow-lg rounded-t-full pb-safe">
-<button className="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 transition-transform duration-200"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>home</span><span className="font-label-md text-label-md mt-1">Home</span></button>
-<button className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>folder_shared</span><span className="font-caption text-caption mt-1">Records</span></button>
-<button className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>calendar_month</span><span className="font-caption text-caption mt-1">Visits</span></button>
-<button className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>assignment_turned_in</span><span className="font-caption text-caption mt-1">Tasks</span></button>
-<button className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant rounded-xl p-2 transition-colors"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>account_circle</span><span className="font-caption text-caption mt-1">Profile</span></button></nav>
-<nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 z-40 pt-[80px]">
-<div className="px-md mb-md"><h2 className="font-headline-md text-headline-md font-black text-primary">Patient Portal</h2></div>
-<button className="flex items-center gap-md px-md py-sm bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold rounded-lg w-full text-left scale-95 transition-transform duration-150"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>dashboard</span><span className="font-label-md text-label-md">Dashboard</span></button>
-<button className="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>folder_shared</span><span className="font-label-md text-label-md">Health Records</span></button>
-<button className="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>calendar_month</span><span className="font-label-md text-label-md">Appointments</span></button><div className="mt-auto border-t border-outline-variant pt-sm"><button className="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all rounded-lg w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>settings</span><span className="font-label-md text-label-md">Settings</span></button></div></nav>
-    </>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <PageHeader
+        title={t('asha.patientsTitle')}
+        subtitle={t('asha.patientsSubtitle')}
+        breadcrumbs={[{ label: t('nav.ashaPatients') }]}
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 sm:max-w-md">
+          <Icon name="search" size={18} className="absolute inset-y-0 left-3.5 my-auto text-on-surface-variant" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('asha.patientSearchPlaceholder')}
+            className="h-touch-target w-full rounded-lg border border-outline bg-surface-container-lowest pl-10 pr-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <div className="flex gap-2">
+          {(['all', 'high', 'medium', 'low'] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setRisk(key)}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 font-label-md text-label-md font-semibold transition-colors ${
+                risk === key ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              {key === 'all' ? t('asha.filterAll') : t(riskChip[key].label)}
+              <span
+                className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+                  risk === key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
+                }`}
+              >
+                {counts[key]}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest py-12 text-center shadow-card">
+          <Icon name="users" size={32} className="text-outline" />
+          <p className="font-body-md text-body-md text-on-surface-variant">{t('common.noResults')}</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card">
+          {filtered.map((patient, index) => (
+            <Link
+              key={patient.id}
+              to={`/asha/patients/${patient.id}`}
+              className={`flex items-center gap-3 p-4 transition-colors hover:bg-surface-container ${
+                index < filtered.length - 1 ? 'border-b border-outline-variant/40' : ''
+              }`}
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-container font-label-lg font-bold text-on-primary-container">
+                {patient.name.charAt(0)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-2 font-label-md text-label-md font-semibold text-on-surface">
+                  {patient.name}
+                  {patient.pregnant ? (
+                    <span className="rounded-full bg-secondary-container px-2 py-0.5 font-caption text-caption text-on-secondary-container">
+                      {patient.trimester}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="truncate font-caption text-caption text-on-surface-variant">
+                  {patient.abhaId} • {patient.age} yrs • {patient.village}
+                </p>
+              </div>
+              <span className={`hidden shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-caption text-caption font-semibold sm:inline-flex ${riskChip[patient.risk].cls}`}>
+                <Icon name={riskChip[patient.risk].icon} size={14} />
+                {t(riskChip[patient.risk].label)}
+              </span>
+              <Icon name="chevronRight" size={20} className="shrink-0 text-on-surface-variant" />
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

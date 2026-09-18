@@ -1,19 +1,17 @@
-import type { ReactNode } from 'react'
-
 interface EmptyStateProps {
   title: string
   description?: string
-  icon?: ReactNode
-  action?: ReactNode
+  icon?: string
+  action?: React.ReactNode
 }
 
-export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
+export function EmptyState({ title, description, icon = 'inbox', action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-      {icon ? <div className="text-outline">{icon}</div> : <div className="h-10 w-10 rounded-full bg-surface-container" />}
-      <p className="text-body-md font-semibold text-on-surface">{title}</p>
-      {description ? <p className="max-w-sm text-body-md text-on-surface-variant">{description}</p> : null}
-      {action ? <div className="mt-2">{action}</div> : null}
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-14 text-center">
+      <span className="material-symbols-outlined text-[36px] text-on-surface-variant">{icon}</span>
+      <p className="text-headline-md text-on-surface">{title}</p>
+      {description && <p className="max-w-md text-body-md text-on-surface-variant">{description}</p>}
+      {action}
     </div>
   )
 }

@@ -38,6 +38,96 @@
   }
 }
 
+@layer base {
+  @keyframes asha-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes asha-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-6px);
+    }
+    40% {
+      transform: translateX(6px);
+    }
+    60% {
+      transform: translateX(-4px);
+    }
+    80% {
+      transform: translateX(4px);
+    }
+  }
+  @keyframes asha-pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+  @keyframes asha-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes asha-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes asha-slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: asha-fade-up 0.5s ease both;
+  }
+  .animate-shake {
+    animation: asha-shake 0.4s ease;
+  }
+  .animate-float {
+    animation: asha-float 4s ease-in-out infinite;
+  }
+  .animate-fade-in {
+    animation: asha-fade-in 0.2s ease-out both;
+  }
+  .animate-slide-in-right {
+    animation: asha-slide-in-right 0.25s ease-out both;
+  }
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+}
+
 @layer components {
   .card-surface {
     @apply rounded-lg bg-surface-container-lowest shadow-card;

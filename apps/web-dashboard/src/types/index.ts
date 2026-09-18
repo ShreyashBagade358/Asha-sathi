@@ -6,6 +6,7 @@ export type Role =
   | 'dpm'
   | 'state_admin'
   | 'super_admin'
+  | 'patient'
 
 export type OrgLevel = 'state' | 'district' | 'block' | 'phc' | 'village'
 
@@ -15,6 +16,7 @@ export interface User {
   fullName: string
   phone: string
   email?: string
+  language?: string
   stateId: string
   stateName?: string
   districtId?: string

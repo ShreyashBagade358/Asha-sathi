@@ -1,32 +1,163 @@
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { useUIStore } from '@/stores/ui.store'
+import { useAppStore } from '@/stores/app.store'
+import { Icon } from '@/components/common/Icons'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
+import type { VaccineDose } from '@/pages/patient/mockData'
+
+const nodeStyles: Record<VaccineDose['status'], string> = {
+  given: 'bg-secondary text-on-secondary',
+  due: 'bg-primary text-on-primary animate-pulse',
+  upcoming: 'bg-outline text-on-primary',
+  overdue: 'bg-error text-on-error',
+}
+
+const cardStyles: Record<VaccineDose['status'], string> = {
+  given: 'border-outline-variant bg-surface',
+  due: 'border-primary-fixed-dim bg-primary-fixed',
+  upcoming: 'border-outline-variant bg-surface',
+  overdue: 'border-error bg-error-container',
+}
+
 export default function ImmunizationScheduleAshaSathi() {
+  const { t } = useLocalization()
+  const { addToast } = useUIStore()
+  const patients = useAppStore((s) => s.patients)
+  const doses = useAppStore((s) => s.childVaccines)
+  const markDoseGiven = useAppStore((s) => s.markDoseGiven)
+  const { id } = useParams<{ id: string }>()
+
+  const patient = patients.find((p) => p.id === id) ?? patients[3]
+
+  const markDone = (doseId: string) => {
+    markDoseGiven('child', doseId)
+    addToast('success', t('asha.doseMarkedToast'))
+  }
+
+  const currentDose = doses.find((d) => d.status === 'due')
+
   return (
-    <>
-<header className="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:px-lg bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline shadow-sm"><div className="flex items-center gap-md"><div className="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">
-                ASHA Sathi
-            </div></div><div className="flex items-center gap-sm text-primary dark:text-primary-fixed-dim"><button className="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors"><span className="material-symbols-outlined" data-icon="sync">sync</span></button><button className="h-touch-target w-touch-target flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors"><span className="material-symbols-outlined" data-icon="notifications">notifications</span></button><img alt="User Profile" className="w-10 h-10 rounded-full border border-outline-variant object-cover ml-xs" data-alt="A small circular profile picture of an ASHA worker in professional attire, highly detailed, high key lighting, crisp corporate modern style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm1nAhmdsQrAlcCoXUzyTSMy1JMI6z44OfFSdPH_xYVal5w8lqWunCBo7aQilGZMOcfTESXBpiA2JXbgPLweLmyfFMXKGWhhzB_G_ved3q8YADAK0aUGyDaoGHPfxrrGGJlZLs8SQCjMMSqWqchhBcsAVyxnpNUTCwUnJ2_PUSGP5FEIHARwCxUK79LN9bllmjylJbhTAp1yhK5nhslC2iFGCbOqf3bc_8Fz-dul6H_QPuiRz8eiRiwg" /></div></header>
-<nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant w-64 pt-24 z-40"><div className="flex flex-col mb-lg px-md"><div className="font-headline-md text-headline-md font-black text-primary mb-xs">Admin Portal</div><div className="font-caption text-caption text-on-surface-variant">District Health Office</div></div><div className="flex flex-col gap-xs flex-grow"><Link className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" to="/phc/dashboard"><span className="material-symbols-outlined" data-icon="dashboard">dashboard</span><span className="font-label-md text-label-md">Dashboard</span></Link><Link className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" to="/phc/ashas"><span className="material-symbols-outlined" data-icon="groups">groups</span><span className="font-label-md text-label-md">Workers</span></Link><Link className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" to="/phc/beneficiaries"><span className="material-symbols-outlined" data-icon="person_celebrate">person_celebrate</span><span className="font-label-md text-label-md">Beneficiaries</span></Link><Link className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" to="/phc/reports/maternal"><span className="material-symbols-outlined" data-icon="analytics">analytics</span><span className="font-label-md text-label-md">Reports</span></Link><Link className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" to="/phc/vaccination"><span className="material-symbols-outlined" data-icon="inventory_2">inventory_2</span><span className="font-label-md text-label-md">Inventory</span></Link></div><button className="w-full bg-primary-container text-on-primary-container font-label-md text-label-md h-touch-target rounded-full mb-md hover:opacity-90 transition-opacity">
-            Add New Worker
-        </button><div className="flex flex-col gap-xs border-t border-outline-variant pt-sm"><a className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" href="#"><span className="material-symbols-outlined" data-icon="settings">settings</span><span className="font-label-md text-label-md">Settings</span></a><a className="flex items-center gap-md p-md rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all" href="#"><span className="material-symbols-outlined" data-icon="help">help</span><span className="font-label-md text-label-md">Support</span></a></div></nav>
-<main className="flex-1 md:ml-64 p-md md:p-lg overflow-y-auto w-full max-w-[1440px] mx-auto z-10"><div className="mb-lg"><h1 className="font-display-lg text-display-lg text-primary mb-xs">Vaccination Tracking</h1><p className="font-body-md text-body-md text-on-surface-variant">Patient: Rohan Sharma (ID: #8923-44)</p></div><div className="grid grid-cols-1 md:grid-cols-12 gap-lg">
-<div className="md:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] p-md md:p-lg"><h2 className="font-headline-md text-headline-md text-on-background mb-lg flex justify-between items-center border-b border-outline-variant pb-sm">
-                    Immunization Schedule
-                    <span className="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-3 py-1 rounded-full text-sm">On Track</span></h2><div className="relative pl-6 md:pl-8 border-l-2 border-outline-variant space-y-xl">
-<div className="relative"><div className="absolute -left-[35px] md:-left-[43px] top-1 bg-secondary text-on-secondary rounded-full w-8 h-8 flex items-center justify-center border-4 border-surface-container-lowest z-10"><span className="material-symbols-outlined text-[18px]" data-icon="check">check</span></div><div className="bg-surface border border-outline-variant rounded-lg p-md"><div className="flex justify-between items-start mb-sm"><div><h3 className="font-label-md text-label-md text-on-background">Birth Dose</h3><p className="font-caption text-caption text-on-surface-variant mt-1">BCG, OPV-0, Hep B</p></div><span className="font-caption text-caption text-outline">Oct 12, 2023</span></div><div className="text-secondary font-label-md text-label-md flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]" data-icon="vaccines">vaccines</span>
-                                Administered
-                            </div></div></div><div className="relative"><div className="absolute -left-[35px] md:-left-[43px] top-1 bg-secondary text-on-secondary rounded-full w-8 h-8 flex items-center justify-center border-4 border-surface-container-lowest z-10"><span className="material-symbols-outlined text-[18px]" data-icon="check">check</span></div><div className="bg-surface border border-outline-variant rounded-lg p-md"><div className="flex justify-between items-start mb-sm"><div><h3 className="font-label-md text-label-md text-on-background">6 Weeks</h3><p className="font-caption text-caption text-on-surface-variant mt-1">OPV-1, Pentavalent-1, Rotavirus-1</p></div><span className="font-caption text-caption text-outline">Nov 23, 2023</span></div><div className="text-secondary font-label-md text-label-md flex items-center gap-xs"><span className="material-symbols-outlined text-[16px]" data-icon="vaccines">vaccines</span>
-                                Administered
-                            </div></div></div>
-<div className="relative"><div className="absolute -left-[35px] md:-left-[43px] top-1 bg-primary text-on-primary rounded-full w-8 h-8 flex items-center justify-center border-4 border-surface-container-lowest z-10 animate-pulse"><span className="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span></div><div className="bg-primary-fixed border border-primary-fixed-dim rounded-lg p-md shadow-sm"><div className="flex justify-between items-start mb-sm"><div><h3 className="font-label-md text-label-md text-on-background">10 Weeks (Current)</h3><p className="font-caption text-caption text-on-surface-variant mt-1">OPV-2, Pentavalent-2, Rotavirus-2</p></div><span className="font-caption text-caption text-primary font-bold">Due: Dec 21, 2023</span></div><button className="mt-sm bg-primary text-on-primary font-label-md text-label-md h-10 px-md rounded-lg flex items-center gap-xs hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center md:w-auto"><span className="material-symbols-outlined text-[18px]" data-icon="edit_calendar">edit_calendar</span>
-                                Mark as Completed
-                            </button></div></div>
-<div className="relative hidden"><div className="absolute -left-[35px] md:-left-[43px] top-1 bg-error text-on-error rounded-full w-8 h-8 flex items-center justify-center border-4 border-surface-container-lowest z-10"><span className="material-symbols-outlined text-[18px]" data-icon="warning">warning</span></div><div className="bg-error-container border border-error rounded-lg p-md"><div className="flex justify-between items-start mb-sm"><div><h3 className="font-label-md text-label-md text-on-background">14 Weeks</h3><p className="font-caption text-caption text-on-surface-variant mt-1">OPV-3, Pentavalent-3, IPV</p></div><span className="font-caption text-caption text-error font-bold">Overdue</span></div></div></div></div></div>
-<div className="md:col-span-4 flex flex-col gap-lg">
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] p-md flex flex-col items-center justify-center text-center gap-md"><span className="material-symbols-outlined text-[48px] text-tertiary-container" data-icon="verified">verified</span><div><h3 className="font-headline-md text-headline-md text-on-background">Official Records</h3><p className="font-body-md text-body-md text-on-surface-variant mt-1">Download or share the latest immunization certificate for this patient.</p></div><button className="w-full bg-outline-variant text-on-background font-label-md text-label-md h-touch-target rounded-full hover:bg-outline transition-colors flex items-center justify-center gap-xs mt-sm"><span className="material-symbols-outlined" data-icon="download">download</span>
-                        View Vaccination Certificate
-                    </button></div>
-<div className="bg-surface-container border-l-4 border-primary-container p-md rounded-r-xl"><div className="flex items-start gap-sm text-on-background mb-xs"><span className="material-symbols-outlined text-primary" data-icon="info">info</span><h4 className="font-label-md text-label-md">Next Dose Information</h4></div><p className="font-body-md text-body-md text-on-surface-variant pl-[28px]">Ensure patient brings previous health records. Pentavalent-2 is critical for maintaining immunity timeline.</p></div></div></div></main>
-<nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface dark:bg-on-background border-t border-outline-variant shadow-lg rounded-t-full h-[80px]"><Link className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-16 rounded-full" to="/asha/home"><span className="material-symbols-outlined mb-1" data-icon="home">home</span><span className="font-label-md text-label-md text-[10px]">Home</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-16 rounded-full" to="/asha/households"><span className="material-symbols-outlined mb-1" data-icon="cottage">cottage</span><span className="font-label-md text-label-md text-[10px]">Households</span></Link><Link className="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant h-14 scale-90 transition-transform duration-200" to="/asha/patients"><span className="material-symbols-outlined mb-1" data-icon="person_search">person_search</span><span className="font-label-md text-label-md text-[10px]">Patients</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-16 rounded-full" to="/asha/tasks"><span className="material-symbols-outlined mb-1" data-icon="assignment_turned_in">assignment_turned_in</span><span className="font-label-md text-label-md text-[10px]">Tasks</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest dark:hover:bg-surface-variant w-16 h-16 rounded-full" to="/asha/patients/1/profile"><span className="material-symbols-outlined mb-1" data-icon="account_circle">account_circle</span><span className="font-label-md text-label-md text-[10px]">Profile</span></Link></nav>
-    </>
+    <div className="mx-auto max-w-7xl">
+      <Breadcrumbs
+        items={[{ label: t('nav.ashaPatients'), to: '/asha/patients' }, { label: t('nav.immunization') }]}
+      />
+
+      <div className="mb-6 mt-2">
+        <h1 className="font-display-lg text-display-lg font-bold text-primary">{t('asha.vaccinationTracking')}</h1>
+        <p className="font-body-md text-body-md text-on-surface-variant">
+          {t('asha.patientLabel', { name: patient.name, id: patient.abhaId })}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-card md:col-span-8 md:p-6">
+          <h2 className="mb-5 flex items-center justify-between gap-2 border-b border-outline-variant pb-2 font-headline-md text-headline-md font-semibold text-on-surface">
+            {t('asha.immunizationSchedule')}
+            <span className="rounded-full bg-secondary-container px-3 py-1 font-label-md text-label-md text-on-secondary-container">
+              {t('asha.onTrack')}
+            </span>
+          </h2>
+
+          <div className="relative space-y-6 border-l-2 border-outline-variant pl-6 md:pl-8">
+            {doses.map((dose) => (
+              <div key={dose.id} className="relative">
+                <span
+                  className={`absolute -left-[35px] top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border-4 border-surface-container-lowest md:-left-[43px] ${nodeStyles[dose.status]}`}
+                >
+                  <Icon name={dose.status === 'given' ? 'check' : dose.status === 'overdue' ? 'alert' : 'calendar'} size={18} />
+                </span>
+                <div className={`rounded-lg border p-4 ${cardStyles[dose.status]}`}>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-label-md text-label-md text-on-surface">{dose.name}</h3>
+                      <p className="mt-1 font-caption text-caption text-on-surface-variant">{dose.vaccines}</p>
+                    </div>
+                    {dose.status === 'given' ? (
+                      <span className="font-caption text-caption text-outline">{dose.date}</span>
+                    ) : dose.status === 'due' ? (
+                      <span className="font-caption text-caption font-bold text-primary">{t('asha.dueLabel', { date: dose.date })}</span>
+                    ) : dose.status === 'overdue' ? (
+                      <span className="font-caption text-caption font-bold text-error">{t('asha.overdue')}</span>
+                    ) : (
+                      <span className="font-caption text-caption text-outline">{dose.date}</span>
+                    )}
+                  </div>
+                  {dose.status === 'given' ? (
+                    <div className="flex items-center gap-1 font-label-md text-label-md text-secondary">
+                      <Icon name="checkCircle" size={16} />
+                      {t('asha.administered')}
+                    </div>
+                  ) : null}
+                  {dose.status === 'due' ? (
+                    <button
+                      type="button"
+                      onClick={() => markDone(dose.id)}
+                      className="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-lg bg-primary font-label-md text-label-md font-semibold text-on-primary transition-colors hover:bg-on-primary-fixed-variant md:w-auto md:px-4"
+                    >
+                      <Icon name="edit" size={18} />
+                      {t('asha.markCompleted')}
+                    </button>
+                  ) : null}
+                  {dose.status === 'upcoming' ? (
+                    <div className="flex items-center gap-1 font-label-md text-label-md text-on-surface-variant">
+                      <Icon name="calendar" size={16} />
+                      {t('asha.upcoming')}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 md:col-span-4">
+          <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 text-center shadow-card">
+            <Icon name="checkCircle" size={48} className="text-tertiary" />
+            <div>
+              <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.officialRecords')}</h3>
+              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">{t('asha.certificateHint')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => addToast('success', t('asha.certificateToast'))}
+              className="mt-1 flex h-touch-target w-full items-center justify-center gap-1 rounded-full bg-outline-variant font-label-md text-label-md font-semibold text-on-surface transition-colors hover:bg-outline"
+            >
+              <Icon name="download" size={18} />
+              {t('asha.viewCertificate')}
+            </button>
+          </div>
+
+          <div className="rounded-r-xl border-l-4 border-primary-container bg-surface-container p-4">
+            <div className="mb-1 flex items-start gap-2 text-on-surface">
+              <Icon name="alert" size={18} className="mt-0.5 text-primary" />
+              <h4 className="font-label-md text-label-md font-semibold">{t('asha.nextDoseInfo')}</h4>
+            </div>
+            <p className="pl-7 font-body-md text-body-md text-on-surface-variant">
+              {t('asha.nextDoseHint')}
+            </p>
+          </div>
+
+          {currentDose ? (
+            <button
+              type="button"
+              onClick={() => markDone(currentDose.id)}
+              className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary-container font-label-md text-label-md font-semibold text-on-primary-container shadow-sm transition-colors hover:bg-primary hover:text-on-primary md:hidden"
+            >
+              <Icon name="checkCircle" size={18} />
+              {t('asha.markCompleted')}
+            </button>
+          ) : null}
+
+          <Link
+            to={`/asha/patients/${patient.id}`}
+            className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full border border-outline font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-variant"
+          >
+            <Icon name="chevronLeft" size={18} />
+            {t('asha.backToPatient')}
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

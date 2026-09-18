@@ -50,8 +50,8 @@ export default function OtpPage() {
     try {
       await verifyOtp(phone, otp, state?.otpRequestId)
       navigate('/dashboard', { replace: true })
-    } catch {
-      setError(t('common.verifyFailed'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.verifyFailed'))
     } finally {
       setLoading(false)
     }
@@ -63,8 +63,8 @@ export default function OtpPage() {
       await requestOtp(phone)
       setCountdown(30)
       setError(null)
-    } catch {
-      setError(t('common.requestOtpFailed'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.requestOtpFailed'))
     } finally {
       setResending(false)
     }

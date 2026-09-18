@@ -1,28 +1,195 @@
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { Icon, type IconName } from '@/components/common/Icons'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
+import { MOCK_HOUSEHOLDS } from '@/pages/asha/mockData'
+
+const memberIcon: Record<string, IconName> = {
+  'm1': 'users',
+  'm2': 'heart',
+  'm3': 'users',
+  'm4': 'users',
+  'm5': 'users',
+  'm6': 'users',
+  'm7': 'heart',
+}
+
 export default function HouseholdVisitSurveyAshaSathi() {
+  const { t } = useLocalization()
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+
+  const household = MOCK_HOUSEHOLDS.find((h) => h.id === id) ?? MOCK_HOUSEHOLDS[0]
+
+  const [water, setWater] = useState(false)
+  const [toilet, setToilet] = useState(false)
+  const [fever, setFever] = useState<'yes' | 'no' | ''>('')
+
+  const complete = () => navigate('/asha/checkup-completed')
+
   return (
-    <>
-<header className="fixed top-0 w-full z-50 flex justify-between items-center px-lg h-touch-target bg-surface shadow-sm docked full-width top-0"><div className="flex items-center gap-sm"><button aria-label="Back" className="flex items-center justify-center w-touch-target h-touch-target rounded-full hover:bg-surface-container-highest transition-colors active:scale-95 duration-100 text-on-surface-variant"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>arrow_back</span></button><h1 className="text-headline-lg-mobile font-headline-lg-mobile font-bold text-primary truncate">ASHA Field Care</h1></div><button className="flex items-center justify-center w-touch-target h-touch-target rounded-full hover:bg-surface-container-highest transition-colors active:scale-95 duration-100 text-primary"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>more_vert</span></button></header>
-<main className="flex-1 mt-[48px] pb-safe-nav px-sm md:px-lg max-w-[1440px] mx-auto w-full flex flex-col gap-lg pt-lg">
-<section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm relative overflow-hidden"><div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div><div className="pl-sm"><div className="flex justify-between items-start mb-sm"><div><p className="text-caption font-caption text-on-surface-variant">Household ID</p><h2 className="text-headline-md font-headline-md text-on-surface">HH-2023-8942</h2></div><span className="bg-secondary-container text-on-secondary-container text-caption font-caption px-sm py-xs rounded-full">Active</span></div><div className="flex items-center gap-sm text-body-md font-body-md text-on-surface mt-sm"><span className="material-symbols-outlined text-outline">person</span><span><strong>Head:</strong> Ramesh Kumar</span></div><div className="flex items-center gap-sm text-body-md font-body-md text-on-surface mt-xs"><span className="material-symbols-outlined text-outline">location_on</span><span>Village Block C, Sector 4</span></div></div></section>
-<section className="flex flex-col gap-sm"><div className="flex justify-between items-center px-xs"><h3 className="text-headline-md font-headline-md text-on-surface">Family Members</h3><span className="text-caption font-caption bg-surface-container-high text-on-surface px-sm py-xs rounded-full">4 Members</span></div><div className="grid grid-cols-1 md:grid-cols-2 gap-sm">
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex justify-between items-center active:scale-[0.98] transition-transform"><div className="flex items-center gap-md"><div className="w-touch-target h-touch-target rounded-full bg-surface-container-high flex items-center justify-center text-primary"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>face</span></div><div><h4 className="text-body-md font-body-md font-bold text-on-surface">Ramesh Kumar</h4><p className="text-caption font-caption text-on-surface-variant">Male, 45y</p></div></div><button className="w-touch-target h-touch-target rounded-full hover:bg-surface-container-low flex items-center justify-center text-outline"><span className="material-symbols-outlined">chevron_right</span></button></div>
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex justify-between items-center active:scale-[0.98] transition-transform"><div className="flex items-center gap-md"><div className="w-touch-target h-touch-target rounded-full bg-error-container flex items-center justify-center text-on-error-container relative"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>pregnant_woman</span><div className="absolute -top-1 -right-1 w-3 h-3 bg-error rounded-full border-2 border-surface-container-lowest"></div></div><div><h4 className="text-body-md font-body-md font-bold text-on-surface">Sunita Devi</h4><p className="text-caption font-caption text-on-surface-variant">Female, 40y</p></div></div><div className="flex items-center gap-xs"><span className="bg-error-container text-on-error-container text-caption font-caption px-sm py-xs rounded-full">High Risk</span><button className="w-touch-target h-touch-target rounded-full hover:bg-surface-container-low flex items-center justify-center text-outline"><span className="material-symbols-outlined">chevron_right</span></button></div></div>
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex justify-between items-center active:scale-[0.98] transition-transform"><div className="flex items-center gap-md"><div className="w-touch-target h-touch-target rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>child_care</span></div><div><h4 className="text-body-md font-body-md font-bold text-on-surface">Amit Kumar</h4><p className="text-caption font-caption text-on-surface-variant">Male, 4y</p></div></div><div className="flex items-center gap-xs"><span className="bg-secondary-container text-on-secondary-container text-caption font-caption px-sm py-xs rounded-full">Immunization Due</span><button className="w-touch-target h-touch-target rounded-full hover:bg-surface-container-low flex items-center justify-center text-outline"><span className="material-symbols-outlined">chevron_right</span></button></div></div></div><button className="mt-sm flex items-center justify-center gap-sm w-full py-md border-2 border-dashed border-primary text-primary rounded-xl font-label-md text-label-md hover:bg-surface-container-low transition-colors h-touch-target"><span className="material-symbols-outlined">person_add</span>
-                Add Family Member
-            </button></section>
-<section className="flex flex-col gap-md mt-sm"><h3 className="text-headline-md font-headline-md text-on-surface px-xs">Household Health Survey</h3><div className="flex flex-col gap-sm">
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex justify-between items-center"><div className="pr-md"><h4 className="text-body-md font-body-md font-bold text-on-surface">Clean water available?</h4><p className="text-caption font-caption text-on-surface-variant mt-xs">Access to safe drinking water within premises.</p></div>
-<div className="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in"><input className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-outline-variant checked:border-secondary checked:right-0 transition-all duration-200 z-10" id="toggle1" name="toggle1" type="checkbox" /><label className="toggle-label block overflow-hidden h-6 rounded-full bg-outline-variant cursor-pointer transition-colors duration-200" htmlFor="toggle1"></label></div></div>
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex justify-between items-center"><div className="pr-md"><h4 className="text-body-md font-body-md font-bold text-on-surface">Functional toilet?</h4><p className="text-caption font-caption text-on-surface-variant mt-xs">Working latrine facility used by family.</p></div><div className="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in"><input checked={false} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-outline-variant checked:border-secondary checked:right-0 transition-all duration-200 z-10" id="toggle2" name="toggle2" type="checkbox" /><label className="toggle-label block overflow-hidden h-6 rounded-full bg-secondary cursor-pointer transition-colors duration-200" htmlFor="toggle2"></label></div></div>
-<div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col gap-md"><div><h4 className="text-body-md font-body-md font-bold text-on-surface">Any recent fever or illness?</h4><p className="text-caption font-caption text-on-surface-variant mt-xs">In the last 14 days among any family member.</p></div><div className="flex gap-md"><label className="flex-1 cursor-pointer"><input className="peer sr-only" name="fever" type="radio" /><div className="w-full text-center py-md rounded-xl border border-outline-variant peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary peer-checked:font-bold transition-all h-touch-target flex items-center justify-center font-label-md text-label-md text-on-surface-variant">
-                                Yes
-                            </div></label><label className="flex-1 cursor-pointer"><input checked={false} className="peer sr-only" name="fever" type="radio" /><div className="w-full text-center py-md rounded-xl border border-outline-variant peer-checked:bg-surface-container-high peer-checked:text-on-surface peer-checked:border-outline peer-checked:font-bold transition-all h-touch-target flex items-center justify-center font-label-md text-label-md text-on-surface-variant">
-                                No
-                            </div></label></div></div></div></section>
-<section className="mt-md flex flex-col gap-md"><button className="w-full bg-primary text-on-primary rounded-xl h-touch-target flex items-center justify-center font-label-md text-label-md font-bold shadow-md hover:bg-surface-tint active:scale-95 transition-all"><span className="material-symbols-outlined mr-sm">check_circle</span>
-                Complete Visit
-            </button></section></main>
-<nav className="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-md pb-safe h-[72px] bg-surface border-t border-outline-variant shadow-lg docked full-width bottom-0 rounded-t-xl"><button className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>home</span><span className="text-label-md font-label-md mt-xs text-[10px]">Home</span></button><button className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-lg py-sm active:scale-90 transition-transform"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>group</span><span className="text-label-md font-label-md mt-xs text-[10px]">Households</span></button><button className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>person_search</span><span className="text-label-md font-label-md mt-xs text-[10px]">Patients</span></button><button className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>assignment</span><span className="text-label-md font-label-md mt-xs text-[10px]">Tasks</span></button><button className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>account_circle</span><span className="text-label-md font-label-md mt-xs text-[10px]">Profile</span></button></nav>
-    </>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+      <Breadcrumbs
+        items={[{ label: t('nav.ashaHouseholds'), to: '/asha/households' }, { label: t('nav.visitSurvey') }]}
+      />
+
+      <div className="flex items-center gap-2">
+        <Link
+          to="/asha/households"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high active:scale-95"
+          aria-label={t('common.back')}
+        >
+          <Icon name="chevronLeft" size={22} />
+        </Link>
+        <h1 className="font-headline-lg text-headline-lg font-bold text-primary">{t('asha.householdVisit')}</h1>
+      </div>
+
+      <section className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-card">
+        <span className="absolute bottom-0 left-0 top-0 w-2 bg-primary" />
+        <div className="pl-2">
+          <div className="mb-2 flex items-start justify-between">
+            <div>
+              <p className="font-caption text-caption text-on-surface-variant">{t('asha.householdIdLabel')}</p>
+              <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{household.id}</h2>
+            </div>
+            <span className="rounded-full bg-secondary-container px-3 py-1 font-caption text-caption font-semibold text-on-secondary-container">
+              {t('asha.active')}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-2 font-body-md text-body-md text-on-surface">
+            <Icon name="users" size={18} className="text-outline" />
+            <span>
+              <strong>{t('asha.head')}:</strong> {household.headName}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 font-body-md text-body-md text-on-surface">
+            <Icon name="mapPin" size={18} className="text-outline" />
+            <span>{t('asha.villageBlock', { village: household.village })}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.familyMembers')}</h3>
+          <span className="rounded-full bg-surface-container-high px-3 py-1 font-caption text-caption text-on-surface">
+            {household.members.length} {t('asha.members')}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {household.members.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-card transition-transform active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-touch-target w-touch-target items-center justify-center rounded-full ${
+                    member.risk === 'high'
+                      ? 'bg-error-container text-on-error-container'
+                      : member.flag === 'Immunization Due'
+                        ? 'bg-secondary-container text-on-secondary-container'
+                        : 'bg-surface-container-high text-primary'
+                  }`}
+                >
+                  <Icon name={memberIcon[member.id] ?? 'users'} size={20} />
+                </span>
+                <div>
+                  <h4 className="font-body-md text-body-md font-bold text-on-surface">{member.name}</h4>
+                  <p className="font-caption text-caption text-on-surface-variant">
+                    {member.gender}, {member.age}y
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {member.risk === 'high' ? (
+                  <span className="rounded-full bg-error-container px-3 py-1 font-caption text-caption text-on-error-container">
+                    {t('asha.highRisk')}
+                  </span>
+                ) : null}
+                {member.flag && member.risk !== 'high' ? (
+                  <span className="rounded-full bg-secondary-container px-3 py-1 font-caption text-caption text-on-secondary-container">
+                    {member.flag === 'Immunization Due' ? t('asha.immunizationDue') : member.flag}
+                  </span>
+                ) : null}
+                <button type="button" aria-label={t('asha.viewMember')} className="flex h-touch-target w-touch-target items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container-low">
+                  <Icon name="chevronRight" size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="mt-1 flex h-touch-target w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-container-low"
+        >
+          <Icon name="plus" size={18} />
+          {t('asha.addFamilyMember')}
+        </button>
+      </section>
+
+      <section className="mt-1 flex flex-col gap-3">
+        <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.householdSurvey')}</h3>
+        <div className="flex flex-col gap-3">
+          {[
+            { label: t('asha.cleanWater'), hint: t('asha.cleanWaterHint'), value: water, set: setWater },
+            { label: t('asha.functionalToilet'), hint: t('asha.toiletHint'), value: toilet, set: setToilet },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-card">
+              <div className="pr-4">
+                <h4 className="font-body-md text-body-md font-bold text-on-surface">{item.label}</h4>
+                <p className="mt-1 font-caption text-caption text-on-surface-variant">{item.hint}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={item.value}
+                onClick={() => item.set(!item.value)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${item.value ? 'bg-secondary' : 'bg-outline-variant'}`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-all ${item.value ? 'left-[22px]' : 'left-0.5'}`}
+                />
+              </button>
+            </div>
+          ))}
+
+          <div className="flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-card">
+            <div>
+              <h4 className="font-body-md text-body-md font-bold text-on-surface">{t('asha.recentFever')}</h4>
+              <p className="mt-1 font-caption text-caption text-on-surface-variant">{t('asha.feverHint')}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              {(['yes', 'no'] as const).map((value) => (
+                <label key={value} className="flex-1 cursor-pointer">
+                  <input className="peer sr-only" name="fever" type="radio" checked={fever === value} onChange={() => setFever(value)} />
+                  <div
+                    className={`flex h-touch-target w-full items-center justify-center rounded-xl border py-4 text-center font-label-md text-label-md transition-all peer-checked:font-bold ${
+                      fever === value
+                        ? 'border-primary bg-primary-container text-on-primary-container'
+                        : 'border-outline-variant text-on-surface-variant'
+                    }`}
+                  >
+                    {value === 'yes' ? t('common.yes') : t('common.no')}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-1 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={complete}
+          className="flex h-touch-target w-full items-center justify-center rounded-xl bg-primary font-label-md text-label-md font-bold text-on-primary shadow-md transition-all hover:bg-on-primary-fixed-variant active:scale-95"
+        >
+          <Icon name="checkCircle" className="mr-2" size={20} />
+          {t('asha.completeVisit')}
+        </button>
+      </section>
+    </div>
   )
 }

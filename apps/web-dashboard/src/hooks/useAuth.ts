@@ -6,7 +6,7 @@ export function useAuth(): {
   token: string | null
   isAuthenticated: boolean
   isHydrating: boolean
-  requestOtp: (phone: string) => Promise<{ otpRequestId: string; expiresIn: number }>
+  requestOtp: (phone: string) => Promise<{ otpRequestId?: string; expiresIn?: number }>
   verifyOtp: (phone: string, otp: string, otpRequestId?: string) => Promise<User>
   logout: () => Promise<void>
   hydrate: () => Promise<void>

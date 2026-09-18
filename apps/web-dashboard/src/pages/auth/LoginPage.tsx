@@ -28,8 +28,8 @@ export default function LoginPage() {
     try {
       const { otpRequestId, expiresIn } = await requestOtp(digits)
       navigate('/otp', { state: { phone: digits, otpRequestId, expiresIn } })
-    } catch {
-      setError(t('common.requestOtpFailed'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.requestOtpFailed'))
     } finally {
       setLoading(false)
     }

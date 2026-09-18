@@ -1,28 +1,157 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useLocalization } from '@/hooks/useLocalization'
+import { useUIStore } from '@/stores/ui.store'
+import { Icon, type IconName } from '@/components/common/Icons'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { SYNC_QUEUE, type SyncQueueItem } from '@/pages/asha/mockData'
+
+type SyncState = 'stored' | 'syncing' | 'failed' | 'synced'
+
+const stateStyles: Record<SyncState, { chip: string; icon: IconName; spin?: boolean }> = {
+  stored: { chip: 'bg-surface-variant text-on-surface-variant', icon: 'box' },
+  syncing: { chip: 'bg-tertiary-fixed text-on-tertiary-fixed-variant', icon: 'refresh', spin: true },
+  failed: { chip: 'bg-error text-on-error', icon: 'alert' },
+  synced: { chip: 'bg-secondary-container text-on-secondary-container', icon: 'checkCircle' },
+}
+
+type Tab = 'pending' | 'synced' | 'failed'
+
 export default function OfflineSyncCenterAshaSathi() {
+  const { t } = useLocalization()
+  const { addToast } = useUIStore()
+  const [queue, setQueue] = useState<SyncQueueItem[]>(SYNC_QUEUE)
+  const [tab, setTab] = useState<Tab>('pending')
+  const [lastSynced, setLastSynced] = useState('2 hours ago')
+
+  const pendingCount = queue.filter((q) => q.state !== 'synced').length
+  const failedCount = queue.filter((q) => q.state === 'failed').length
+  const syncedCount = queue.filter((q) => q.state === 'synced').length
+
+  const syncNow = () => {
+    setQueue((prev) => prev.map((q) => (q.state === 'stored' ? { ...q, state: 'syncing' as const } : q)))
+    setTimeout(() => {
+      setQueue((prev) => prev.map((q) => (q.state === 'syncing' ? { ...q, state: 'synced' as const } : q)))
+      setLastSynced('Just now')
+      addToast('success', t('asha.syncCompleteToast'))
+    }, 1500)
+  }
+
+  const retry = (id: string) => {
+    setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, state: 'stored' as const } : q)))
+    setTab('pending')
+  }
+
+  const visible = queue.filter((q) => (tab === 'pending' ? q.state !== 'synced' : tab === 'failed' ? q.state === 'failed' : q.state === 'synced'))
+
+  const tabs: { key: Tab; label: string; count: number; tone?: string }[] = [
+    { key: 'pending', label: t('asha.pending'), count: pendingCount },
+    { key: 'synced', label: t('asha.synced'), count: syncedCount },
+    { key: 'failed', label: t('asha.failed'), count: failedCount, tone: failedCount ? 'text-error' : '' },
+  ]
+
   return (
-    <>
-<header className="fixed top-0 w-full z-50 flex justify-between items-center px-lg h-touch-target bg-surface shadow-sm"><button className="text-primary font-bold hover:bg-surface-container-highest transition-colors active:scale-95 duration-100 flex items-center justify-center w-touch-target h-touch-target rounded-full -ml-sm"><span className="material-symbols-outlined">sync</span></button><h1 className="text-headline-md font-headline-md font-bold text-primary">ASHA Field Care</h1><button className="text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-95 duration-100 flex items-center justify-center w-touch-target h-touch-target rounded-full -mr-sm"><span className="material-symbols-outlined" data-weight="fill">notifications</span></button></header><main className="flex flex-col w-full max-w-[600px] mx-auto">
-<div className="px-lg py-md mt-sm"><h2 className="text-headline-lg-mobile font-headline-lg-mobile text-on-surface">Offline Sync Center</h2></div>
-<section className="px-lg mb-lg"><div className="bg-surface-container-low border border-outline-variant shadow-sm rounded-xl p-md flex flex-col items-center text-center relative overflow-hidden">
-<div className="absolute top-0 right-0 w-32 h-32 bg-primary-fixed rounded-full opacity-20 -mr-16 -mt-16 pointer-events-none"></div><span className="material-symbols-outlined text-primary mb-sm" style={{ fontSize: '40px' }}>cloud_off</span><h3 className="text-display-lg font-display-lg text-on-surface">12</h3><p className="text-body-lg-mobile font-body-lg-mobile text-on-surface-variant font-medium">Pending Records</p><p className="text-caption font-caption text-outline mt-xs">Last Synced: 2 hours ago</p><button className="mt-md w-full min-h-[48px] bg-primary text-on-primary rounded-full flex items-center justify-center gap-sm hover:bg-surface-tint transition-colors active:scale-95 shadow-sm"><span className="material-symbols-outlined">sync</span><span className="text-label-md font-label-md">Sync Now</span></button></div></section>
-<div className="px-lg mb-md flex border-b border-outline-variant"><button className="flex-1 pb-sm text-label-md font-label-md text-primary border-b-2 border-primary text-center">Pending (12)</button><button className="flex-1 pb-sm text-label-md font-label-md text-on-surface-variant text-center">Synced</button><button className="flex-1 pb-sm text-label-md font-label-md text-error text-center relative">
-                Failed
-                <span className="absolute top-0 right-2 w-2 h-2 bg-error rounded-full"></span></button></div>
-<section className="px-lg flex flex-col gap-sm">
-<article className="bg-surface-container-lowest border border-tertiary border-opacity-50 shadow-sm rounded-lg p-md flex flex-col gap-sm relative overflow-hidden">
-<div className="absolute top-0 left-0 h-1 bg-tertiary w-1/3 animate-pulse"></div><div className="flex justify-between items-start"><div className="pr-md"><div className="w-[4px] h-full absolute left-0 top-0 bg-secondary"></div>
-<h4 className="text-body-lg-mobile font-body-lg-mobile text-on-surface font-semibold pl-sm">Ramesh Household Visit</h4><p className="text-body-md font-body-md text-on-surface-variant mt-xs pl-sm">Form: Routine Follow-up</p></div><span className="material-symbols-outlined text-tertiary animate-spin mt-xs">sync</span></div><div className="flex items-center gap-xs mt-xs pl-sm"><div className="bg-tertiary-fixed text-on-tertiary-fixed-variant px-sm py-xs rounded-full flex items-center gap-xs"><span className="material-symbols-outlined text-[14px]">cloud_sync</span><span className="text-caption font-caption font-bold">Syncing...</span></div></div></article>
-<article className="bg-surface-container-lowest border border-outline-variant shadow-sm rounded-lg p-md flex flex-col gap-sm relative"><div className="flex justify-between items-start"><div className="pr-md"><div className="w-[4px] h-full absolute left-0 top-0 bg-primary-container"></div>
-<h4 className="text-body-lg-mobile font-body-lg-mobile text-on-surface font-semibold pl-sm">Anita Devi ANC Checkup</h4><p className="text-body-md font-body-md text-on-surface-variant mt-xs pl-sm">Form: Trimester 2</p></div><button className="text-outline p-xs -mr-xs active:bg-surface-container-low rounded-full"><span className="material-symbols-outlined">more_vert</span></button></div><div className="flex items-center gap-xs mt-xs pl-sm"><div className="bg-surface-variant text-on-surface-variant px-sm py-xs rounded-full flex items-center gap-xs"><span className="material-symbols-outlined text-[14px]">sd_storage</span><span className="text-caption font-caption font-bold">Stored Locally</span></div></div></article>
-<article className="bg-error-container border border-error border-opacity-30 shadow-sm rounded-lg p-md flex flex-col gap-sm relative mt-sm"><div className="flex justify-between items-start"><div className="pr-md"><div className="w-[4px] h-full absolute left-0 top-0 bg-error"></div>
-<h4 className="text-body-lg-mobile font-body-lg-mobile text-on-error-container font-semibold pl-sm">Sunita Newborn Reg.</h4><p className="text-body-md font-body-md text-on-error-container opacity-80 mt-xs pl-sm">Error: Network timeout</p></div><span className="material-symbols-outlined text-error mt-xs">error</span></div><div className="flex items-center justify-between mt-xs pl-sm"><div className="bg-error text-on-error px-sm py-xs rounded-full flex items-center gap-xs"><span className="material-symbols-outlined text-[14px]">warning</span><span className="text-caption font-caption font-bold">Failed</span></div><button className="text-label-md font-label-md text-error underline active:opacity-70 p-xs">Retry</button></div></article></section></main>
-<nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-md pb-safe h-[72px] bg-surface shadow-lg">
-<Link className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform rounded-lg" to="/asha/home"><span className="material-symbols-outlined mb-xs">home</span><span className="text-label-md font-label-md text-[12px]">Home</span></Link>
-<Link className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform rounded-lg" to="/asha/households"><span className="material-symbols-outlined mb-xs">group</span><span className="text-label-md font-label-md text-[12px]">Households</span></Link>
-<Link className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform rounded-lg" to="/asha/patients"><span className="material-symbols-outlined mb-xs">person_search</span><span className="text-label-md font-label-md text-[12px]">Patients</span></Link>
-<Link className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-lg py-sm active:scale-90 transition-transform shadow-sm" to="/asha/tasks"><span className="material-symbols-outlined mb-xs" data-weight="fill">assignment</span><span className="text-label-md font-label-md text-[12px]">Tasks</span></Link>
-<Link className="flex flex-col items-center justify-center text-on-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform rounded-lg" to="/asha/patients/1/profile"><span className="material-symbols-outlined mb-xs">account_circle</span><span className="text-label-md font-label-md text-[12px]">Profile</span></Link></nav>
-    </>
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+      <PageHeader
+        title={t('asha.syncCenterTitle')}
+        subtitle={t('asha.syncCenterSubtitle')}
+        breadcrumbs={[{ label: t('nav.ashaSync') }]}
+      />
+
+      <section>
+        <div className="relative flex flex-col items-center overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low p-5 text-center shadow-card">
+          <div className="pointer-events-none absolute -mr-16 -mt-16 right-0 top-0 h-32 w-32 rounded-full bg-primary-fixed opacity-20" />
+          <Icon name="box" size={40} className="mb-2 text-primary" />
+          <h3 className="font-display-lg text-display-lg font-bold text-on-surface">{pendingCount}</h3>
+          <p className="font-body-lg text-body-lg font-medium text-on-surface-variant">{t('asha.pendingRecords')}</p>
+          <p className="mt-1 font-caption text-caption text-outline">{t('asha.lastSyncedAt', { time: lastSynced })}</p>
+          <button
+            type="button"
+            onClick={syncNow}
+            disabled={pendingCount === 0}
+            className="mt-4 flex min-h-[48px] w-full max-w-sm items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant active:scale-95 disabled:opacity-60"
+          >
+            <Icon name="refresh" size={20} />
+            {t('asha.syncNow')}
+          </button>
+        </div>
+      </section>
+
+      <div className="mb-1 flex border-b border-outline-variant">
+        {tabs.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setTab(item.key)}
+            className={`relative flex-1 border-b-2 pb-2 text-center font-label-md text-label-md font-semibold transition-colors ${
+              tab === item.key ? `border-primary ${item.tone ?? 'text-primary'}` : 'text-on-surface-variant'
+            }`}
+          >
+            {item.label} ({item.count})
+            {item.key === 'failed' && failedCount > 0 ? (
+              <span className="absolute right-2 top-0 h-2 w-2 rounded-full bg-error" />
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <section className="flex flex-col gap-3">
+        {visible.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest py-12 text-center shadow-card">
+            <Icon name="checkCircle" size={32} className="text-secondary" />
+            <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.nothingToShow')}</p>
+          </div>
+        ) : (
+          visible.map((item) => {
+            const style = stateStyles[item.state]
+            const isFailed = item.state === 'failed'
+            return (
+              <article
+                key={item.id}
+                className={`relative flex flex-col gap-2 overflow-hidden rounded-lg border p-4 shadow-card ${
+                  isFailed ? 'border-error/30 bg-error-container' : item.state === 'syncing' ? 'border-tertiary/50 bg-surface-container-lowest' : 'border-outline-variant bg-surface-container-lowest'
+                }`}
+              >
+                {item.state === 'syncing' ? <span className="absolute left-0 top-0 h-1 w-1/3 animate-pulse bg-tertiary" /> : null}
+                <div className="flex items-start justify-between">
+                  <div className="pr-4">
+                    <h4 className={`font-body-lg text-body-lg font-semibold ${isFailed ? 'text-on-error-container' : 'text-on-surface'}`}>
+                      {item.title}
+                    </h4>
+                    <p className={`mt-1 font-body-md text-body-md ${isFailed ? 'text-on-error-container opacity-80' : 'text-on-surface-variant'}`}>
+                      {isFailed ? t('asha.networkTimeout') : t('asha.formLabel', { form: item.form })}
+                    </p>
+                  </div>
+                  {item.state === 'syncing' ? (
+                    <Icon name="refresh" size={20} className="mt-1 animate-spin text-tertiary" />
+                  ) : null}
+                  {isFailed ? <Icon name="alert" size={20} className="mt-1 text-error" /> : null}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className={`flex items-center gap-1 rounded-full px-3 py-1 font-caption text-caption font-bold ${style.chip}`}>
+                    <Icon name={style.icon} size={14} className={style.spin ? 'animate-spin' : ''} />
+                    {item.state === 'stored'
+                      ? t('asha.storedLocally')
+                      : item.state === 'syncing'
+                        ? t('asha.syncing')
+                        : item.state === 'synced'
+                          ? t('asha.synced')
+                          : t('asha.failed')}
+                  </span>
+                  {isFailed ? (
+                    <button
+                      type="button"
+                      onClick={() => retry(item.id)}
+                      className="p-1 font-label-md text-label-md text-error underline transition-opacity active:opacity-70"
+                    >
+                      {t('asha.retry')}
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            )
+          })
+        )}
+      </section>
+    </div>
   )
 }

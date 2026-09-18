@@ -18,10 +18,12 @@ export interface ActiveFilter {
 
 interface UIState {
   sidebarOpen: boolean
+  sidebarCollapsed: boolean
   activeFilter: ActiveFilter
   toasts: Toast[]
   setSidebarOpen: (open: boolean) => void
   toggleSidebar: () => void
+  toggleSidebarCollapsed: () => void
   setActiveFilter: (filter: Partial<ActiveFilter>) => void
   clearFilters: () => void
   addToast: (tone: ToastTone, message: string, durationMs?: number) => void
@@ -33,11 +35,13 @@ let toastSeq = 0
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: false,
+  sidebarCollapsed: false,
   activeFilter: {},
   toasts: [],
 
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
   setActiveFilter: (filter) =>
     set((s) => ({ activeFilter: { ...s.activeFilter, ...filter } })),

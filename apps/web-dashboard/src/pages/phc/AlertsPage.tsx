@@ -79,7 +79,7 @@ export default function AlertsPage() {
 
       {filtered.length === 0 ? (
         <ASHACard>
-          <EmptyState title={t('alerts.noAlerts')} icon={<Icon name="checkCircle" size={28} />} />
+          <EmptyState title={t('alerts.noAlerts')} icon="checkCircle" />
         </ASHACard>
       ) : (
         <div className="grid grid-cols-1 gap-4 desktop:grid-cols-2">

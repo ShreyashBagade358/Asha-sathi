@@ -1,28 +1,96 @@
+import { Link } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { Icon, type IconName } from '@/components/common/Icons'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { MOCK_HOUSEHOLDS, type Household } from '@/pages/asha/mockData'
+
+const statusConfig: Record<Household['status'], { label: string; chip: string; icon: IconName; accent: string }> = {
+  'visit-due': { label: 'asha.visitDue', chip: 'bg-error-container text-on-error-container', icon: 'alert', accent: 'bg-error' },
+  'follow-up': { label: 'asha.followUp', chip: 'bg-secondary-container text-on-secondary-container', icon: 'checkCircle', accent: 'bg-secondary' },
+  scheduled: { label: 'asha.scheduled', chip: 'bg-surface-container text-on-surface-variant', icon: 'calendar', accent: 'bg-outline' },
+}
+
 export default function AssignedHouseholdsAshaSathi() {
+  const { t } = useLocalization()
+
   return (
-    <>
-<header className="bg-surface dark:bg-inverse-surface shadow-sm fixed top-0 w-full z-50 flex justify-between items-center px-lg h-touch-target docked full-width top-0 bg-surface-container-high dark:bg-inverse-surface shadow-sm shadow-sm"><button aria-label="Sync" className="flex items-center justify-center w-touch-target h-touch-target active:scale-95 duration-100 hover:bg-surface-container-highest transition-colors rounded-full text-primary dark:text-primary-fixed-dim"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>sync</span></button><h1 className="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">ASHA Field Care</h1><button aria-label="Notifications" className="flex items-center justify-center w-touch-target h-touch-target active:scale-95 duration-100 hover:bg-surface-container-highest transition-colors rounded-full text-primary dark:text-primary-fixed-dim"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>notifications</span></button></header>
-<div className="bg-outline-variant text-on-surface-variant px-md py-sm flex items-center justify-center gap-sm mt-[64px] border-b border-outline"><span className="material-symbols-outlined text-label-md" style={{ fontVariationSettings: '\'FILL\' 1' }}>cloud_off</span><span className="text-label-md font-label-md">Offline Mode: 5 pending syncs</span></div>
-<main className="px-md py-lg space-y-md max-w-2xl mx-auto"><h2 className="text-headline-lg-mobile font-headline-lg-mobile text-on-surface mb-md px-xs">Assigned Households</h2>
-<article className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col relative"><div className="absolute left-0 top-0 bottom-0 w-2 bg-error"></div><div className="p-lg pl-[32px] flex flex-col gap-sm"><div className="flex justify-between items-start"><div><h3 className="text-headline-md font-headline-md text-on-surface">Ramesh Kumar</h3><p className="text-body-md font-body-md text-on-surface-variant flex items-center gap-xs"><span className="material-symbols-outlined text-body-md">group</span> Family Size: 6
-                        </p></div><span className="bg-error-container text-on-error-container text-caption font-caption px-sm py-xs rounded-full inline-flex items-center gap-xs font-bold"><span className="material-symbols-outlined text-caption">warning</span> Visit Due
-                    </span></div><div className="text-body-md font-body-md text-on-surface-variant mt-sm"><p>Last visit: 14 days ago</p><p>High Priority: Antenatal care needed.</p></div></div><div className="p-md pt-0 pl-[32px]"><button className="w-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary h-touch-target rounded-full flex items-center justify-center gap-sm text-label-md font-label-md transition-colors shadow-sm"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>directions_run</span>
-                    Start Visit
-                </button></div></article>
-<article className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col relative"><div className="absolute left-0 top-0 bottom-0 w-2 bg-secondary"></div><div className="p-lg pl-[32px] flex flex-col gap-sm"><div className="flex justify-between items-start"><div><h3 className="text-headline-md font-headline-md text-on-surface">Sunita Devi</h3><p className="text-body-md font-body-md text-on-surface-variant flex items-center gap-xs"><span className="material-symbols-outlined text-body-md">group</span> Family Size: 4
-                        </p></div><span className="bg-secondary-container text-on-secondary-container text-caption font-caption px-sm py-xs rounded-full inline-flex items-center gap-xs font-bold"><span className="material-symbols-outlined text-caption">check_circle</span> Follow-up
-                    </span></div><div className="text-body-md font-body-md text-on-surface-variant mt-sm"><p>Last visit: 3 days ago</p><p>Routine check.</p></div></div><div className="p-md pt-0 pl-[32px]"><button className="w-full border-2 border-primary text-primary hover:bg-primary-container hover:text-on-primary-container h-touch-target rounded-full flex items-center justify-center gap-sm text-label-md font-label-md transition-colors"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>visibility</span>
-                    Review Record
-                </button></div></article>
-<article className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col relative opacity-75 grayscale-[50%]">
-<div className="absolute left-0 top-0 bottom-0 w-2 bg-outline"></div><div className="p-lg pl-[32px] flex flex-col gap-sm"><div className="flex justify-between items-start"><div><h3 className="text-headline-md font-headline-md text-on-surface">Anil Sharma</h3><p className="text-body-md font-body-md text-on-surface-variant flex items-center gap-xs"><span className="material-symbols-outlined text-body-md">group</span> Family Size: 3
-                        </p></div><span className="bg-surface-container text-on-surface-variant text-caption font-caption px-sm py-xs rounded-full inline-flex items-center gap-xs font-bold"><span className="material-symbols-outlined text-caption">schedule</span> Scheduled
-                    </span></div><div className="text-body-md font-body-md text-on-surface-variant mt-sm"><p>Next visit: Tomorrow</p></div></div><div className="p-md pt-0 pl-[32px]"><button className="w-full bg-surface-container text-on-surface-variant h-touch-target rounded-full flex items-center justify-center gap-sm text-label-md font-label-md transition-colors" disabled><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>event</span>
-                    Planned
-                </button></div></article></main>
-<button aria-label="Add New Household" className="fixed bottom-[96px] right-lg w-14 h-14 bg-primary-container text-on-primary-container rounded-xl shadow-lg flex items-center justify-center hover:bg-primary hover:text-on-primary active:scale-95 transition-all z-40"><span className="material-symbols-outlined text-display-lg" style={{ fontVariationSettings: '\'FILL\' 1' }}>add</span></button>
-<nav className="bg-surface dark:bg-inverse-surface fixed bottom-0 w-full z-50 flex justify-around items-center px-md pb-safe h-[72px] docked full-width bottom-0 rounded-t-xl shadow-lg md:hidden"><button aria-label="Home" className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform flex-1"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>home</span><span className="text-label-md font-label-md mt-xs">Home</span></button><button aria-label="Households" className="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-full px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform flex-1"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>group</span><span className="text-label-md font-label-md mt-xs font-bold">Households</span></button><button aria-label="Patients" className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform flex-1"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>person_search</span><span className="text-label-md font-label-md mt-xs">Patients</span></button><button aria-label="Tasks" className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform flex-1"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>assignment</span><span className="text-label-md font-label-md mt-xs">Tasks</span></button><button aria-label="Profile" className="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-lg py-sm hover:bg-surface-container-low active:scale-90 transition-transform flex-1"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>account_circle</span><span className="text-label-md font-label-md mt-xs">Profile</span></button></nav>
-<nav className="hidden md:flex fixed top-[64px] left-0 h-full w-64 bg-surface border-r border-outline-variant flex-col p-md gap-sm z-40"><button className="flex items-center gap-md px-md py-sm rounded-xl text-on-surface-variant hover:bg-surface-container-low transition-colors w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>home</span><span className="text-label-md font-label-md">Home</span></button><button className="flex items-center gap-md px-md py-sm rounded-xl bg-primary-container text-on-primary-container font-bold w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>group</span><span className="text-label-md font-label-md">Households</span></button><button className="flex items-center gap-md px-md py-sm rounded-xl text-on-surface-variant hover:bg-surface-container-low transition-colors w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>person_search</span><span className="text-label-md font-label-md">Patients</span></button><button className="flex items-center gap-md px-md py-sm rounded-xl text-on-surface-variant hover:bg-surface-container-low transition-colors w-full text-left"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>assignment</span><span className="text-label-md font-label-md">Tasks</span></button><button className="flex items-center gap-md px-md py-sm rounded-xl text-on-surface-variant hover:bg-surface-container-low transition-colors w-full text-left mt-auto"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 0' }}>account_circle</span><span className="text-label-md font-label-md">Profile</span></button></nav>
-    </>
+    <div className="mx-auto flex max-w-5xl flex-col gap-5">
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-outline bg-outline-variant/40 px-4 py-2">
+        <span className="flex items-center gap-2 font-label-md text-label-md text-on-surface-variant">
+          <Icon name="box" size={16} />
+          {t('asha.offlineMode')}
+        </span>
+      </div>
+
+      <PageHeader
+        title={t('asha.assignedHouseholds')}
+        subtitle={t('asha.householdsSubtitle')}
+        breadcrumbs={[{ label: t('nav.ashaHouseholds') }]}
+      />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {MOCK_HOUSEHOLDS.map((household) => {
+          const status = statusConfig[household.status]
+          return (
+            <article
+              key={household.id}
+              className={`relative flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-card ${
+                household.status === 'scheduled' ? 'opacity-75 grayscale-[50%] lg:col-span-2' : ''
+              }`}
+            >
+              <span className={`absolute bottom-0 left-0 top-0 w-2 ${status.accent}`} />
+              <div className="flex flex-col gap-2 p-5 pl-8">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">{household.headName}</h3>
+                    <p className="flex items-center gap-1 font-body-md text-body-md text-on-surface-variant">
+                      <Icon name="users" size={16} />
+                      {t('asha.familySize', { count: household.familySize })}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 font-caption text-caption font-bold ${status.chip}`}>
+                    <Icon name={status.icon} size={14} />
+                    {t(status.label)}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-col gap-0.5 font-body-md text-body-md text-on-surface-variant">
+                  <p>{t('asha.lastVisit', { days: household.lastVisitDays })}</p>
+                  {household.note ? <p>{t('asha.priorityNote', { note: household.note })}</p> : null}
+                  {household.nextVisit ? <p>{t('asha.nextVisit', { day: household.nextVisit })}</p> : null}
+                </div>
+              </div>
+              <div className="p-5 pt-0 pl-8">
+                {household.status === 'scheduled' ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-surface-container font-label-md text-label-md font-semibold text-on-surface-variant"
+                  >
+                    <Icon name="calendar" size={18} />
+                    {t('asha.planned')}
+                  </button>
+                ) : (
+                  <Link
+                    to={`/asha/households/${household.id}/visit`}
+                    className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
+                  >
+                    <Icon name="activity" size={18} />
+                    {t('asha.startVisit')}
+                  </Link>
+                )}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+
+      <button
+        type="button"
+        aria-label={t('asha.addHousehold')}
+        className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-on-primary shadow-lg transition-all hover:bg-on-primary-fixed-variant active:scale-95 lg:bottom-8"
+      >
+        <Icon name="plus" size={28} />
+      </button>
+    </div>
   )
 }

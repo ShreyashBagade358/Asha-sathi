@@ -23,50 +23,114 @@ export interface ReportParams {
   ashaId?: string
 }
 
-const MONTHS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function seededRow(kind: ReportKind, i: number, total: number): ReportRow {
-  const progress = Math.round((i / Math.max(total - 1, 1)) * 100)
-  switch (kind) {
-    case 'maternal':
-      return { Month: MONTHS[i % MONTHS.length], 'Registrations': 40 + ((i * 17) % 25), 'ANC4+ Completed': 26 + ((i * 13) % 18), 'Institutional Deliveries': 30 + ((i * 11) % 20), 'High Risk (HRP)': 3 + (i % 4), 'Home Deliveries': 2 + (i % 3) }
-    case 'child':
-      return { Month: MONTHS[i % MONTHS.length], 'Live Births': 34 + ((i * 9) % 20), 'Low Birth Weight': 4 + (i % 5), 'Breastfed <1hr': 22 + ((i * 7) % 16), 'Newborn Visits': 30 + ((i * 11) % 18) }
-    case 'immunization':
-      return { Month: MONTHS[i % MONTHS.length], 'BCG': 90 + ((i * 5) % 9), 'OPV-3': 78 + ((i * 9) % 18), 'Pentavalent-3': 76 + ((i * 11) % 20), 'Measles-1': 72 + ((i * 13) % 22), 'Full Coverage %': progress }
-    case 'ncd':
-      return { Month: MONTHS[i % MONTHS.length], 'Screened': 120 + ((i * 41) % 90), 'Hypertension +': 9 + (i % 8), 'Diabetes +': 6 + (i % 6), 'Referrals': 4 + (i % 4) }
-    case 'incentive':
-      return { Month: MONTHS[i % MONTHS.length], 'Claims': 84 + ((i * 11) % 30), 'Approved': 78 + ((i * 9) % 24), 'Amount (₹)': 186000 + i * 12500, 'Pending': 4 + (i % 5) }
-  }
+const ROUTES: Record<ReportKind, string> = {
+  maternal: '/reports/maternal-health',
+  child: '/reports/child-health',
+  immunization: '/reports/immunization',
+  ncd: '/reports/ncd',
+  incentive: '/reports/incentives',
 }
 
-function buildReport(kind: ReportKind): ReportData {
-  const total = MONTHS.length
-  const titles: Record<ReportKind, string> = {
-    maternal: 'Maternal Health Report',
-    child: 'Child Health Report',
-    immunization: 'Immunization Report',
-    ncd: 'NCD Screening Report',
-    incentive: 'ASHA Incentive Report',
-  }
-  return {
-    kind,
-    title: titles[kind],
-    columns: Object.keys(seededRow(kind, 0, total)),
-    rows: Array.from({ length: total }).map((_, i) => seededRow(kind, i, total)),
-  }
+const TITLES: Record<ReportKind, string> = {
+  maternal: 'Maternal Health',
+  child: 'Child Health',
+  immunization: 'Immunization',
+  ncd: 'NCD Screening',
+  incentive: 'ASHA Incentives',
+}
+
+type RawReport = Record<string, unknown>
+
+function periodLabel(raw: RawReport): string {
+  const p = raw.period
+  if (Array.isArray(p) && p.length === 2) return `${String(p[0])} → ${String(p[1])}`
+  return '—'
+}
+
+function asNumber(v: unknown): number {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function tableFrom(kind: ReportKind, columns: string[], row: ReportRow): ReportData {
+  return { kind, title: TITLES[kind], columns, rows: [row] }
+}
+
+function formatMaternal(raw: RawReport): ReportData {
+  return tableFrom('maternal', ['Period', 'Pregnancies Registered', 'ANC Visits', 'PNC Visits', 'High-Risk', 'Institutional Deliveries'], {
+    Period: periodLabel(raw),
+    'Pregnancies Registered': asNumber(raw.pregnancies_registered),
+    'ANC Visits': asNumber(raw.anc_visits),
+    'PNC Visits': asNumber(raw.pnc_visits),
+    'High-Risk': asNumber(raw.high_risk_pregnancies),
+    'Institutional Deliveries': asNumber(raw.institutional_deliveries),
+  })
+}
+
+function formatChild(raw: RawReport): ReportData {
+  return tableFrom('child', ['Period', 'Children Registered', 'Low Birth Weight', 'LBW %'], {
+    Period: periodLabel(raw),
+    'Children Registered': asNumber(raw.children_registered),
+    'Low Birth Weight': asNumber(raw.low_birth_weight),
+    'LBW %': asNumber(raw.lbw_pct),
+  })
+}
+
+function formatImmunization(raw: RawReport): ReportData {
+  const per = periodLabel(raw)
+  const byVaccine = Array.isArray(raw.by_vaccine) ? raw.by_vaccine.map((v) => v as { vaccine_code?: string; doses?: number }) : []
+  const columns = ['Period', 'Vaccine', 'Doses Given']
+  const rows =
+    byVaccine.length > 0
+      ? byVaccine.map((v) => ({ Period: per, Vaccine: String(v.vaccine_code ?? '—'), 'Doses Given': asNumber(v.doses) }))
+      : [{ Period: per, Vaccine: 'Total', 'Doses Given': asNumber(raw.doses_given), }]
+  return { kind: 'immunization', title: TITLES.immunization, columns, rows }
+}
+
+function formatNcd(raw: RawReport): ReportData {
+  return tableFrom('ncd', ['Period', 'Screenings', 'Referred', 'High BP', 'High Random Sugar'], {
+    Period: periodLabel(raw),
+    Screenings: asNumber(raw.screenings),
+    Referred: asNumber(raw.referred),
+    'High BP': asNumber(raw.high_bp),
+    'High Random Sugar': asNumber(raw.high_random_sugar),
+  })
+}
+
+function formatIncentive(raw: RawReport): ReportData {
+  const ashas = Array.isArray(raw.ashas) ? raw.ashas.length : 0
+  return tableFrom('incentive', ['Period', 'Status', 'Claims', 'Total Amount', 'ASHAs'], {
+    Period: periodLabel(raw),
+    Status: String(raw.status ?? 'approved'),
+    Claims: asNumber(raw.claims),
+    'Total Amount': asNumber(raw.total_amount),
+    ASHAs: ashas,
+  })
+}
+
+const FORMATTERS: Record<ReportKind, (raw: RawReport) => ReportData> = {
+  maternal: formatMaternal,
+  child: formatChild,
+  immunization: formatImmunization,
+  ncd: formatNcd,
+  incentive: formatIncentive,
+}
+
+function toDateParam(iso?: string): string | undefined {
+  if (!iso) return undefined
+  const match = /^\d{4}-\d{2}-\d{2}/.exec(iso)
+  return match ? match[0] : undefined
 }
 
 export const reportService = {
   async getReport(kind: ReportKind, params: ReportParams = {}): Promise<ReportData> {
-    try {
-      const { data } = await api.get<ReportData>(`/reports/${kind}`, { params })
-      return data
-    } catch (err) {
-      console.warn('getReport fallback', err)
-      return buildReport(kind)
-    }
+    const { data } = await api.get<RawReport>(ROUTES[kind], {
+      params: {
+        period_start: toDateParam(params.from) || undefined,
+        period_end: toDateParam(params.to) || undefined,
+      },
+    })
+    return FORMATTERS[kind](data)
   },
 
   getMaternalReport(params: ReportParams = {}) {

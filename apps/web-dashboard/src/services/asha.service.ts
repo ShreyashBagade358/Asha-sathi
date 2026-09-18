@@ -30,13 +30,19 @@ export interface ListASHAParams {
   pageSize?: number
 }
 
-const FALLBACK_ASHAS: ASHAUser[] = [
-  { id: 'asha-1', ashaId: 'ASH-4001', name: 'Meena Devi', village: 'Rampur', phone: '9876543210', assignedHouseholds: 84, performanceScore: 91, status: 'active', lastSyncAt: new Date().toISOString() },
-  { id: 'asha-2', ashaId: 'ASH-4002', name: 'Kavita Kumari', village: 'Sonpur', phone: '9876543211', assignedHouseholds: 76, performanceScore: 84, status: 'active', lastSyncAt: new Date().toISOString() },
-  { id: 'asha-3', ashaId: 'ASH-4003', name: 'Saroj Yadav', village: 'Kandwa', phone: '9876543212', assignedHouseholds: 92, performanceScore: 72, status: 'active', lastSyncAt: new Date(Date.now() - 2 * 864e5).toISOString() },
-  { id: 'asha-4', ashaId: 'ASH-4004', name: 'Geeta Devi', village: 'Tikari', phone: '9876543213', assignedHouseholds: 68, performanceScore: 58, status: 'on_leave', lastSyncAt: new Date(Date.now() - 9 * 864e5).toISOString() },
-  { id: 'asha-5', ashaId: 'ASH-4005', name: 'Rani Paswan', village: 'Basari', phone: '9876543214', assignedHouseholds: 55, performanceScore: 66, status: 'inactive', lastSyncAt: new Date(Date.now() - 21 * 864e5).toISOString() },
-]
+export interface CreateASHPayload {
+  name: string
+  phone: string
+  village?: string
+  email?: string
+  date_of_birth?: string
+  gender?: 'female' | 'male' | 'other'
+  aadhaar?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  sub_center?: string
+  date_of_joining?: string
+}
 
 interface RawASHAUser {
   id: string
@@ -123,121 +129,64 @@ function mapPaginated<T>(raw: { items: T[]; total: number; page: number; page_si
 
 export const ashaService = {
   async listASHAs(params: ListASHAParams = {}): Promise<Paginated<ASHAUser>> {
-    try {
-      const { data } = await api.get<{ items: RawASHAUser[]; total: number; page: number; page_size: number; total_pages: number }>('/ashas', {
-        params: {
-          q: params.search || undefined,
-          village: params.village || undefined,
-          status: params.status === 'all' ? undefined : params.status,
-          page: params.page ?? 1,
-          page_size: params.pageSize ?? 10,
-        },
-      })
-      return mapPaginated({ ...data, items: data.items.map(mapASHAUser) })
-    } catch (err) {
-      console.warn('listASHAs fallback', err)
-      const { search, village, status, page = 1, pageSize = 10 } = params
-      let items = FALLBACK_ASHAS.filter((a) => {
-        if (status && status !== 'all' && a.status !== status) return false
-        if (village && a.village !== village) return false
-        if (search) {
-          const q = search.toLowerCase()
-          if (!a.name.toLowerCase().includes(q) && !a.ashaId.toLowerCase().includes(q) && !a.phone.includes(q)) {
-            return false
-          }
-        }
-        return true
-      })
-      const start = (page - 1) * pageSize
-      items = items.slice(start, start + pageSize)
-      return { items, total: FALLBACK_ASHAS.length, page, pageSize, totalPages: Math.ceil(FALLBACK_ASHAS.length / pageSize) }
-    }
+    const { data } = await api.get<{ items: RawASHAUser[]; total: number; page: number; page_size: number; total_pages: number }>('/ashas', {
+      params: {
+        q: params.search || undefined,
+        village: params.village || undefined,
+        status: params.status === 'all' ? undefined : params.status,
+        page: params.page ?? 1,
+        page_size: params.pageSize ?? 10,
+      },
+    })
+    return mapPaginated({ ...data, items: data.items.map(mapASHAUser) })
   },
 
   async getASHADetail(ashaId: string): Promise<ASHADetail> {
-    try {
-      const { data } = await api.get<{ asha: RawASHAUser; kpis: RawASHAKPI[]; villages: string[]; assigned_beneficiaries: number }>(`/ashas/${ashaId}`)
-      const asha = mapASHAUser(data.asha)
-      return {
-        asha,
-        villages: data.villages ?? [],
-        assignedBeneficiaries: data.assigned_beneficiaries ?? 0,
-        kpis: (data.kpis ?? []).map((k) => mapASHAKPI(k, asha.name, asha.village)),
-      }
-    } catch (err) {
-      console.warn('getASHADetail fallback', err)
-      const asha = FALLBACK_ASHAS.find((a) => a.ashaId === ashaId) ?? FALLBACK_ASHAS[0]
-      return {
-        asha,
-        villages: [asha.village],
-        assignedBeneficiaries: asha.assignedHouseholds * 2,
-        kpis: [
-          { ashaId, ashaName: asha.name, phcId: 'phc-demo', village: asha.village, period: 'Dec', pregnantWomenRegistered: 8, anc4PlusCompleted: 5, institutionalDeliveries: 4, immunizationCoverage: 86, hrpIdentified: 2, ncdScreened: 64, homeVisits: 52, incentiveEarned: 3100, performanceScore: asha.performanceScore },
-        ],
-      }
+    const { data } = await api.get<{ asha: RawASHAUser; kpis: RawASHAKPI[]; villages: string[]; assigned_beneficiaries: number }>(`/ashas/${ashaId}`)
+    const asha = mapASHAUser(data.asha)
+    return {
+      asha,
+      villages: data.villages ?? [],
+      assignedBeneficiaries: data.assigned_beneficiaries ?? 0,
+      kpis: (data.kpis ?? []).map((k) => mapASHAKPI(k, asha.name, asha.village)),
     }
   },
 
-  async getASHAKPIs(ashaId: string): Promise<ASHAKPI[]> {
-    try {
-      const { data } = await api.get<RawASHAKPI[]>(`/ashas/${ashaId}/kpis`)
-      const asha = FALLBACK_ASHAS.find((a) => a.ashaId === ashaId)
-      const name = asha?.name ?? 'ASHA'
-      const village = asha?.village ?? ''
-      return data.map((k) => mapASHAKPI(k, name, village))
-    } catch (err) {
-      console.warn('getASHAKPIs fallback', err)
-      return [
-        { ashaId, ashaName: 'Meena Devi', phcId: 'phc-demo', village: 'Rampur', period: 'Dec', pregnantWomenRegistered: 8, anc4PlusCompleted: 5, institutionalDeliveries: 4, immunizationCoverage: 86, hrpIdentified: 2, ncdScreened: 64, homeVisits: 52, incentiveEarned: 3100, performanceScore: 91 },
-      ]
-    }
+  async getASHAKPIs(ashaId: string, name = 'ASHA', village = ''): Promise<ASHAKPI[]> {
+    const { data } = await api.get<RawASHAKPI[]>(`/ashas/${ashaId}/kpis`)
+    return data.map((k) => mapASHAKPI(k, name, village))
   },
 
   async updateASHA(ashaId: string, patch: Partial<ASHAUser>): Promise<ASHAUser> {
-    try {
-      const { data } = await api.patch<RawASHAUser>(`/ashas/${ashaId}`, {
-        name: patch.name,
-        phone: patch.phone,
-        village: patch.village,
-        status: patch.status,
-        performance_score: patch.performanceScore,
-      })
-      return mapASHAUser(data)
-    } catch (err) {
-      console.warn('updateASHA fallback', err)
-      const base = FALLBACK_ASHAS.find((a) => a.ashaId === ashaId) ?? FALLBACK_ASHAS[0]
-      return { ...base, ...patch }
-    }
+    const { data } = await api.patch<RawASHAUser>(`/ashas/${ashaId}`, {
+      name: patch.name,
+      phone: patch.phone,
+      village: patch.village,
+      status: patch.status,
+      performance_score: patch.performanceScore,
+    })
+    return mapASHAUser(data)
   },
 
-  async createASHA(payload: Omit<ASHAUser, 'id' | 'ashaId' | 'performanceScore'>): Promise<ASHAUser> {
-    try {
-      const { data } = await api.post<RawASHAUser>('/ashas', {
-        name: payload.name,
-        phone: payload.phone,
-        village: payload.village,
-        status: payload.status,
-      })
-      return mapASHAUser(data)
-    } catch (err) {
-      console.warn('createASHA fallback', err)
-      return {
-        ...payload,
-        id: `asha-${Date.now()}`,
-        ashaId: `ASH-${4006 + FALLBACK_ASHAS.length}`,
-        performanceScore: 0,
-      }
-    }
+  async createASHA(payload: CreateASHPayload): Promise<ASHAUser> {
+    const { data } = await api.post<RawASHAUser>('/ashas', {
+      name: payload.name,
+      phone: payload.phone,
+      village: payload.village,
+      email: payload.email || undefined,
+      date_of_birth: payload.date_of_birth || undefined,
+      gender: payload.gender || undefined,
+      aadhaar: payload.aadhaar || undefined,
+      emergency_contact_name: payload.emergency_contact_name || undefined,
+      emergency_contact_phone: payload.emergency_contact_phone || undefined,
+      sub_center: payload.sub_center || undefined,
+      date_of_joining: payload.date_of_joining || undefined,
+    })
+    return mapASHAUser(data)
   },
 
   async assignVillages(ashaId: string, villages: string[]): Promise<ASHAUser> {
-    try {
-      const { data } = await api.post<RawASHAUser>(`/ashas/${ashaId}/villages`, { villages })
-      return mapASHAUser(data)
-    } catch (err) {
-      console.warn('assignVillages fallback', err)
-      const base = FALLBACK_ASHAS.find((a) => a.ashaId === ashaId) ?? FALLBACK_ASHAS[0]
-      return { ...base, village: villages[0] ?? base.village }
-    }
+    const { data } = await api.post<RawASHAUser>(`/ashas/${ashaId}/villages`, { villages })
+    return mapASHAUser(data)
   },
 }

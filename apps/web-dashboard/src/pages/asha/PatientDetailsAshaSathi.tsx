@@ -1,46 +1,308 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { useUIStore } from '@/stores/ui.store'
+import { useASHAStore } from '@/stores/asha.store'
+import { Icon } from '@/components/common/Icons'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
+import type { RiskLevel } from '@/pages/asha/mockData'
+
+type Tab = 'summary' | 'history' | 'maternal' | 'vaccination' | 'referrals'
+
+const riskStyles: Record<RiskLevel, string> = {
+  low: 'bg-secondary-container text-on-secondary-container',
+  medium: 'bg-[#FF8C00]/15 text-[#B34E00]',
+  high: 'bg-error-container text-on-error-container',
+}
+
+const householdMembers = [
+  { id: 'h1', initials: 'RK', name: 'Ram Kumar', meta: 'asha.husband', icon: 'users' as const },
+  { id: 'h2', initials: 'AK', name: 'Aarav Kumar', meta: 'asha.son', icon: 'users' as const, highlighted: true },
+]
+
+const referralLog = [
+  { id: 'r1', title: 'Referred to District Hospital', date: '15 Oct 2023', note: 'Severe anemia — Gynaecology OPD' },
+  { id: 'r2', title: 'ANM Visit Scheduled', date: '12 Oct 2023', note: 'Routine home visit' },
+]
+
 export default function PatientDetailsAshaSathi() {
+  const { t } = useLocalization()
+  const { addToast } = useUIStore()
+  const patients = useASHAStore((s) => s.patients)
+  const { id } = useParams<{ id: string }>()
+  const [tab, setTab] = useState<Tab>('summary')
+
+  const patient = patients.find((p) => p.id === id) ?? patients[0]
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'summary', label: t('asha.tabSummary') },
+    { key: 'history', label: t('asha.tabHistory') },
+    { key: 'maternal', label: t('asha.tabMaternal') },
+    { key: 'vaccination', label: t('asha.tabVaccination') },
+    { key: 'referrals', label: t('asha.tabReferrals') },
+  ]
+
   return (
-    <>
-<header className="fixed top-0 w-full z-50 flex justify-between items-center px-md h-touch-target md:hidden bg-surface border-b border-outline-variant shadow-sm transition-colors duration-200"><div className="flex items-center gap-sm"><button aria-label="Back" className="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-1"><span className="material-symbols-outlined" data-icon="arrow_back">arrow_back</span></button><span className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary truncate max-w-[200px]">Sita Devi</span></div><div className="flex items-center gap-sm"><button aria-label="Edit Patient" className="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-1"><span className="material-symbols-outlined" data-icon="edit">edit</span></button><button aria-label="More Actions" className="text-on-surface-variant hover:bg-surface-container transition-colors rounded-full p-1"><span className="material-symbols-outlined" data-icon="more_vert">more_vert</span></button></div></header>
-<nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 p-md gap-sm w-64 bg-surface-container-low border-r border-outline-variant z-40"><div className="flex items-center gap-sm px-sm py-md mb-md border-b border-outline-variant"><span className="font-headline-md text-headline-md font-black text-primary">ASHA Sathi</span></div><div className="flex flex-col gap-xs flex-1 overflow-y-auto"><Link className="flex items-center gap-sm px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all" to="/phc/dashboard"><span className="material-symbols-outlined" data-icon="dashboard">dashboard</span><span className="font-label-md text-label-md">Dashboard</span></Link><Link className="flex items-center gap-sm px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all" to="/phc/ashas"><span className="material-symbols-outlined" data-icon="groups">groups</span><span className="font-label-md text-label-md">Workers</span></Link><Link className="flex items-center gap-sm px-md py-sm rounded-lg bg-secondary-container text-on-secondary-container font-bold scale-95 transition-transform duration-150" to="/phc/beneficiaries"><span className="material-symbols-outlined" data-icon="person_celebrate" data-weight="fill">person_celebrate</span><span className="font-label-md text-label-md">Beneficiaries</span></Link><Link className="flex items-center gap-sm px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all" to="/phc/reports/maternal"><span className="material-symbols-outlined" data-icon="analytics">analytics</span><span className="font-label-md text-label-md">Reports</span></Link><Link className="flex items-center gap-sm px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all" to="/phc/vaccination"><span className="material-symbols-outlined" data-icon="inventory_2">inventory_2</span><span className="font-label-md text-label-md">Inventory</span></Link></div></nav>
-<main className="flex-1 mt-[48px] md:mt-0 md:ml-64 p-md md:p-lg pb-[80px] md:pb-lg max-w-[1440px] mx-auto w-full flex flex-col gap-lg">
-<div className="hidden md:flex justify-between items-end border-b border-outline-variant pb-md"><div><div className="flex items-center gap-sm mb-xs text-on-surface-variant"><Link className="font-caption text-caption hover:underline" to="/phc/beneficiaries">Beneficiaries</Link><span className="material-symbols-outlined text-[16px]" data-icon="chevron_right">chevron_right</span><span className="font-caption text-caption">Patient Details</span></div><h1 className="font-headline-lg text-headline-lg font-bold text-on-background flex items-center gap-md">
-                    Sita Devi
-                    <span className="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-error-container text-on-error-container font-label-md text-caption"><span className="material-symbols-outlined text-[14px]" data-icon="warning" data-weight="fill">warning</span>
-                        High Risk
-                    </span></h1><p className="font-body-md text-body-md text-on-surface-variant mt-1">ID: BHF-2023-8942 | Reg: 12 Oct 2023</p></div><div className="flex gap-sm"><button className="px-md py-2 border border-primary text-primary rounded-full font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center gap-sm"><span className="material-symbols-outlined text-[18px]" data-icon="edit">edit</span>
-                     Edit Details
-                 </button><button className="px-md py-2 bg-error text-on-error rounded-full font-label-md text-label-md hover:bg-opacity-90 transition-opacity flex items-center gap-sm shadow-sm"><span className="material-symbols-outlined text-[18px]" data-icon="medical_services">medical_services</span>
-                     Refer to Specialist
-                 </button></div></div>
-<div className="md:hidden flex flex-col gap-sm pt-sm"><div className="flex items-center justify-between"><p className="font-caption text-caption text-on-surface-variant">ID: BHF-2023-8942</p><span className="inline-flex items-center gap-xs px-2 py-1 rounded-full bg-error-container text-on-error-container font-label-md text-caption"><span className="material-symbols-outlined text-[14px]" data-icon="warning" data-weight="fill">warning</span>
-                    High Risk
-                </span></div></div>
-<div className="border-b border-outline-variant overflow-x-auto hide-scrollbar"><div className="flex gap-lg min-w-max px-xs"><button className="pb-sm font-label-md text-label-md text-primary border-b-2 border-primary transition-colors whitespace-nowrap">Summary</button><button className="pb-sm font-label-md text-label-md text-on-surface-variant hover:text-on-background transition-colors whitespace-nowrap">Medical History</button><button className="pb-sm font-label-md text-label-md text-on-surface-variant hover:text-on-background transition-colors whitespace-nowrap">Maternal Health</button><button className="pb-sm font-label-md text-label-md text-on-surface-variant hover:text-on-background transition-colors whitespace-nowrap">Vaccination</button><button className="pb-sm font-label-md text-label-md text-on-surface-variant hover:text-on-background transition-colors whitespace-nowrap">Referrals</button></div></div>
-<div className="grid grid-cols-1 md:grid-cols-3 gap-md md:gap-lg">
-<div className="md:col-span-2 flex flex-col gap-md md:gap-lg">
-<div className="bg-surface border border-outline-variant rounded-xl p-md flex flex-col md:flex-row gap-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)] relative overflow-hidden">
-<div className="absolute left-0 top-0 bottom-0 w-2 bg-error"></div><div className="flex-shrink-0 flex justify-center md:justify-start pl-sm"><img className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-surface-container-lowest shadow-sm" data-alt="A professional, well-lit, high-resolution portrait photograph of a rural Indian woman in her late 20s. She has a calm, stoic expression. She is wearing a simple, clean, warm-toned sari. The background is a soft, blurred neutral grey wall. The lighting is soft studio lighting, creating a dignified and authentic healthcare profile aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSDlKH5f-x4eIQRJjYciJGTKCpclLJwYooWt4Fs0a4nKIrmEkPBUK8UlNteBwyGeVOKdKbPxSGhfC_1L2R2LzCo97RfqeUTBWXQ3QKSbibMQyOPcNKTEcbu8XRzg-HKh6LeQ_WU-0HfkBGIs1JkN0OLgduoWJhjKRG4VtNRVkzPjBEhMvO__Id5TpZylcqnRHWOiMxp2QmK7nuOB3joAErYN0OP5bGzd2hov-UzfRUJDoIcYcN_xRTxg" /></div><div className="flex-1 flex flex-col justify-center grid grid-cols-2 gap-sm"><div><p className="font-caption text-caption text-on-surface-variant">Age</p><p className="font-body-md text-body-md font-semibold">28 Years</p></div><div><p className="font-caption text-caption text-on-surface-variant">Gender</p><p className="font-body-md text-body-md font-semibold">Female</p></div><div><p className="font-caption text-caption text-on-surface-variant">Blood Group</p><p className="font-body-md text-body-md font-semibold">O Positive</p></div><div><p className="font-caption text-caption text-on-surface-variant">Primary Language</p><p className="font-body-md text-body-md font-semibold">Hindi</p></div></div></div>
-<div className="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)]"><h3 className="font-headline-md text-headline-md mb-md flex items-center gap-sm"><span className="material-symbols-outlined text-primary" data-icon="contact_page">contact_page</span>
-                        Contact Details
-                    </h3><div className="grid grid-cols-1 md:grid-cols-2 gap-md"><div className="flex gap-sm items-start"><span className="material-symbols-outlined text-on-surface-variant mt-1" data-icon="call">call</span><div><p className="font-caption text-caption text-on-surface-variant">Phone Number</p><p className="font-body-md text-body-md">+91 98765 43210</p></div></div><div className="flex gap-sm items-start"><span className="material-symbols-outlined text-on-surface-variant mt-1" data-icon="home_pin">home_pin</span><div><p className="font-caption text-caption text-on-surface-variant">Address</p><p className="font-body-md text-body-md">House 42, Ward 3, Village Rampur, District XYZ, 123456</p></div></div></div></div>
-<div className="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)]"><h3 className="font-headline-md text-headline-md mb-md flex items-center gap-sm text-error"><span className="material-symbols-outlined" data-icon="medical_information" data-weight="fill">medical_information</span>
-                        Active Conditions
-                    </h3><ul className="flex flex-col gap-sm"><li className="flex justify-between items-center p-sm bg-error-container/20 rounded-lg border border-error-container/50"><span className="font-body-md text-body-md font-semibold text-on-background">Severe Anemia</span><span className="font-caption text-caption text-on-surface-variant">Diagnosed: 15 Oct 2023</span></li><li className="flex justify-between items-center p-sm bg-surface-container rounded-lg border border-outline-variant/50"><span className="font-body-md text-body-md font-semibold text-on-background">Pregnancy (Trimester 3)</span><span className="font-caption text-caption text-on-surface-variant">EDD: 10 Jan 2024</span></li></ul></div></div>
-<div className="flex flex-col gap-md md:gap-lg">
-<div className="bg-surface border border-outline-variant rounded-xl p-md shadow-[0px_2px_4px_rgba(0,0,0,0.05)] flex-1"><div className="flex justify-between items-center mb-md"><h3 className="font-headline-md text-headline-md flex items-center gap-sm"><span className="material-symbols-outlined text-primary" data-icon="family_history">family_history</span>
-                            Household Members
-                        </h3><button aria-label="Add Member" className="text-primary hover:bg-primary-container/20 rounded-full p-1 transition-colors"><span className="material-symbols-outlined" data-icon="add">add</span></button></div><div className="flex flex-col gap-sm">
-<div className="flex items-center gap-sm p-sm border border-outline-variant rounded-lg hover:bg-surface-container-lowest cursor-pointer transition-colors"><div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold text-label-md">
-                                RK
-                            </div><div className="flex-1"><p className="font-label-md text-label-md text-on-background">Ram Kumar</p><p className="font-caption text-caption text-on-surface-variant">Husband (HOH) • 32 Yrs</p></div></div>
-<div className="flex items-center gap-sm p-sm border border-outline-variant rounded-lg hover:bg-surface-container-lowest cursor-pointer transition-colors relative overflow-hidden">
-<div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div><div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold text-label-md">
-                                AK
-                            </div><div className="flex-1"><p className="font-label-md text-label-md text-on-background">Aarav Kumar</p><p className="font-caption text-caption text-on-surface-variant">Son • 3 Yrs</p></div><span className="material-symbols-outlined text-secondary" data-icon="check_circle">check_circle</span></div></div></div>
-<div className="bg-surface-container-low border border-outline-variant rounded-xl p-md"><p className="font-caption text-caption text-on-surface-variant mb-sm">Assigned Health Worker</p><div className="flex items-center gap-sm"><img className="w-12 h-12 rounded-full object-cover" data-alt="A close-up portrait of a female Indian ASHA worker wearing a designated uniform (pink sari or vest). She looks professional and friendly. Bright natural daylight. The background is a generic rural healthcare setting, slightly out of focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgVD7ot7cp5M8jLCJbI_CZ8HOPbDQBRoDaMDp7YLtNeKUUzQG3qeI64E6FwFGUhsn8NDZ99TknCQFI_PW-JfigEgOCDA49YUfhEq5PgyE-0PqXjAHzYZW7zmJB2Ewt-pL_Xn6m3tnIkDlsnXU5n1x7cus3e2wN4VwWTj5Nq28JTTTNDDBebpvQmxad2h_KVrQqadepsPzEJjVCcuBk6R00E3N5DOaF3btQ2DYyp362cVAgV-dZp9i1EA" /><div><p className="font-label-md text-label-md">Meena Sharma</p><p className="font-caption text-caption text-on-surface-variant">Ward 3 ASHA</p></div></div></div></div></div></main>
-<nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm py-xs bg-surface border-t border-outline-variant shadow-[0px_-2px_10px_rgba(0,0,0,0.1)]"><Link className="flex flex-col items-center justify-center text-on-surface-variant w-16 py-1" to="/asha/home"><span className="material-symbols-outlined" data-icon="home">home</span><span className="font-label-md text-[10px] mt-1">Home</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant w-16 py-1" to="/asha/households"><span className="material-symbols-outlined" data-icon="cottage">cottage</span><span className="font-label-md text-[10px] mt-1">Households</span></Link><Link className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1" to="/asha/patients"><span className="material-symbols-outlined" data-icon="person_search" data-weight="fill">person_search</span><span className="font-label-md text-[10px] mt-1 font-bold">Patients</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant w-16 py-1" to="/asha/tasks"><span className="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span><span className="font-label-md text-[10px] mt-1">Tasks</span></Link><Link className="flex flex-col items-center justify-center text-on-surface-variant w-16 py-1" to="/asha/patients/1/profile"><span className="material-symbols-outlined" data-icon="account_circle">account_circle</span><span className="font-label-md text-[10px] mt-1">Profile</span></Link></nav>
-    </>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+      <Breadcrumbs
+        items={[{ label: t('nav.ashaPatients'), to: '/asha/patients' }, { label: t('nav.patientDetails') }]}
+      />
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="flex flex-wrap items-center gap-3 font-headline-lg text-headline-lg font-bold text-on-surface">
+            {patient.name}
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-label-md text-caption font-semibold ${riskStyles[patient.risk]}`}>
+              <Icon name="alert" size={14} />
+              {t(patient.risk === 'high' ? 'asha.riskHighLabel' : patient.risk === 'medium' ? 'asha.riskMediumLabel' : 'asha.riskLowLabel')}
+            </span>
+          </h1>
+          <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
+            {t('asha.regId', { abha: patient.abhaId })} | {t('asha.regDate', { date: patient.registeredAt })}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => addToast('info', t('asha.editToast'))}
+            className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-container-low"
+          >
+            <Icon name="edit" size={18} />
+            {t('common.edit')}
+          </button>
+          <button
+            type="button"
+            onClick={() => addToast('success', t('asha.referToast'))}
+            className="flex items-center gap-2 rounded-full bg-error px-4 py-2 font-label-md text-label-md font-semibold text-on-error shadow-sm transition-opacity hover:bg-opacity-90"
+          >
+            <Icon name="heart" size={18} />
+            {t('asha.referSpecialist')}
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto border-b border-outline-variant">
+        <div className="flex min-w-max gap-6 px-1">
+          {tabs.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setTab(item.key)}
+              className={`whitespace-nowrap border-b-2 pb-2 font-label-md text-label-md font-semibold transition-colors ${
+                tab === item.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'summary' ? (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="flex flex-col gap-5 lg:col-span-2">
+            <div className="relative flex flex-col gap-4 overflow-hidden rounded-xl border border-outline-variant bg-surface p-5 shadow-card md:flex-row">
+              <span className={`absolute bottom-0 left-0 top-0 w-2 ${patient.risk === 'high' ? 'bg-error' : patient.risk === 'medium' ? 'bg-[#FF8C00]' : 'bg-secondary'}`} />
+              <div className="flex shrink-0 justify-center pl-3 md:justify-start">
+                <span className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-surface-container-lowest bg-primary-container font-display-lg text-display-lg font-bold text-on-primary-container shadow-sm md:h-32 md:w-32">
+                  {patient.name.charAt(0)}
+                </span>
+              </div>
+              <div className="grid flex-1 grid-cols-2 gap-3 self-center">
+                {[
+                  { label: t('asha.age'), value: `${patient.age} ${t('asha.years')}` },
+                  { label: t('asha.gender'), value: patient.gender },
+                  { label: t('asha.bloodGroup'), value: patient.bloodGroup },
+                  { label: t('asha.primaryLanguage'), value: t('asha.hindi') },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <p className="font-caption text-caption text-on-surface-variant">{row.label}</p>
+                    <p className="font-body-md text-body-md font-semibold text-on-surface">{row.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+              <h3 className="mb-4 flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+                <Icon name="fileText" size={20} className="text-primary" />
+                {t('asha.contactDetails')}
+              </h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex items-start gap-2">
+                  <Icon name="phone" size={18} className="mt-1 text-on-surface-variant" />
+                  <div>
+                    <p className="font-caption text-caption text-on-surface-variant">{t('asha.phoneNumber')}</p>
+                    <p className="font-body-md text-body-md text-on-surface">{patient.phone}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Icon name="mapPin" size={18} className="mt-1 text-on-surface-variant" />
+                  <div>
+                    <p className="font-caption text-caption text-on-surface-variant">{t('asha.address')}</p>
+                    <p className="font-body-md text-body-md text-on-surface">{patient.address}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+              <h3 className="mb-4 flex items-center gap-2 font-headline-md text-headline-md font-semibold text-error">
+                <Icon name="activity" size={20} />
+                {t('asha.activeConditions')}
+              </h3>
+              {patient.activeConditions.length === 0 ? (
+                <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.noConditions')}</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {patient.activeConditions.map((condition) => (
+                    <li key={condition} className="flex items-center justify-between rounded-lg border border-outline-variant/50 bg-surface-container p-3">
+                      <span className="font-body-md text-body-md font-semibold text-on-surface">{condition}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-5">
+            <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+                  <Icon name="users" size={20} className="text-primary" />
+                  {t('asha.householdMembers')}
+                </h3>
+                <button type="button" aria-label={t('asha.addMember')} onClick={() => addToast('info', t('asha.addMemberToast'))} className="rounded-full p-1 text-primary transition-colors hover:bg-primary-container/20">
+                  <Icon name="plus" size={20} />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {householdMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="relative flex items-center gap-2 overflow-hidden rounded-lg border border-outline-variant p-3 transition-colors hover:bg-surface-container-lowest"
+                  >
+                    {member.highlighted ? <span className="absolute bottom-0 left-0 top-0 w-1 bg-secondary" /> : null}
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container font-label-md font-bold text-primary">
+                      {member.initials}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-label-md text-label-md text-on-surface">{member.name}</p>
+                      <p className="font-caption text-caption text-on-surface-variant">{t(member.meta)}</p>
+                    </div>
+                    {member.highlighted ? (
+                      <Icon name="checkCircle" size={18} className="text-secondary" />
+                    ) : (
+                      <Icon name="chevronRight" size={18} className="text-on-surface-variant" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
+              <p className="mb-2 font-caption text-caption text-on-surface-variant">{t('asha.assignedWorker')}</p>
+              <div className="flex items-center gap-2">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary font-label-lg font-bold text-on-primary">
+                  M
+                </span>
+                <div>
+                  <p className="font-label-md text-label-md text-on-surface">{t('asha.workerName')}</p>
+                  <p className="font-caption text-caption text-on-surface-variant">{t('asha.workerWard')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {tab === 'history' ? (
+        <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+          <h3 className="mb-4 flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+            <Icon name="fileText" size={20} className="text-primary" />
+            {t('asha.medicalHistory')}
+          </h3>
+          <div className="flex flex-col gap-3">
+            {patient.activeConditions.map((condition, i) => (
+              <div key={condition} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${i === 0 ? 'bg-error' : 'bg-secondary'}`} />
+                <div>
+                  <p className="font-body-md text-body-md font-semibold text-on-surface">{condition}</p>
+                  <p className="font-caption text-caption text-on-surface-variant">{t('asha.diagnosed')}</p>
+                </div>
+              </div>
+            ))}
+            {patient.activeConditions.length === 0 ? (
+              <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.noConditions')}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {tab === 'maternal' ? (
+        <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+          <h3 className="mb-4 flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+            <Icon name="heart" size={20} className="text-primary" />
+            {t('asha.maternalHealth')}
+          </h3>
+          {patient.pregnant ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { label: t('asha.trimester'), value: patient.trimester ?? '—' },
+                { label: t('asha.ancVisits'), value: '4 / 8' },
+                { label: t('asha.edd'), value: '10 Jan 2024' },
+              ].map((row) => (
+                <div key={row.label} className="rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+                  <p className="font-caption text-caption text-on-surface-variant">{row.label}</p>
+                  <p className="mt-1 font-headline-md text-headline-md font-semibold text-on-surface">{row.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.notPregnant')}</p>
+          )}
+        </div>
+      ) : null}
+
+      {tab === 'vaccination' ? (
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+          <h3 className="flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+            <Icon name="checkCircle" size={20} className="text-primary" />
+            {t('asha.vaccinationStatus')}
+          </h3>
+          <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.vaccinationHint')}</p>
+          <Link
+            to={`/asha/patients/${patient.id}/immunization`}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
+          >
+            <Icon name="calendar" size={18} />
+            {t('asha.viewSchedule')}
+          </Link>
+        </div>
+      ) : null}
+
+      {tab === 'referrals' ? (
+        <div className="rounded-xl border border-outline-variant bg-surface p-5 shadow-card">
+          <h3 className="mb-4 flex items-center gap-2 font-headline-md text-headline-md font-semibold text-on-surface">
+            <Icon name="activity" size={20} className="text-primary" />
+            {t('asha.referrals')}
+          </h3>
+          <div className="flex flex-col gap-3">
+            {referralLog.map((entry) => (
+              <div key={entry.id} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+                <Icon name="chevronRight" size={18} className="mt-1 text-primary" />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-body-md text-body-md font-semibold text-on-surface">{entry.title}</p>
+                    <span className="whitespace-nowrap font-caption text-caption text-on-surface-variant">{entry.date}</span>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface-variant">{entry.note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }

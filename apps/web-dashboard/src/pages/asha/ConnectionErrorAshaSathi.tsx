@@ -1,21 +1,57 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useLocalization } from '@/hooks/useLocalization'
+import { useUIStore } from '@/stores/ui.store'
+import { Icon } from '@/components/common/Icons'
+
 export default function ConnectionErrorAshaSathi() {
+  const { t } = useLocalization()
+  const navigate = useNavigate()
+  const { addToast } = useUIStore()
+  const [checking, setChecking] = useState(false)
+
+  const retry = () => {
+    setChecking(true)
+    setTimeout(() => {
+      setChecking(false)
+      addToast('success', t('asha.connectionRestored'))
+      navigate('/asha/home')
+    }, 1200)
+  }
+
   return (
-    <>
-<main className="flex flex-col items-center justify-center w-full px-lg max-w-md mx-auto z-10 text-center relative pt-xl pb-xxl flex-grow">
-<div className="relative w-32 h-32 mb-lg flex items-center justify-center rounded-full bg-error-container text-on-error-container shadow-sm"><span className="material-symbols-outlined text-[64px]" style={{ fontVariationSettings: '\'FILL\' 1' }}>cloud_off</span>
-<div className="absolute inset-0 rounded-full border-4 border-error-container animate-ping opacity-75"></div></div>
-<h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-sm">Connection Error</h1>
-<p className="font-body-lg-mobile text-body-lg-mobile text-on-surface-variant mb-xl px-md">
-            We are having trouble reaching the server. Your data is safely stored locally and will upload when you reconnect.
-        </p>
-<div className="w-full flex flex-col gap-form-gap">
-<button aria-label="Retry Connection" className="w-full h-touch-target bg-primary-container text-on-primary rounded-full font-label-md text-label-md flex items-center justify-center gap-sm shadow-sm hover:bg-primary transition-colors active:scale-95 duration-200"><span className="material-symbols-outlined" style={{ fontVariationSettings: '\'FILL\' 1' }}>refresh</span>
-                Retry Connection
-            </button>
-<button aria-label="Open Sync Center" className="w-full h-touch-target bg-transparent border-2 border-outline-variant text-primary rounded-full font-label-md text-label-md flex items-center justify-center gap-sm hover:bg-surface-variant transition-colors active:scale-95 duration-200"><span className="material-symbols-outlined">sync</span>
-                Open Sync Center
-            </button></div>
-<div className="mt-xl inline-flex items-center gap-xs px-md py-xs rounded-full bg-surface-container-high border border-outline-variant"><div className="w-2 h-2 rounded-full bg-outline"></div><span className="font-caption text-caption text-on-surface-variant">Currently Offline</span></div></main>
-    </>
+    <div className="flex min-h-screen w-full items-center justify-center bg-surface px-4 py-12">
+      <main className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center justify-center pt-8 text-center">
+        <div className="relative mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-error-container text-on-error-container shadow-sm">
+          <Icon name="box" size={64} />
+          <div className="absolute inset-0 animate-ping rounded-full border-4 border-error-container opacity-75" />
+        </div>
+        <h1 className="mb-2 font-headline-lg text-headline-lg text-on-surface">{t('asha.connectionError')}</h1>
+        <p className="mb-8 px-4 font-body-lg text-body-lg text-on-surface-variant">{t('asha.connectionHint')}</p>
+        <div className="flex w-full flex-col gap-3">
+          <button
+            type="button"
+            onClick={retry}
+            disabled={checking}
+            className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors duration-200 hover:bg-on-primary-fixed-variant active:scale-95 disabled:opacity-60"
+          >
+            <Icon name={checking ? 'refresh' : 'refresh'} size={20} className={checking ? 'animate-spin' : ''} />
+            {checking ? t('asha.checking') : t('asha.retryConnection')}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/asha/sync')}
+            className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full border-2 border-outline-variant font-label-md text-label-md font-semibold text-primary transition-colors duration-200 hover:bg-surface-variant active:scale-95"
+          >
+            <Icon name="refresh" size={20} />
+            {t('asha.openSyncCenter')}
+          </button>
+        </div>
+        <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-high px-4 py-1">
+          <div className="h-2 w-2 rounded-full bg-outline" />
+          <span className="font-caption text-caption text-on-surface-variant">{t('asha.currentlyOffline')}</span>
+        </div>
+      </main>
+    </div>
   )
 }

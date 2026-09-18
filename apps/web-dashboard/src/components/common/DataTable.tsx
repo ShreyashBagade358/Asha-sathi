@@ -132,7 +132,7 @@ export function DataTable<T>({
           </div>
         ) : null}
         {!loading && rows.length === 0 ? (
-          <EmptyState title={t('common.noData')} icon={<Icon name="fileText" size={28} />} />
+          <EmptyState title={t('common.noData')} icon="fileText" />
         ) : null}
       </div>
 
