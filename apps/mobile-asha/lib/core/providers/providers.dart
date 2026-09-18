@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../auth/auth_repository.dart';
 import '../auth/auth_state.dart';
 import '../offline/database.dart';
+import '../offline/local_alert_engine.dart';
 import '../offline/sync_engine.dart';
 import '../../features/abha/data/abha_repository.dart';
 import '../../features/beneficiary/data/beneficiary_repository.dart';
@@ -44,6 +45,12 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
+/// Offline health-alert generator (due vaccines, high-risk pregnancies,
+/// missed follow-ups) mirroring the backend alert rules.
+final localAlertEngineProvider = Provider<LocalAlertEngine>((ref) {
+  return LocalAlertEngine(ref.watch(databaseProvider));
+});
+
 /// Auth repository (OTP / biometric endpoints).
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(dio: ref.watch(dioProvider));
@@ -60,6 +67,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     database: ref.watch(databaseProvider),
     supabase: ref.watch(supabaseProvider),
     dio: ref.watch(dioProvider),
+    deviceIdProvider: ref.watch(authRepositoryProvider).deviceId,
+    alertEngine: ref.watch(localAlertEngineProvider),
   );
 });
 

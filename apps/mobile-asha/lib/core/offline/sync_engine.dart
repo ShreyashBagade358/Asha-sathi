@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/app_config.dart';
 import 'database.dart';
+import 'local_alert_engine.dart';
 
 /// Handles bi-directional synchronisation between the local Drift database
 /// and the ASHA Sathi backend.
@@ -23,15 +24,23 @@ class SyncEngine {
     required SupabaseClient supabase,
     Dio? dio,
     Connectivity? connectivity,
+    Future<String> Function()? deviceIdProvider,
+    LocalAlertEngine? alertEngine,
   })  : _db = database,
         _supabase = supabase,
         _dio = dio ?? Dio(),
-        _connectivity = connectivity ?? Connectivity();
+        _connectivity = connectivity ?? Connectivity(),
+        _deviceIdProvider = deviceIdProvider ?? _emptyDeviceId,
+        _alertEngine = alertEngine;
 
   final AppDatabase _db;
   final SupabaseClient _supabase;
   final Dio _dio;
   final Connectivity _connectivity;
+  final Future<String> Function() _deviceIdProvider;
+  final LocalAlertEngine? _alertEngine;
+
+  static Future<String> _emptyDeviceId() async => '';
 
   StreamSubscription<ConnectivityResult>? _connectivitySub;
   StreamSubscription<RealtimeChannel>? _realtimeSub;
@@ -55,15 +64,25 @@ class SyncEngine {
   }
 
   /// Upload queued local changes to the backend. Returns the count pushed.
+  ///
+  /// Rows are skipped while their exponential-backoff window ([nextRetryAt])
+  /// has not elapsed; rows whose change is only bookkeeping (`_meta_last_sync`)
+  /// are never pushed.
   Future<int> pushLocalChanges() async {
     if (!await isOnline) {
       throw SyncOfflineException();
     }
+    final now = DateTime.now().toUtc().toIso8601String();
     final pending = await (_db.select(_db.syncQueueTable)
-          ..where((t) => t.isSynced.equals(false)))
+          ..where(
+            (t) => t.isSynced.equals(false) &
+                t.operation.equals('_meta_last_sync').not() &
+                (t.nextRetryAt.isNull() | t.nextRetryAt.isSmallerOrEqualValue(now)),
+          ))
         .get();
 
     var pushed = 0;
+    final deviceId = await _deviceIdProvider();
     for (final row in pending) {
       try {
         final payload = jsonDecode(row.payloadJson) as Map<String, dynamic>;
@@ -77,19 +96,42 @@ class SyncEngine {
           'insert' => 'POST',
           _ => 'PUT',
         };
+        // Idempotency key + optimistic-concurrency version let the server
+        // apply each logical change exactly once and reject stale writes.
+        final headers = <String, String>{
+          'X-Client-Request-Id': row.clientRequestId,
+          'X-Base-Version': '${row.version}',
+          if (deviceId.isNotEmpty) 'X-Device-Id': deviceId,
+        };
         await _dio.request<void>(
           uri,
           data: method == 'DELETE' ? null : payload,
-          options: Options(method: method),
+          options: Options(method: method, headers: headers),
         );
         await _markSynced(row.id);
         pushed++;
       } catch (e) {
-        await (_db.update(_db.syncQueueTable)..where((t) => t.id.equals(row.id)))
-            .write(SyncQueueTableCompanion(error: Value(e.toString())));
+        await _recordPushFailure(row, e);
       }
     }
     return pushed;
+  }
+
+  /// Bump the retry counter and compute the next allowed attempt time using
+  /// exponential backoff (2^n minutes, capped at 24 hours).
+  Future<void> _recordPushFailure(SyncQueueRow row, Object error) async {
+    final attempts = row.attempts + 1;
+    final minutes = (1 << (attempts > 6 ? 6 : attempts)).clamp(1, 1440);
+    final nextRetry = DateTime.now()
+        .toUtc()
+        .add(Duration(minutes: minutes))
+        .toIso8601String();
+    await (_db.update(_db.syncQueueTable)..where((t) => t.id.equals(row.id)))
+        .write(SyncQueueTableCompanion(
+      attempts: Value(attempts),
+      nextRetryAt: Value(nextRetry),
+      error: Value(error.toString()),
+    ));
   }
 
   Future<void> _markSynced(int id) async {
@@ -102,79 +144,171 @@ class SyncEngine {
   }
 
   /// Fetch records changed since [since] (ISO-8601) and upsert them locally.
-  /// Returns the number of records pulled.
+  /// Returns the number of records pulled. When [since] is omitted, the last
+  /// successful pull timestamp is used (resuming from where we stopped).
   Future<int> pullRemoteChanges({DateTime? since}) async {
     if (!await isOnline) {
       throw SyncOfflineException();
     }
+    final resumeFrom = since ?? await lastSyncTime();
     final query = Uri.parse('${AppConfig.apiBaseUrl}/sync/pull').replace(
       queryParameters: {
-        'since': since?.toIso8601String() ?? '1970-01-01T00:00:00Z',
+        'since': resumeFrom?.toUtc().toIso8601String() ?? '1970-01-01T00:00:00Z',
       },
     );
     final response = await _dio.get<List<dynamic>>(query.toString());
     final data = response.data as List<dynamic>? ?? const [];
-    return _upsertBulk(data);
+    final count = await _upsertBulk(data);
+    await _writeMetaLastSync(DateTime.now().toUtc());
+    await _alertEngine?.run();
+    return count;
   }
 
   Future<int> _upsertBulk(List<dynamic> records) async {
     var count = 0;
-    final batch = _db.batch();
+    final valid = <(String, Map<String, dynamic>)>[];
     for (final record in records) {
       final map = (record as Map).cast<String, dynamic>();
       final table = map['table'] as String?;
       final payload = map['payload'];
       if (table == null || payload == null) continue;
-      count += _upsertRow(batch, table, payload as Map<String, dynamic>);
+      valid.add((table, payload as Map<String, dynamic>));
     }
-    await batch.commit();
+
+    await _db.transaction(() async {
+      for (final (table, payload) in valid) {
+        count += await _upsertRow(table, payload);
+      }
+    });
+    await _dedupe();
     return count;
   }
 
-  int _upsertRow(Batch batch, String table, Map<String, dynamic> payload) {
+  /// Remote-table -> local unique column name (SQL snake_case), used by the
+  /// post-pull dedupe sweep to collapse duplicate rows created by earlier pulls.
+  final _uniqueKeyCols = <String, String>{
+    'households': 'hhid',
+    'beneficiaries': 'beneficiary_id',
+    'pregnancies': 'pregnancy_id',
+    'anc_visits': 'anc_visit_id',
+    'children': 'child_id',
+    'immunizations': 'immunization_id',
+    'hbnc_visits': 'visit_id',
+    'hbyc_visits': 'visit_id',
+    'eligible_couples': 'ec_id',
+    'ec_followups': 'followup_id',
+    'ncd_screenings': 'screening_id',
+    'disease_cases': 'case_id',
+    'death_reports': 'death_report_id',
+    'asha_tasks': 'task_id',
+    'incentive_claims': 'claim_id',
+    'village_forms': 'form_id',
+    'abha_records': 'abha_id',
+    'notifications': 'notification_id',
+    'referrals': 'referral_id',
+  };
+
+  /// Upsert a single pulled record. The conflict target is the record's
+  /// business key (the unique remote id column) so the local auto-increment
+  /// rowid never causes duplicate rows on re-pull.
+  Future<int> _upsertRow(String table, Map<String, dynamic> payload) async {
     switch (table) {
       case 'households':
-        batch.insert(_db.householdsTable, payload);
+        return await _db.into(_db.householdsTable).insertOnConflictUpdate(
+            payload, target: [_db.householdsTable.hhid]);
       case 'beneficiaries':
-        batch.insert(_db.beneficiariesTable, payload);
+        return await _db.into(_db.beneficiariesTable).insertOnConflictUpdate(
+            payload, target: [_db.beneficiariesTable.beneficiaryId]);
       case 'pregnancies':
-        batch.insert(_db.pregnanciesTable, payload);
+        return await _db.into(_db.pregnanciesTable).insertOnConflictUpdate(
+            payload, target: [_db.pregnanciesTable.pregnancyId]);
       case 'anc_visits':
-        batch.insert(_db.ancVisitsTable, payload);
+        return await _db.into(_db.ancVisitsTable).insertOnConflictUpdate(
+            payload, target: [_db.ancVisitsTable.ancVisitId]);
       case 'children':
-        batch.insert(_db.childrenTable, payload);
+        return await _db.into(_db.childrenTable).insertOnConflictUpdate(
+            payload, target: [_db.childrenTable.childId]);
       case 'immunizations':
-        batch.insert(_db.immunizationsTable, payload);
+        return await _db.into(_db.immunizationsTable).insertOnConflictUpdate(
+            payload, target: [_db.immunizationsTable.immunizationId]);
       case 'hbnc_visits':
-        batch.insert(_db.hbncVisitsTable, payload);
+        return await _db.into(_db.hbncVisitsTable).insertOnConflictUpdate(
+            payload, target: [_db.hbncVisitsTable.visitId]);
       case 'hbyc_visits':
-        batch.insert(_db.hbycVisitsTable, payload);
+        return await _db.into(_db.hbycVisitsTable).insertOnConflictUpdate(
+            payload, target: [_db.hbycVisitsTable.visitId]);
       case 'eligible_couples':
-        batch.insert(_db.eligibleCouplesTable, payload);
+        return await _db.into(_db.eligibleCouplesTable).insertOnConflictUpdate(
+            payload, target: [_db.eligibleCouplesTable.ecId]);
       case 'ec_followups':
-        batch.insert(_db.ecFollowupsTable, payload);
+        return await _db.into(_db.ecFollowupsTable).insertOnConflictUpdate(
+            payload, target: [_db.ecFollowupsTable.followupId]);
       case 'ncd_screenings':
-        batch.insert(_db.ncdScreeningsTable, payload);
+        return await _db.into(_db.ncdScreeningsTable).insertOnConflictUpdate(
+            payload, target: [_db.ncdScreeningsTable.screeningId]);
       case 'disease_cases':
-        batch.insert(_db.diseaseCasesTable, payload);
+        return await _db.into(_db.diseaseCasesTable).insertOnConflictUpdate(
+            payload, target: [_db.diseaseCasesTable.caseId]);
       case 'death_reports':
-        batch.insert(_db.deathReportsTable, payload);
+        return await _db.into(_db.deathReportsTable).insertOnConflictUpdate(
+            payload, target: [_db.deathReportsTable.deathReportId]);
       case 'asha_tasks':
-        batch.insert(_db.ashaTasksTable, payload);
+        return await _db.into(_db.ashaTasksTable).insertOnConflictUpdate(
+            payload, target: [_db.ashaTasksTable.taskId]);
       case 'incentive_claims':
-        batch.insert(_db.incentiveClaimsTable, payload);
+        return await _db.into(_db.incentiveClaimsTable).insertOnConflictUpdate(
+            payload, target: [_db.incentiveClaimsTable.claimId]);
       case 'village_forms':
-        batch.insert(_db.villageFormsTable, payload);
+        return await _db.into(_db.villageFormsTable).insertOnConflictUpdate(
+            payload, target: [_db.villageFormsTable.formId]);
       case 'abha_records':
-        batch.insert(_db.abhaRecordsTable, payload);
+        return await _db.into(_db.abhaRecordsTable).insertOnConflictUpdate(
+            payload, target: [_db.abhaRecordsTable.abhaId]);
       case 'notifications':
-        batch.insert(_db.notificationsTable, payload);
+        return await _db.into(_db.notificationsTable).insertOnConflictUpdate(
+            payload, target: [_db.notificationsTable.notificationId]);
       case 'referrals':
-        batch.insert(_db.referralsTable, payload);
+        return await _db.into(_db.referralsTable).insertOnConflictUpdate(
+            payload, target: [_db.referralsTable.referralId]);
       default:
         return 0;
     }
-    return 1;
+  }
+
+  /// Remove duplicate rows that may have been created by earlier pulls, keeping
+  /// the oldest row per business key. Correctness net for pre-fix data.
+  Future<void> _dedupe() async {
+    for (final entry in _uniqueKeyCols.entries) {
+      final sql = 'DELETE FROM ${entry.key} WHERE id NOT IN '
+          '(SELECT MIN(id) FROM ${entry.key} GROUP BY "${entry.value}")';
+      await _db.customStatement(sql);
+    }
+  }
+
+  /// Persist the successful-pull watermark as a special queue row.
+  Future<void> _writeMetaLastSync(DateTime t) async {
+    final iso = t.toIso8601String();
+    final existing = await (_db.select(_db.syncQueueTable)
+          ..where((t) => t.operation.equals('_meta_last_sync')))
+        .get();
+    if (existing.isNotEmpty) {
+      await (_db.update(_db.syncQueueTable)
+            ..where((t) => t.operation.equals('_meta_last_sync')))
+          .write(SyncQueueTableCompanion(
+        createdAt: Value(iso),
+        updatedAt: Value(iso),
+      ));
+    } else {
+      await _db.into(_db.syncQueueTable).insert(
+            SyncQueueTableCompanion.insert(
+              tableName: '_meta',
+              recordId: '',
+              operation: '_meta_last_sync',
+              payloadJson: '{}',
+              createdAt: iso,
+            ),
+          );
+    }
   }
 
   /// Subscribe to realtime changes on key tables via Supabase
@@ -233,10 +367,12 @@ class SyncEngine {
   /// Timestamp of the most recent successful pull, persisted via a queue row.
   Future<DateTime?> lastSyncTime() async {
     final rows = await (_db.select(_db.syncQueueTable)
-          ..where((t) => t.operation.equals('_meta_last_sync')))
+          ..where((t) => t.operation.equals('_meta_last_sync'))
+          ..orderBy((t) => OrderingTerm.desc(t.updatedAt)))
         .get();
     if (rows.isEmpty) return null;
-    return DateTime.tryParse(rows.last.createdAt);
+    final ts = rows.first.updatedAt ?? rows.first.createdAt;
+    return DateTime.tryParse(ts);
   }
 
   void dispose() {

@@ -369,11 +369,20 @@ class SyncQueueTable extends Table {
   TextColumn get recordId => text()();
   TextColumn get operation => text()(); // insert | update | delete
   TextColumn get payloadJson => text()();
+  // Idempotency key sent to /sync/push. The server replays the stored result
+  // for a retried client_request_id instead of applying the change twice.
+  TextColumn get clientRequestId => text()();
+  // Optimistic-concurrency version of the record this queue row was based on.
+  IntColumn get version => int().withDefault(const Constant(1))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
-  TextColumn get pendingOperation => text().nullable()();
+  TextColumn get pendingOperation => text().nullable()(); // synced | conflict
   TextColumn get createdAt => text()();
   TextColumn get updatedAt => text().nullable()();
   TextColumn get error => text().nullable()();
+  // Push retry/backoff bookkeeping: attempts made so far and the earliest time
+  // this row may be retried (exponential backoff, see SyncEngine).
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get nextRetryAt => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -418,5 +427,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(syncQueueTable, syncQueueTable.clientRequestId);
+            await m.addColumn(syncQueueTable, syncQueueTable.version);
+            await m.runCustom(
+              "UPDATE sync_queue SET client_request_id = "
+              "hex(randomblob(16)) WHERE client_request_id IS NULL",
+            );
+          }
+          if (from < 3) {
+            await m.addColumn(syncQueueTable, syncQueueTable.attempts);
+            await m.addColumn(syncQueueTable, syncQueueTable.nextRetryAt);
+          }
+        },
+      );
 }

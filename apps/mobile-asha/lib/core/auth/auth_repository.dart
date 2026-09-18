@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -108,6 +110,26 @@ class AuthRepository {
 
   /// Current access token used for attaching to authorised requests.
   Future<String?> accessToken() => _storage.read(key: 'asha_access_token');
+
+  /// A stable per-install device identifier, persisted across restarts.
+  ///
+  /// Registered with the backend's /sync endpoints so the server can track
+  /// the device for rotation/revocation and last-seen information.
+  Future<String> deviceId() async {
+    final existing = await _storage.read(key: 'asha_device_id');
+    if (existing != null && existing.isNotEmpty) return existing;
+    final rand = Random();
+    final id = '${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}'
+        '-${rand.nextInt(0x7fffffff).toRadixString(16)}'
+        '-${rand.nextInt(0x7fffffff).toRadixString(16)}';
+    await _storage.write(key: 'asha_device_id', value: id);
+    return id;
+  }
+
+  Future<void> clearSession() async {
+    await _storage.delete(key: 'asha_access_token');
+    await _storage.delete(key: 'asha_refresh_token');
+  }
 }
 
 class AuthTokenExpiredException implements Exception {

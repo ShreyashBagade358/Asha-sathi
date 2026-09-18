@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/offline/database.dart';
 import '../../../core/providers/providers.dart';
 import 'notification_model.dart';
@@ -14,9 +18,26 @@ final _localNotifications = FlutterLocalNotificationsPlugin();
 /// Persists and reads notifications from the local Drift database and wires
 /// up Firebase Cloud Messaging.
 class NotificationService {
-  NotificationService(this._db);
+  NotificationService(
+    this._db, {
+    Dio? dio,
+    Future<String> Function()? deviceIdProvider,
+    Future<String?> Function()? accessTokenProvider,
+  })  : _dio = dio ?? Dio(),
+        _deviceIdProvider = deviceIdProvider ?? _emptyDeviceId,
+        _accessTokenProvider = accessTokenProvider ?? _emptyToken;
 
   final AppDatabase _db;
+  final Dio _dio;
+  final Future<String> Function() _deviceIdProvider;
+  final Future<String?> Function() _accessTokenProvider;
+
+  /// Optional callback used when a notification (foreground/background tap)
+  /// should navigate the user to a deep link.
+  Future<void> Function(String actionUrl)? onAction;
+
+  static Future<String> _emptyDeviceId() async => '';
+  static Future<String?> _emptyToken() async => null;
 
   /// Initialise FCM + local notification channels and start handling
   /// foreground/background payloads. Should be called once from [main].
@@ -30,7 +51,10 @@ class NotificationService {
       onDidReceiveNotificationResponse: (details) {
         final id = details.payload;
         if (id != null && id.isNotEmpty) {
-          onForegroundTap?.call(AppNotificationModel(notificationId: id));
+          _handlePayload(
+            AppNotificationModel(notificationId: id),
+            onForegroundTap: onForegroundTap,
+          );
         }
       },
     );
@@ -38,11 +62,12 @@ class NotificationService {
     final fcm = FirebaseMessaging.instance;
     await fcm.requestPermission();
     final token = await fcm.getToken();
-    // In production the token is sent to the backend for targeted pushes.
+    // Best-effort: sync the token to the backend so server-side alert fan-out
+    // can reach this device. Failures are non-fatal.
     if (token != null) {
-      // ignore: avoid_print
-      print('FCM token: $token');
+      await _registerToken(token);
     }
+    fcm.onTokenRefresh.listen((refreshed) => _registerToken(refreshed));
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final model = _fromRemote(message);
@@ -54,8 +79,43 @@ class NotificationService {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       final model = _fromRemote(message);
-      if (model != null) onForegroundTap?.call(model);
+      if (model != null) _handlePayload(model, onForegroundTap: onForegroundTap);
     });
+  }
+
+  /// Push this device's FCM token to the backend so the server can fan out
+  /// health alerts. Non-fatal on failure (retried next launch / token refresh).
+  Future<void> _registerToken(String token) async {
+    try {
+      final headers = <String, String>{};
+      final accessToken = await _accessTokenProvider();
+      if (accessToken != null && accessToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $accessToken';
+      }
+      await _dio.post<Map<String, dynamic>>(
+        '${AppConfig.apiBaseUrl}/sync/devices/register',
+        data: {
+          'device_id': await _deviceIdProvider(),
+          'app_version': AppConfig.appVersion,
+          'platform': Platform.operatingSystem,
+          'fcm_token': token,
+        },
+        options: Options(headers: headers),
+      );
+    } catch (_) {
+      // Ignore: token registration is optional and retried on next launch.
+    }
+  }
+
+  void _handlePayload(
+    AppNotificationModel model, {
+    void Function(AppNotificationModel)? onForegroundTap,
+  }) {
+    if (model.actionUrl != null && model.actionUrl!.isNotEmpty) {
+      onAction?.call(model.actionUrl!);
+    } else {
+      onForegroundTap?.call(model);
+    }
   }
 
   AppNotificationModel? _fromRemote(RemoteMessage message) {
@@ -67,9 +127,9 @@ class NotificationService {
           'n-${DateTime.now().millisecondsSinceEpoch}',
       title: notification?.title ?? data['title'] ?? 'Notification',
       body: notification?.body ?? data['body'] ?? '',
-      type: data['type'] as String? ?? 'system',
+      type: (data['type'] as String?) ?? 'system',
       createdAt: DateTime.now().toIso8601String(),
-      actionUrl: data['action_url'] as String?,
+      actionUrl: (data['action_url'] as String?) ?? (data['actionUrl'] as String?),
     );
   }
 
@@ -142,5 +202,10 @@ class NotificationService {
 
 /// Riverpod provider for [NotificationService].
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  return NotificationService(ref.watch(databaseProvider));
+  return NotificationService(
+    ref.watch(databaseProvider),
+    dio: ref.watch(dioProvider),
+    deviceIdProvider: ref.watch(authRepositoryProvider).deviceId,
+    accessTokenProvider: ref.watch(authRepositoryProvider).accessToken,
+  );
 });
