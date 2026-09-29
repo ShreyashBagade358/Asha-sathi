@@ -60,6 +60,10 @@ localisation bundle), and syncs to the server when connectivity is available.
 - **Growth** (`growth_chart_screen.dart`): track weight-for-age / height-for-age
   and MUAC; WHO z-scores and MAM/SAM status are computed **offline** on the
   device (no network required).
+  - **Progress photos**: capture a photo at the point of measurement. Photos are
+    queued offline and uploaded when connectivity returns; the chart shows a
+    photo timeline so visible growth can be compared over time. A photo can be
+    removed from a measurement on the same screen.
 - **HBNC** (`hbnc_visit_screen.dart`) and **HBYC** (`hbyc_visit_screen.dart`):
   home-based newborn and young-child visit checklists, including danger-sign
   screening.

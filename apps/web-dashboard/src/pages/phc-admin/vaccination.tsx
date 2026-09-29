@@ -37,7 +37,7 @@ export default function VaccinationManagementPhcAdmin() {
   const pct = coverage?.coveragePct ?? 0
   const behind = coverage?.due ?? 0
 
-  let dueListData = (due ?? []).filter((d) => {
+  const dueListData = (due ?? []).filter((d) => {
     if (search) {
       const q = search.toLowerCase()
       const name = d.childName ?? d.beneficiaryName ?? ''

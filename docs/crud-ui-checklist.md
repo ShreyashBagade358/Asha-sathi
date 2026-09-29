@@ -71,7 +71,7 @@ components/layouts not covered here):
 | `beneficiaries.tsx` | Beneficiary directory | ✅ link→addPatient | ✅ search+village+page | — | ✅ `deleteBeneficiary` | Risk Level column always "—" |
 | `beneficiaryDetails.tsx` | Beneficiary detail | — | ✅ | ❌ | ❌ | Disabled button; one button with no `onClick` |
 | `checkupHistory.tsx` | Visit history | — | ⚠️ store mock | — | — | No API |
-| `childProfile.tsx` | Child detail | — | ✅ child + immunizations | — | ✅ `deleteChild` | Record dose → schedule |
+| `childProfile.tsx` | Child detail | — | ✅ child + immunizations + growth photos | — | ✅ `deleteChild` | Record dose → schedule |
 | `childVaccinationReport.tsx` | Vaccination report | — | ✅ | — | — | |
 | `children.tsx` | Children directory | ❌ no create link | ✅ | — | — | No "add child" CTA |
 | `criticalAlerts.tsx` | Critical alerts | — | ❌ | — | — | **Static stub** (28 lines) |
@@ -87,7 +87,7 @@ components/layouts not covered here):
 | `newReferral.tsx` | Create referral | ✅ | ✅ | — | — | |
 | `newVaccination.tsx` | Record dose | ✅ `createImmunization` | ✅ | — | — | |
 | `notifications.tsx` | Notifications | — | ✅ | ✅ mark read | — | |
-| `nutritionMonitoring.tsx` | Nutrition tracking | — | ✅ | — | — | "Record" button has no handler |
+| `nutritionMonitoring.tsx` | Nutrition tracking | ✅ growth record | ✅ growth + photos | — | — | Photos shown in timeline |
 | `pregnancyDetails.tsx` | Pregnancy detail | — | ✅ + ANC visits | — | ✅ `deletePregnancy` | |
 | `pregnantWomen.tsx` | Pregnant women list | ❌ no register form | ✅ | — | — | No create page exists in this area |
 | `referralDetails.tsx` | Referral detail | — | ✅ | ✅ accept+complete | ✅ `deleteReferral` | |
@@ -105,7 +105,8 @@ components/layouts not covered here):
 
 1. `addHousehold` is a mock — wire `householdService.createHousehold`.
 2. Dead handlers: `maternalHealth` "Intervene", `vaccinationSchedule` "Record
-   Dose", `nutritionMonitoring` record, `beneficiaryDetails` disabled/unwired.
+   Dose", `beneficiaryDetails` disabled/unwired. (`nutritionMonitoring` record
+   and growth/photo wiring are now done.)
 3. No pregnancy-registration form — `pregnantWomen` and `maternalHealth`
    "Register" both point at the list page.
 4. Static placeholder pages: `ashaPerformance`, `criticalAlerts`,
@@ -227,7 +228,7 @@ or mutate local state only.
 | High | Wire household creation | `phc-admin/addHousehold.tsx` |
 | High | Wire user management CRUD to `/users` API | `super/UserManagementPage.tsx` |
 | High | Persist or sync ASHA field-app writes | `pages/asha/*` (local store only) |
-| Medium | Remove/repair dead buttons | `maternalHealth`, `vaccinationSchedule`, `nutritionMonitoring`, `beneficiaryDetails`, `phc/DashboardPage`, `AssignedHouseholds`, `AccountRecovery` |
+| Medium | Remove/repair dead buttons | `maternalHealth`, `vaccinationSchedule`, `beneficiaryDetails`, `phc/DashboardPage`, `AssignedHouseholds`, `AccountRecovery` |
 | Medium | Implement or delete static stubs | `ashaPerformance`, `criticalAlerts`, `householdSurvey`, `riskAnalysis` |
 | Medium | Add delete affordances beyond `phc-admin` | patients (none), workers, users, referrals (list), ASHAs |
 | Low | Replace hardcoded/mock data with queries | `auditLogs`, `checkupHistory`, `state/AuditLogsPage`, `AlertsPage`, `ResourceAllocationPage`, `DeploymentPage`, `SystemConfigPage` |
@@ -249,7 +250,7 @@ Sourced from the live route inventory (158 endpoints, 25 modules in
 | Pregnancy registration form (missing page) | `POST /pregnancies` | phc-admin |
 | Children create CTA | `POST /children` | phc-admin |
 | `vaccinationSchedule` "Record Dose" | `POST /children/{id}/immunizations` | phc-admin |
-| Nutrition "Record" | `POST /children/{id}/growth` | phc-admin |
+| Child growth progress photos | `POST/DELETE /children/{id}/growth/{record_id}/photo` | phc-admin |
 | Eligible-couple delete (`followUps`) | `DELETE /eligible-couples/{id}` | phc-admin |
 | `ashaPerformance` stub | `GET /reports/asha-performance`, `GET /ashas/{id}/performance` | phc-admin |
 | `riskAnalysis` stub | `POST /ai/maternal-risk\|child-growth\|ncd-risk/predict` | phc-admin |

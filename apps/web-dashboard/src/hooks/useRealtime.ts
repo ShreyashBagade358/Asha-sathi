@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { subscribeToTable } from '@/lib/supabase'
+import { subscribeToTable, type RealtimeChangePayload } from '@/lib/supabase'
 
 export type RealtimeEventType = 'INSERT' | 'UPDATE' | 'DELETE'
 
-export interface RealtimeRowEvent<T> {
+export interface RealtimeRowEvent<T = Record<string, unknown>> {
   eventType: RealtimeEventType
   row: T
   previous?: T
@@ -11,32 +11,35 @@ export interface RealtimeRowEvent<T> {
 
 export type RealtimeStatus = 'connecting' | 'open' | 'error' | 'disabled'
 
-export function useRealtime(
+export function useRealtime<T = Record<string, unknown>>(
   table: string,
   enabled = true,
 ): {
-  events: RealtimeRowEvent<any>[]
+  events: RealtimeRowEvent<T>[]
   status: RealtimeStatus
   clearEvents: () => void
 } {
-  const [events, setEvents] = useState<RealtimeRowEvent<any>[]>([])
+  const [events, setEvents] = useState<RealtimeRowEvent<T>[]>([])
   const [status, setStatus] = useState<RealtimeStatus>('connecting')
 
   useEffect(() => {
     if (!enabled) return
 
-    const unsubscribe = subscribeToTable(
-      table,
-      (payload: any) => {
-        const eventType = payload.eventType as RealtimeEventType
-        if (eventType === 'DELETE') {
-          setEvents((prev) => [...prev, { eventType, row: payload.old, previous: payload.old }])
-        } else {
-          setEvents((prev) => [...prev, { eventType, row: payload.new, previous: payload.old }])
-        }
-        setStatus('open')
+    const unsubscribe = subscribeToTable(table, (payload: RealtimeChangePayload) => {
+      const eventType = payload.eventType as RealtimeEventType
+      if (eventType === 'DELETE') {
+        setEvents((prev) => [
+          ...prev,
+          { eventType, row: payload.old as T, previous: payload.old as T },
+        ])
+      } else {
+        setEvents((prev) => [
+          ...prev,
+          { eventType, row: payload.new as T, previous: payload.old as T },
+        ])
       }
-    )
+      setStatus('open')
+    })
 
     return () => {
       unsubscribe()

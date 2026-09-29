@@ -154,6 +154,11 @@ from `.env.example`, starts Postgres + Redis and runs `alembic upgrade head`.
 # login phone 9876543210 / password asha@123 (dev only)
 ```
 
+The seed populates the full UP health hierarchy, demo users, households,
+beneficiaries, a child **with immunizations and 6 monthly growth records**,
+pregnancies, an NCD screening, KPIs, claims, tasks and notifications. It is
+idempotent for naturally-keyed records, so re-running it is safe.
+
 ### 3. Run the stack
 
 ```bash

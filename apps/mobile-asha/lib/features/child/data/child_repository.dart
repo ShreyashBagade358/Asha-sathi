@@ -69,6 +69,30 @@ class ChildRepository {
     }
   }
 
+  /// Growth records for [childId]: remote when online, local mirror offline.
+  Future<List<GrowthRecordModel>> growthRecords(String childId) async {
+    try {
+      final res = await _dio.get<List<dynamic>>(
+          '${AppConfig.apiBaseUrl}/children/$childId/growth');
+      final models = (res.data ?? const [])
+          .map((e) => growthRecordFromRemoteJson((e as Map).cast<String, dynamic>()))
+          .toList();
+      for (final m in models) {
+        await _local.upsertGrowthRecord(m, queueSync: false);
+      }
+      return models;
+    } on DioException {
+      return (await _local.growthRecordsFor(childId))
+          .map(_local.growthRecordFromRow)
+          .toList();
+    }
+  }
+
+  /// Save a growth measurement locally (queued for sync) and try to push it.
+  Future<void> saveGrowthRecord(GrowthRecordModel model) async {
+    await _local.upsertGrowthRecord(model);
+  }
+
   Future<ImmunizationModel> saveImmunization(ImmunizationModel model) async {
     await _local.upsertImmunization(model);
     try {

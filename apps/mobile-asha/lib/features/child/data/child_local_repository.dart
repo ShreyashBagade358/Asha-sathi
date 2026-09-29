@@ -3,6 +3,21 @@ import 'package:drift/drift.dart';
 import '../../../core/offline/database.dart';
 import 'child_models.dart';
 
+/// Build the snake_case payload pushed to the backend `/sync/growth_records`
+/// endpoint. Keys match the server `GrowthRecord` columns (`record_date`,
+/// `weight_kg`, `height_cm`, `muac_mm`, `photo_url`) so `apply_operation` can
+/// apply the change idempotently.
+Map<String, dynamic> growthRecordSyncPayload(GrowthRecordModel model) => {
+      'child_id': model.childId,
+      'record_date': model.measuredOn,
+      'weight_kg': model.weightKg,
+      'height_cm': model.heightCm,
+      'muac_mm': model.muacCm != null ? model.muacCm! * 10 : null,
+      'photo_url': model.photoUrl,
+      'created_at': model.createdAt,
+      'updated_at': model.updatedAt,
+    };
+
 /// Local drift CRUD for children + immunization + growth records.
 class ChildLocalRepository {
   ChildLocalRepository(this._db);
@@ -77,6 +92,55 @@ class ChildLocalRepository {
           ..where((t) => t.childId.equals(childId)))
         .get();
   }
+
+  Future<void> upsertGrowthRecord(GrowthRecordModel model,
+      {bool queueSync = true}) async {
+    await _db.into(_db.growthRecordsTable).insertOnConflictUpdate(
+          GrowthRecordsTableCompanion.insert(
+            recordId: Value(model.recordId),
+            childId: Value(model.childId),
+            measuredOn: Value(model.measuredOn),
+            ageMonths: Value(model.ageMonths),
+            weightKg: Value(model.weightKg?.toString()),
+            heightCm: Value(model.heightCm?.toString()),
+            muacCm: Value(model.muacCm?.toString()),
+            photoUrl: Value(model.photoUrl),
+            createdAt: Value(model.createdAt),
+            updatedAt: Value(model.updatedAt),
+          ),
+        );
+    if (queueSync) {
+      await SyncQueue.enqueue(
+        db: _db,
+        table: 'growth_records',
+        recordId: model.recordId,
+        operation: 'update',
+        payload: growthRecordSyncPayload(model),
+      );
+    }
+  }
+
+  Future<List<GrowthRecord>> growthRecordsFor(String childId) {
+    return (_db.select(_db.growthRecordsTable)
+          ..where((t) => t.childId.equals(childId))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.measuredOn),
+          ]))
+        .get();
+  }
+
+  GrowthRecordModel growthRecordFromRow(GrowthRecord row) => GrowthRecordModel(
+        recordId: row.recordId,
+        childId: row.childId,
+        measuredOn: row.measuredOn,
+        ageMonths: row.ageMonths,
+        weightKg: double.tryParse(row.weightKg ?? ''),
+        heightCm: double.tryParse(row.heightCm ?? ''),
+        muacCm: double.tryParse(row.muacCm ?? ''),
+        photoUrl: row.photoUrl,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      );
 
   ChildModel childFromRow(Child row) => ChildModel(
         childId: row.childId,

@@ -36,6 +36,12 @@ export default function ChildProfilePhcAdmin() {
     enabled: !!id,
   })
 
+  const { data: growthRecords } = useQuery({
+    queryKey: ['child-growth', id],
+    queryFn: () => childService.listGrowthRecords(id ?? ''),
+    enabled: !!id,
+  })
+
   const { data: benData } = useQuery({
     queryKey: ['beneficiaries-map'],
     queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
@@ -93,6 +99,7 @@ export default function ChildProfilePhcAdmin() {
   const givenCount = (immunizations ?? []).filter((i) => i.status === 'given').length
   const totalCount = (immunizations ?? []).length
   const onTrack = totalCount > 0 && givenCount >= totalCount
+  const growthPhotos = (growthRecords ?? []).filter((r) => r.photoUrl)
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -229,6 +236,36 @@ export default function ChildProfilePhcAdmin() {
                 <span className="text-body-md text-on-surface-variant">Record ID</span>
                 <span className="text-body-md text-on-surface">{child.id.replace(/-/g, '').slice(0, 8).toUpperCase()}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-12 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-outline-variant bg-surface-bright flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">photo_library</span>
+                Growth Photo History
+              </h2>
+              <span className="text-caption text-on-surface-variant">{growthPhotos.length} photo{growthPhotos.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="p-4">
+              {growthPhotos.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <span className="material-symbols-outlined text-[36px] text-outline">photo_camera</span>
+                  <p className="text-body-md text-on-surface-variant">No baby progress photos captured yet.</p>
+                  <p className="text-caption text-on-surface-variant">Photos attached to growth measurements appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {growthPhotos.map((r) => (
+                    <figure key={r.id} className="rounded-lg overflow-hidden border border-outline-variant bg-surface-container-low">
+                      <a href={r.photoUrl} target="_blank" rel="noreferrer" className="block">
+                        <img src={r.photoUrl} alt={`Growth photo ${r.recordDate}`} className="w-full h-28 object-cover hover:opacity-90 transition-opacity" />
+                      </a>
+                      <figcaption className="px-2 py-1.5 text-caption text-on-surface-variant">{r.recordDate}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

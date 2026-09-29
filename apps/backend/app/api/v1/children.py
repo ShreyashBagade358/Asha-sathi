@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -231,3 +231,74 @@ async def list_growth_records(
         select(GrowthRecord).where(GrowthRecord.child_id == child_id).order_by(GrowthRecord.record_date)
     )
     return [GrowthRecordResponse.model_validate(r) for r in result.scalars().all()]
+
+
+@router.post(
+    "/{child_id}/growth/{growth_record_id}/photo",
+    response_model=GrowthRecordResponse,
+)
+async def upload_growth_photo(
+    child_id: str,
+    growth_record_id: str,
+    file: UploadFile = File(...),
+    mime_type: str = Form("image/jpeg"),
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Upload a baby photo and attach it to an existing growth record."""
+    from app.services import storage as storage_svc
+
+    await _get_child(db, child_id)
+    record = await db.get(GrowthRecord, growth_record_id)
+    if not record or record.child_id != child_id:
+        raise NotFoundError("Growth record not found for this child")
+    data = await file.read()
+    if len(data) > 5_242_880:  # 5 MB
+        from app.core.exceptions import BadRequestError
+
+        raise BadRequestError("File too large. Maximum size is 5 MB.")
+    ext = (file.filename or "photo.jpg").rsplit(".", 1)[-1]
+    storage_path = f"growth/{child_id}/{growth_record_id}.{ext}"
+    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+    record.photo_url = photo_url
+    await log_action(
+        db,
+        user.id,
+        "growth_photo_uploaded",
+        "growth_record",
+        record.id,
+        new_values={"photo_url": photo_url},
+    )
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+@router.delete(
+    "/{child_id}/growth/{growth_record_id}/photo",
+    response_model=GrowthRecordResponse,
+)
+async def delete_growth_photo(
+    child_id: str,
+    growth_record_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Remove the photo from a growth record."""
+    from app.services import storage as storage_svc
+
+    await _get_child(db, child_id)
+    record = await db.get(GrowthRecord, growth_record_id)
+    if not record or record.child_id != child_id:
+        raise NotFoundError("Growth record not found for this child")
+    if record.photo_url:
+        import re
+
+        match = re.search(r"public/baby-growth/(.+?)(?:\?|$)", record.photo_url)
+        if match:
+            storage_svc.delete(match.group(1))
+    record.photo_url = None
+    await log_action(db, user.id, "growth_photo_deleted", "growth_record", record.id)
+    await db.commit()
+    await db.refresh(record)
+    return record

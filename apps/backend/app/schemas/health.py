@@ -334,6 +334,7 @@ class GrowthRecordCreate(BaseModel):
     z_score_wfh: float | None = None
     bmi: float | None = None
     nutrition_status: str | None = None
+    photo_url: str | None = None
 
 
 class GrowthRecordResponse(BaseModel):
@@ -347,3 +348,4 @@ class GrowthRecordResponse(BaseModel):
     muac_mm: float | None = None
     z_score_wfa: float | None = None
     nutrition_status: str | None = None
+    photo_url: str | None = None

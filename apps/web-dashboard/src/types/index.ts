@@ -106,6 +106,19 @@ export interface Child {
   phcId: string
 }
 
+export interface GrowthRecord {
+  id: string
+  childId: string
+  recordDate: string
+  weightKg?: number
+  heightCm?: number
+  muacCm?: number
+  nutritionStatus?: string
+  zScoreWfa?: number
+  photoUrl?: string
+  createdAt?: string
+}
+
 export type ImmunizationStatus = 'due' | 'given' | 'overdue' | 'skipped'
 
 export interface Immunization {

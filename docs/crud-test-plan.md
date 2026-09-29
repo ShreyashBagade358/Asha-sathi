@@ -19,7 +19,7 @@ end-to-end, not just wired.
 | Isolation | `_clean_tables` autouse fixture truncates every table before each test |
 | Auth | `auth_headers(phone, role)` factory mints a JWT via `create_access_token` |
 | Seed/verify data | Created per test through the API; IDs are `uuid4()`-based |
-| Run | `cd apps/backend && python -m pytest tests/test_crud_api.py` |
+| Run | `cd apps/backend && python -m pytest tests/test_crud_api.py` (growth-photo tests: `tests/test_growth_photos.py`) |
 
 Test records are prefixed `TEST-` so they are trivially identifiable for cleanup
 (Phase 4).
@@ -45,6 +45,17 @@ Test records are prefixed `TEST-` so they are trivially identifiable for cleanup
 | 15 | `test_permission_boundary_sweep` | Negative matrix across users/ashas/audit/sanitize/verification/broadcast; `state_admin` allowed on users |
 | 16 | `test_inactive_user_rejected` | Deactivated user → **401** |
 | 17 | `test_child_requires_existing_beneficiary` | Child create with unknown beneficiary → **404** |
+
+### Growth progress photos (`tests/test_growth_photos.py`)
+
+| # | Test | Covers |
+| --- | --- | --- |
+| 1 | `test_growth_record_includes_photo_url_null` | New growth records default `photo_url: null`; list also null |
+| 2 | `test_upload_growth_photo` | Upload attaches photo; `photo_url` set to storage URL |
+| 3 | `test_upload_photo_too_large` | File over 5 MB → **400** |
+| 4 | `test_upload_photo_wrong_child` | Record belonging to a different child → **404** |
+| 5 | `test_upload_photo_nonexistent_record` | Unknown record id → **404** |
+| 6 | `test_delete_growth_photo` | Delete clears `photo_url` and removes the stored object |
 
 ## Endpoint / role matrix
 

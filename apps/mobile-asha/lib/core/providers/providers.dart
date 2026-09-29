@@ -10,6 +10,7 @@ import '../offline/sync_engine.dart';
 import '../../features/abha/data/abha_repository.dart';
 import '../../features/beneficiary/data/beneficiary_repository.dart';
 import '../../features/child/data/child_repository.dart';
+import '../../features/child/data/growth_photo_sync.dart';
 import '../../features/dashboard/data/dashboard_repository.dart';
 import '../../features/death_reports/data/death_report_repository.dart';
 import '../../features/disease_control/data/disease_repository.dart';
@@ -61,6 +62,14 @@ final authStateProvider = ChangeNotifierProvider<AuthState>((ref) {
   return AuthState();
 });
 
+/// Offline upload queue for baby growth photos.
+final growthPhotoSyncProvider = Provider<GrowthPhotoSync>((ref) {
+  return GrowthPhotoSync(
+    dio: ref.watch(dioProvider),
+    database: ref.watch(databaseProvider),
+  );
+});
+
 /// Sync engine for offline-first synchronisation.
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   return SyncEngine(
@@ -69,6 +78,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     dio: ref.watch(dioProvider),
     deviceIdProvider: ref.watch(authRepositoryProvider).deviceId,
     alertEngine: ref.watch(localAlertEngineProvider),
+    photoSync: ref.watch(growthPhotoSyncProvider),
   );
 });
 

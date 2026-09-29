@@ -1,8 +1,8 @@
 """Demo data seeder for ASHA Sathi.
 
 Populates a realistic Uttar Pradesh health-system hierarchy plus demo users,
-households, beneficiaries, pregnancies, children, an NCD screening, KPIs,
-incentive claims, tasks and notifications.
+households, beneficiaries, pregnancies, children (with immunization and growth
+records), an NCD screening, KPIs, incentive claims, tasks and notifications.
 
 Run from the backend directory:
 
@@ -21,13 +21,13 @@ import logging
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.database import async_session_maker
 from app.core.security import get_password_hash
 from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.beneficiary import Beneficiary, Household
-from app.models.child import Child, Immunization
+from app.models.child import Child, GrowthRecord, Immunization
 from app.models.eligible_couple import EligibleCouple
 from app.models.incentive import IncentiveClaim
 from app.models.maternal import ANCVISIT, Pregnancy
@@ -480,6 +480,43 @@ async def seed_demo() -> None:
                         )
                     )
                 logger.info("Created immunization schedule for child %s", child_beneficiary.id)
+
+            # 5b. Monthly growth trajectory (weight/height/MUAC by month of life).
+            # Unique keyed by (child_id, record_date) so the seed stays idempotent.
+            existing_growth = await session.scalar(
+                select(func.count())
+                .select_from(GrowthRecord)
+                .where(GrowthRecord.child_id == child.id)
+            )
+            if not existing_growth:
+                monthly_growth = [
+                    # (months, weight_kg, height_cm, muac_mm, z_wfa, z_hfa)
+                    (1, 3.6, 51.5, 115, -1.10, -0.80),
+                    (2, 4.4, 55.0, 122, -0.85, -0.60),
+                    (3, 5.3, 58.5, 129, -0.60, -0.40),
+                    (4, 6.1, 61.5, 135, -0.50, -0.30),
+                    (5, 6.8, 64.0, 140, -0.35, -0.20),
+                    (6, 7.4, 66.5, 143, -0.25, -0.10),
+                ]
+                for months, weight_kg, height_cm, muac_mm, z_wfa, z_hfa in monthly_growth:
+                    session.add(
+                        GrowthRecord(
+                            child_id=child.id,
+                            record_date=date.today() - timedelta(days=180 - months * 30),
+                            weight_kg=weight_kg,
+                            height_cm=height_cm,
+                            muac_mm=muac_mm,
+                            z_score_wfa=z_wfa,
+                            z_score_hfa=z_hfa,
+                            nutrition_status="normal",
+                            recorded_by=asha_user.id,
+                        )
+                    )
+                logger.info(
+                    "Created %d growth records for child %s",
+                    len(monthly_growth),
+                    child_beneficiary.id,
+                )
 
             # ------------------------------------------------------------------
             # 6. Eligible couple

@@ -51,6 +51,11 @@ class ServiceUnavailableError(AppError):
     code = "service_unavailable"
 
 
+class BadRequestError(AppError):
+    status_code = 400
+    code = "bad_request"
+
+
 async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     exc = cast(AppError, exc)
     content: dict[str, Any] = {"detail": exc.detail, "code": exc.code, "status": exc.status}

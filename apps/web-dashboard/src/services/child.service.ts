@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { Child, Immunization, Paginated } from '@/types'
+import type { Child, GrowthRecord, Immunization, Paginated } from '@/types'
 
 export interface ChildListParams {
   page?: number
@@ -23,6 +23,27 @@ export interface CreateImmunizationPayload {
   givenDate?: string
   dueDate?: string
   status?: 'given' | 'due'
+}
+
+export interface CreateGrowthRecordPayload {
+  recordDate: string
+  weightKg?: number
+  heightCm?: number
+  muacMm?: number
+  nutritionStatus?: string
+}
+
+interface RawGrowthRecord {
+  id: string
+  child_id: string
+  record_date: string
+  weight_kg?: number | null
+  height_cm?: number | null
+  muac_mm?: number | null
+  z_score_wfa?: number | null
+  nutrition_status?: string | null
+  photo_url?: string | null
+  created_at?: string | null
 }
 
 interface RawChild {
@@ -96,6 +117,21 @@ function mapPaginated<T>(raw: { items: T[]; total: number; page: number; page_si
   }
 }
 
+function mapGrowthRecord(r: RawGrowthRecord): GrowthRecord {
+  return {
+    id: r.id,
+    childId: r.child_id,
+    recordDate: r.record_date,
+    weightKg: r.weight_kg ?? undefined,
+    heightCm: r.height_cm ?? undefined,
+    muacCm: r.muac_mm != null ? Math.round((r.muac_mm / 10) * 10) / 10 : undefined,
+    nutritionStatus: r.nutrition_status ?? undefined,
+    zScoreWfa: r.z_score_wfa ?? undefined,
+    photoUrl: r.photo_url ?? undefined,
+    createdAt: r.created_at ?? undefined,
+  }
+}
+
 export const childService = {
   async listChildren(params: ChildListParams = {}): Promise<Paginated<RawChildPageItem>> {
     const { data } = await api.get<{ items: RawChildPageItem[]; total: number; page: number; page_size: number; total_pages: number }>('/children', {
@@ -142,5 +178,39 @@ export const childService = {
 
   async deleteChild(id: string): Promise<void> {
     await api.delete(`/children/${id}`)
+  },
+
+  async listGrowthRecords(childId: string): Promise<GrowthRecord[]> {
+    const { data } = await api.get<RawGrowthRecord[]>(`/children/${childId}/growth`)
+    return data.map(mapGrowthRecord)
+  },
+
+  async createGrowthRecord(childId: string, payload: CreateGrowthRecordPayload): Promise<GrowthRecord> {
+    const { data } = await api.post<RawGrowthRecord>(`/children/${childId}/growth`, {
+      record_date: payload.recordDate,
+      weight_kg: payload.weightKg,
+      height_cm: payload.heightCm,
+      muac_mm: payload.muacMm,
+      nutrition_status: payload.nutritionStatus,
+    })
+    return mapGrowthRecord(data)
+  },
+
+  async uploadGrowthPhoto(childId: string, growthRecordId: string, file: File): Promise<GrowthRecord> {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('mime_type', file.type || 'image/jpeg')
+    const { data } = await api.post<RawGrowthRecord>(
+      `/children/${childId}/growth/${growthRecordId}/photo`,
+      form,
+    )
+    return mapGrowthRecord(data)
+  },
+
+  async deleteGrowthPhoto(childId: string, growthRecordId: string): Promise<GrowthRecord> {
+    const { data } = await api.delete<RawGrowthRecord>(
+      `/children/${childId}/growth/${growthRecordId}/photo`,
+    )
+    return mapGrowthRecord(data)
   },
 }

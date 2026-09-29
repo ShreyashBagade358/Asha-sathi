@@ -160,6 +160,23 @@ class HBYCVisitsTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class GrowthRecordsTable extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get recordId => text().unique()();
+  TextColumn get childId => text()();
+  TextColumn get measuredOn => text().nullable()();
+  IntColumn get ageMonths => integer().nullable()();
+  TextColumn get weightKg => text().nullable()();
+  TextColumn get heightCm => text().nullable()();
+  TextColumn get muacCm => text().nullable()();
+  TextColumn get photoUrl => text().nullable()();
+  TextColumn get createdAt => text().nullable()();
+  TextColumn get updatedAt => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class EligibleCouplesTable extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get ecId => text().unique()();
@@ -406,6 +423,7 @@ class SyncQueueTable extends Table {
     ImmunizationsTable,
     HBNCVisitsTable,
     HBYCVisitsTable,
+    GrowthRecordsTable,
     EligibleCouplesTable,
     ECFollowupsTable,
     NCDScreeningsTable,
@@ -427,7 +445,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -444,6 +462,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.addColumn(syncQueueTable, syncQueueTable.attempts);
             await m.addColumn(syncQueueTable, syncQueueTable.nextRetryAt);
+          }
+          if (from < 4) {
+            await m.createTable(growthRecordsTable);
           }
         },
       );

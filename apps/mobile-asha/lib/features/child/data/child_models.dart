@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/utils/formatters.dart';
+
 part 'child_models.freezed.dart';
 part 'child_models.g.dart';
 
@@ -102,9 +104,40 @@ abstract class GrowthRecordModel with _$GrowthRecordModel {
     double? weightKg,
     double? heightCm,
     double? muacCm,
+    String? photoUrl,
     String? createdAt,
+    String? updatedAt,
   }) = _GrowthRecordModel;
 
   factory GrowthRecordModel.fromJson(Map<String, dynamic> json) =>
       _$GrowthRecordModelFromJson(json);
+}
+
+/// Convert a backend `GrowthRecordResponse` (snake_case) into a local model.
+///
+/// The backend emits `record_date`, `weight_kg`, `muac_mm` (millimetres) while
+/// the local model uses camelCase fields and centimetres for MUAC.
+GrowthRecordModel growthRecordFromRemoteJson(Map<String, dynamic> json) {
+  final muacMm = json['muac_mm'] as num?;
+  final muacCm = muacMm == null ? null : muacMm.toDouble() / 10;
+  final ageMonths = json['age_months'] as int?;
+  final dob = DateTime.tryParse(json['child_dob'] as String? ?? '');
+  return GrowthRecordModel(
+    recordId: json['id'] as String? ?? '',
+    childId: json['child_id'] as String? ?? '',
+    measuredOn: json['record_date'] as String? ?? json['created_at'] as String?,
+    ageMonths: ageMonths ??
+        (dob == null || json['record_date'] == null
+            ? null
+            : ageFromDob(
+                dob,
+                now: DateTime.tryParse(json['record_date'] as String),
+              ).totalMonths),
+    weightKg: (json['weight_kg'] as num?)?.toDouble(),
+    heightCm: (json['height_cm'] as num?)?.toDouble(),
+    muacCm: muacCm,
+    photoUrl: json['photo_url'] as String?,
+    createdAt: json['created_at'] as String?,
+    updatedAt: json['updated_at'] as String?,
+  );
 }

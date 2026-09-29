@@ -24,7 +24,7 @@ login). Use the Postman collection in `docs/postman/` for ready-made calls.
 | Households            | `/households`              | household registration, family members, consent      |
 | Beneficiaries         | `/beneficiaries`           | person registration, demographics, ABHA linkage      |
 | Maternal              | `/pregnancies`, `/anc`, `/pnc`, `/deliveries` | pregnancy + visits, delivery outcomes |
-| Child                 | `/children`, `/immunization`, `/growth` | children, vaccines, HBNC/HBYC, growth charts |
+| Child                 | `/children`, `/immunization`, `/growth` | children, vaccines, HBNC/HBYC, growth charts + progress photos |
 | NCD                   | `/ncd`                     | CBAC screening and risk results                      |
 | Disease               | `/disease`                 | malaria / TB / fever case reporting                  |
 | Deaths                | `/deaths`                  | death reports + verbal autopsy                       |
@@ -244,6 +244,41 @@ login). Use the Postman collection in `docs/postman/` for ready-made calls.
   "errors": []
 }
 ```
+
+---
+
+## Child growth + progress photos
+
+Growth records live under a child and are charted by weight/height/MUAC with
+WHO z-scores. Each record can carry a **progress photo** (Supabase Storage,
+`baby-growth` bucket) so field workers and PHC admins can track visible growth
+over time alongside the numbers.
+
+| Method   | Path                                          | Description                                      |
+| -------- | --------------------------------------------- | ------------------------------------------------ |
+| `POST`   | `/children/{child_id}/growth`                 | Create a growth record (returns `photo_url: null`) |
+| `GET`    | `/children/{child_id}/growth`                 | List growth records ordered by `record_date`     |
+| `POST`   | `/children/{child_id}/growth/{record_id}/photo` | Attach a photo (`multipart/form-data`)          |
+| `DELETE` | `/children/{child_id}/growth/{record_id}/photo` | Detach the photo and delete the stored object   |
+
+`POST /children/{child_id}/growth/{record_id}/photo`
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/children/{child_id}/growth/{record_id}/photo" \
+  -H "Authorization: Bearer <access_token>" \
+  -F "file=@baby.jpg;type=image/jpeg"
+```
+
+`200 OK` — the updated record, with `photo_url` set to the public storage URL.
+
+Notes:
+
+- Photos are capped at **5 MB** (`400` if larger).
+- Storage is lazily provisioned: the `baby-growth` bucket is created with
+  public-read access on first upload, so `SUPABASE_URL` and
+  `SUPABASE_SERVICE_KEY` must be configured (see `.env.example`).
+- The `growth_records.photo_url` column is added by migration `0005`
+  (`alembic upgrade head`).
 
 ---
 

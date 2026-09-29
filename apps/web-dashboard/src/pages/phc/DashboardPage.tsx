@@ -95,7 +95,7 @@ export default function DashboardPage() {
                 institutional: point.institutional,
                 immunization: point.immunization,
                 ncd: point.ncd,
-              })) as any}
+              }))}
               series={SERIES}
             />
           ) : (

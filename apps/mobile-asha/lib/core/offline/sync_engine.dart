@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
 import 'database.dart';
 import 'local_alert_engine.dart';
+import '../../features/child/data/growth_photo_sync.dart';
 
 /// Handles bi-directional synchronisation between the local Drift database
 /// and the ASHA Sathi backend.
@@ -26,12 +27,14 @@ class SyncEngine {
     Connectivity? connectivity,
     Future<String> Function()? deviceIdProvider,
     LocalAlertEngine? alertEngine,
+    GrowthPhotoSync? photoSync,
   })  : _db = database,
         _supabase = supabase,
         _dio = dio ?? Dio(),
         _connectivity = connectivity ?? Connectivity(),
         _deviceIdProvider = deviceIdProvider ?? _emptyDeviceId,
-        _alertEngine = alertEngine;
+        _alertEngine = alertEngine,
+        _photoSync = photoSync;
 
   final AppDatabase _db;
   final SupabaseClient _supabase;
@@ -39,6 +42,7 @@ class SyncEngine {
   final Connectivity _connectivity;
   final Future<String> Function() _deviceIdProvider;
   final LocalAlertEngine? _alertEngine;
+  final GrowthPhotoSync? _photoSync;
 
   static Future<String> _emptyDeviceId() async => '';
 
@@ -114,6 +118,7 @@ class SyncEngine {
         await _recordPushFailure(row, e);
       }
     }
+    await _photoSync?.uploadPending();
     return pushed;
   }
 
@@ -195,6 +200,7 @@ class SyncEngine {
     'immunizations': 'immunization_id',
     'hbnc_visits': 'visit_id',
     'hbyc_visits': 'visit_id',
+    'growth_records': 'record_id',
     'eligible_couples': 'ec_id',
     'ec_followups': 'followup_id',
     'ncd_screenings': 'screening_id',
@@ -237,6 +243,23 @@ class SyncEngine {
       case 'hbyc_visits':
         return await _db.into(_db.hbycVisitsTable).insertOnConflictUpdate(
             payload, target: [_db.hbycVisitsTable.visitId]);
+      case 'growth_records':
+        // Remote rows use `record_date`/`muac_mm`; the local table stores the
+        // date in `measured_on` and MUAC in centimetres.
+        final muacMm = payload['muac_mm'] as num?;
+        final local = <String, dynamic>{
+          'record_id': payload['id'],
+          'child_id': payload['child_id'],
+          'measured_on': payload['record_date'],
+          'weight_kg': payload['weight_kg']?.toString(),
+          'height_cm': payload['height_cm']?.toString(),
+          'muac_cm': muacMm == null ? null : (muacMm / 10).toString(),
+          'photo_url': payload['photo_url'],
+          'created_at': payload['created_at'],
+          'updated_at': payload['updated_at'],
+        };
+        return await _db.into(_db.growthRecordsTable).insertOnConflictUpdate(
+            local, target: [_db.growthRecordsTable.recordId]);
       case 'eligible_couples':
         return await _db.into(_db.eligibleCouplesTable).insertOnConflictUpdate(
             payload, target: [_db.eligibleCouplesTable.ecId]);
@@ -332,6 +355,12 @@ class SyncEngine {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'anc_visits',
+          callback: (payload) => onChange?.call(payload.newRecord),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'growth_records',
           callback: (payload) => onChange?.call(payload.newRecord),
         );
     _realtimeSub = channel.subscribe();
