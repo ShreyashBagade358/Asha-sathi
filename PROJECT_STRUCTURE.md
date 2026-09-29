@@ -1,7 +1,7 @@
 # ASHA Sathi - Project Structure
 
 ## Overview
-A healthcare platform for Indian ASHA frontline workers using a monorepo with Turbo + Melos + pnpm.
+A healthcare platform for Indian ASHA frontline workers using a Turbo + pnpm monorepo.
 
 ```
 asha-sathi/

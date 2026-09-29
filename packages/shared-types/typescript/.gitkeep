@@ -1,6 +1,6 @@
 // Shared type definitions for TypeScript platform
 // ASHA Sathi monorepo
-// Purpose: Cross-platform type definitions shared between React, Flutter, and Python
+// Purpose: Cross-platform type definitions shared between React and Python
 //
 // Currently scaffolded - add your types here:
 //

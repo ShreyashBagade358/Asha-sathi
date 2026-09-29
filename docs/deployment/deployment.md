@@ -132,7 +132,7 @@ See `.github/workflows/`:
 
 - **`ci.yml`** - lint, tests and build for backend / web / mobile; Docker
   images are pushed to GHCR (`ghcr.io/yourorg/asha-sathi-*`) on `main` and
-  `develop`; Flutter APK/AAB artifacts are uploaded on tagged builds.
+  `develop`.
 - **`cd.yml`** - deploys to **staging** from `develop` and to **production**
   from `main`/`v*` tags (manual `workflow_dispatch` also supported). Both jobs
   run `helm upgrade --install`, then a `/health` smoke test and a Slack

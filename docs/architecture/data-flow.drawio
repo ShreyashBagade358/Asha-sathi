@@ -6,7 +6,7 @@
         <mxCell id="1" parent="0" />
 
         <!-- Entities -->
-        <mxCell id="mobile" value="Mobile Apps&#10;(Flutter: ASHA / Patient / PHC Admin)&#10;offline-first + sync" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="mobile" value="Mobile App&#10;(Expo: ASHA workers)&#10;offline-first + sync" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="160" width="200" height="90" as="geometry" />
         </mxCell>
 

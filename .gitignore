@@ -19,16 +19,21 @@ venv/
 eggs/
 *.egg-info/
 
-# Flutter / Dart
-.dart_tool/
-.packages
-.pub-cache/
-.flutter-plugins
-.flutter-plugins-dependencies
-*.lock
+# Build output
 build/
-*.g.dart
-*.freezed.dart
+dist/
+*.lock
+
+# Expo
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
 
 # Environment & secrets
 .env

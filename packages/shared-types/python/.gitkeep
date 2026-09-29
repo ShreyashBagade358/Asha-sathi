@@ -1,6 +1,6 @@
 # Shared type definitions for Python platform
 # ASHA Sathi monorepo
-# Purpose: Cross-platform type definitions shared between Django/FastAPI, Flutter, and TypeScript
+# Purpose: Cross-platform type definitions shared between Django/FastAPI and TypeScript
 #
 # Currently scaffolded - add your types here:
 #
