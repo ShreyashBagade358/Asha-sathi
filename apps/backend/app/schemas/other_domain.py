@@ -583,11 +583,17 @@ class SyncPullRequest(BaseModel):
     device_id: str | None = None
     last_pull_at: datetime
     tables: list[str] | None = None
+    limit: int = Field(default=1000, ge=1, le=5000)
+    # Continuation cursor returned by a previous pull when `has_more` was set.
+    cursor: str | None = None
 
 
 class SyncPullResponse(BaseModel):
     records: dict[str, list[dict[str, Any]]]
     server_time: datetime
+    # Watermark the client should store for its next pull.
+    next_cursor: str | None = None
+    has_more: bool = False
 
 
 class SyncConflictResolveRequest(BaseModel):

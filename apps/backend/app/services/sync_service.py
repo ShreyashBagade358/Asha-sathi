@@ -132,8 +132,12 @@ async def apply_operation(
                 else:
                     server_version = int(record.version or 1)
                     if version < server_version:
-                        await db.flush()  # persist nothing; snapshot the server row
-                        return {
+                        # Stale write: persist nothing and report the server row.
+                        # Do NOT return here - the idempotency ledger entry below
+                        # must still be written so the conflict is counted and a
+                        # retry replays the same response.
+                        await db.flush()
+                        result = {
                             "client_request_id": client_request_id,
                             "entity": entity,
                             "operation": operation,
@@ -145,19 +149,20 @@ async def apply_operation(
                                 f"stale_version: client version {version} < server version {server_version}"
                             ),
                         }
-                    for key, value in updates.items():
-                        setattr(record, key, value)
-                    record.version = max(server_version, version) + 1
-                    await db.flush()
-                result = {
-                    "client_request_id": client_request_id,
-                    "entity": entity,
-                    "operation": operation,
-                    "status": "success",
-                    "server_id": record.id,
-                    "version": int(record.version or 1),
-                    "record": _record_snapshot(record),
-                }
+                    else:
+                        for key, value in updates.items():
+                            setattr(record, key, value)
+                        record.version = max(server_version, version) + 1
+                        await db.flush()
+                        result = {
+                            "client_request_id": client_request_id,
+                            "entity": entity,
+                            "operation": operation,
+                            "status": "success",
+                            "server_id": record.id,
+                            "version": int(record.version or 1),
+                            "record": _record_snapshot(record),
+                        }
 
             elif operation == "delete":
                 if record is None:

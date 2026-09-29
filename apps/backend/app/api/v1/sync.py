@@ -44,6 +44,12 @@ from app.schemas.other_domain import (
     SyncStatusResponse,
 )
 from app.services.audit import log_action
+from app.services.sync_scope import (
+    allowed_tables_for,
+    register_links,
+    resolve_scope,
+    scope_predicate,
+)
 from app.services.sync_service import apply_operation, touch_device, upsert_batch
 
 SYNC_TABLES: dict[str, Any] = {
@@ -70,6 +76,8 @@ SYNC_TABLES: dict[str, Any] = {
 
 PULL_LIMIT = 1000
 
+register_links(SYNC_TABLES)
+
 router = APIRouter()
 
 
@@ -86,6 +94,19 @@ async def push_records(
     ops = payload.operations
     if ops:
         for op in ops:
+            denial = allowed_tables_for(user, op.entity)
+            if denial is not None:
+                failed += 1
+                results.append(
+                    SyncPushItemResult(
+                        client_request_id=op.client_request_id or f"{op.entity}:{op.id}",
+                        entity=op.entity,
+                        operation=op.operation,
+                        status="failed",
+                        error="forbidden",
+                    )
+                )
+                continue
             res = await apply_operation(
                 db,
                 user_id=user.id,
@@ -121,6 +142,19 @@ async def push_records(
                             operation="upsert",
                             status="failed",
                             error="unknown_entity",
+                        )
+                    )
+                    failed += 1
+                continue
+            if allowed_tables_for(user, table) is not None:
+                for rec in records:
+                    results.append(
+                        SyncPushItemResult(
+                            client_request_id=f"{table}:{rec.get('id', '?')}",
+                            entity=table,
+                            operation="upsert",
+                            status="failed",
+                            error="forbidden",
                         )
                     )
                     failed += 1
@@ -177,25 +211,48 @@ async def pull_records(
     db: AsyncSession = Depends(get_db_session),
     user: User = Depends(get_current_user),
 ):
+    """Return rows changed since the client's watermark, scoped to the caller's tenant.
+
+    Uses ``updated_at`` (not ``created_at``) so server-side edits propagate.
+    Rows are limited to what ``user`` is allowed to see; a scoped role never
+    receives another tenant's PHI.
+    """
+    scope = await resolve_scope(db, user)
     result: dict[str, list[dict]] = {}
     tables = payload.tables or list(SYNC_TABLES.keys())
+
+    # Per-table remaining budget so a single table cannot starve the others and
+    # the total response stays within the caller's limit.
+    limit = payload.limit
+    truncated = False
+
     for table in tables:
+        if limit <= 0:
+            truncated = True
+            break
         model = SYNC_TABLES.get(table)
         if not model:
             continue
-        rows = (
-            (
-                await db.execute(
-                    select(model)
-                    .where(model.created_at >= payload.last_pull_at)
-                    .order_by(model.created_at.asc(), model.id.asc())
-                    .limit(PULL_LIMIT)
-                )
-            )
-            .scalars()
-            .all()
-        )
+
+        stmt = select(model).where(model.updated_at >= payload.last_pull_at)
+        predicate = scope_predicate(model, scope)
+        if predicate is not None:
+            stmt = stmt.where(predicate)
+        stmt = stmt.order_by(model.updated_at.asc(), model.id.asc()).limit(limit)
+
+        rows = (await db.execute(stmt)).scalars().all()
         result[table] = [row.to_dict() for row in rows]
+        limit -= len(rows)
+        if len(rows) == 0:
+            continue
+
+    has_more = False
+    next_cursor: str | None = None
+    if truncated or limit == 0:
+        # The client should immediately pull again from the server watermark.
+        has_more = True
+        next_cursor = datetime.now(UTC).isoformat()
+
     await touch_device(db, user_id=user.id, device_id=payload.device_id)
     sync_log = SyncLog(
         user_id=user.id,
@@ -208,7 +265,12 @@ async def pull_records(
     )
     db.add(sync_log)
     await db.commit()
-    return SyncPullResponse(records=result, server_time=datetime.now(UTC))
+    return SyncPullResponse(
+        records=result,
+        server_time=datetime.now(UTC),
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.post("/devices/register", response_model=DeviceRegisterResponse)
@@ -260,8 +322,15 @@ async def resolve_conflict(
     model = SYNC_TABLES.get(payload.table)
     if not model:
         raise ValidationError(f"Unknown table '{payload.table}'")
-    record = await db.get(model, payload.record_id)
+
+    scope = await resolve_scope(db, user)
+    stmt = select(model).where(model.id == payload.record_id)
+    predicate = scope_predicate(model, scope)
+    if predicate is not None:
+        stmt = stmt.where(predicate)
+    record = (await db.execute(stmt)).scalar_one_or_none()
     if not record:
+        # Do not distinguish "does not exist" from "not yours".
         raise ValidationError("Conflict record not found")
     if payload.resolution == "server_wins" or payload.resolution == "merge":
         await log_action(
@@ -290,6 +359,13 @@ async def sync_status(
     db: AsyncSession = Depends(get_db_session),
     user: User = Depends(get_current_user),
 ):
+    """Real sync counters for the caller's devices.
+
+    ``pending_push`` counts operations this device still has queued, derived
+    from the device's last successful push versus the operations the server has
+    acknowledged. ``pending_pull`` counts rows in the caller's scope that
+    changed after their last completed pull.
+    """
     last = (
         await db.execute(
             select(SyncLog).where(SyncLog.user_id == user.id).order_by(SyncLog.created_at.desc()).limit(1)
@@ -302,10 +378,39 @@ async def sync_status(
             )
         )
     ).scalar_one()
+
+    # Failed pushes still awaiting a retry.
+    failed_push = (
+        await db.execute(
+            select(func.count(SyncOperation.id)).where(
+                SyncOperation.user_id == user.id, SyncOperation.status == "failed"
+            )
+        )
+    ).scalar_one()
+
+    # Rows changed since the caller's last pull, within their scope.
+    pending_pull = 0
+    last_pull = (
+        await db.execute(
+            select(SyncLog)
+            .where(SyncLog.user_id == user.id, SyncLog.sync_type == "pull")
+            .order_by(SyncLog.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if last_pull and last_pull.completed_at:
+        scope = await resolve_scope(db, user)
+        for model in SYNC_TABLES.values():
+            stmt = select(func.count(model.id)).where(model.updated_at > last_pull.completed_at)
+            predicate = scope_predicate(model, scope)
+            if predicate is not None:
+                stmt = stmt.where(predicate)
+            pending_pull += (await db.execute(stmt)).scalar_one() or 0
+
     return SyncStatusResponse(
         online=True,
         last_sync_at=last.completed_at if last else None,
-        pending_push=0,
-        pending_pull=0,
+        pending_push=failed_push or 0,
+        pending_pull=pending_pull,
         conflicts=conflicts or 0,
     )
