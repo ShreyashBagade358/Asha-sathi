@@ -4,8 +4,8 @@
 # -----------------------------------------------------------------------------
 # The backend serves its OpenAPI JSON at GET /openapi.json. This script runs
 # openapi-generator to emit:
-#   * Dart clients into packages/generated/dart   (used by the Flutter apps)
-#   * TypeScript clients into packages/generated/ts (used by web-dashboard)
+#   * TypeScript clients into packages/generated/ts (used by web-dashboard
+#     and the Expo mobile app)
 #
 # Prerequisites:
 #   * backend running (or OPENAPI_JSON env pointing at a spec file)
@@ -42,15 +42,7 @@ if [ ! -f "$GENERATOR_JAR" ]; then
     -o "$GENERATOR_JAR"
 fi
 
-# 3. Emit Dart client
-info "Generating Dart client -> packages/generated/dart"
-java -jar "$GENERATOR_JAR" generate \
-  -i "$TMP_SPEC" \
-  -g dart \
-  -o packages/generated/dart \
-  --additional-properties=pubName=asha_sathi_api,useEnumExtension=true,libraryName=asha_sathi_api
-
-# 4. Emit TypeScript client
+# 3. Emit TypeScript client
 info "Generating TypeScript client -> packages/generated/ts"
 java -jar "$GENERATOR_JAR" generate \
   -i "$TMP_SPEC" \
@@ -60,5 +52,4 @@ java -jar "$GENERATOR_JAR" generate \
 
 echo ""
 echo "Generated clients are ready. Add them to your workspace dependencies:"
-echo "  # pnpm-workspace.yaml / package.json (web-dashboard)"
-echo "  # pubspec.yaml                       (mobile apps -> path: ../../packages/generated/dart)"
+echo "  # pnpm-workspace.yaml / package.json (web-dashboard, mobile-expo)"

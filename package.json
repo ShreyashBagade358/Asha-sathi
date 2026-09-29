@@ -6,7 +6,8 @@
     "packages/*",
     "apps/web-dashboard",
     "apps/backend",
-    "apps/ml-training"
+    "apps/ml-training",
+    "apps/mobile-expo"
   ],
   "scripts": {
     "dev": "turbo run dev",
@@ -20,7 +21,7 @@
     "docker:build": "docker compose -f docker/docker-compose.yml build",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
-    "format": "prettier --write \"**/*.{json,md,yaml,yml,ts,tsx,js,jsx,py,dart}\""
+    "format": "prettier --write \"**/*.{json,md,yaml,yml,ts,tsx,js,jsx,py}\""
   },
   "devDependencies": {
     "turbo": "^2.0.0",

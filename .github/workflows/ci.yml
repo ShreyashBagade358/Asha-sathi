@@ -19,7 +19,6 @@ concurrency:
 env:
   PNPM_VERSION: 8.15.0
   PYTHON_VERSION: "3.11"
-  FLUTTER_VERSION: "3.22.4"
   REGISTRY: ghcr.io
   IMAGE_ORG: ${{ github.repository_owner }}
   DOCKER_CACHE_TTL: 24h
@@ -27,7 +26,7 @@ env:
 jobs:
   # ===========================================================================
   lint:
-    name: Lint (web / backend / mobile)
+    name: Lint (web / backend)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,39 +75,9 @@ jobs:
         working-directory: apps/backend
         run: mypy app
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Flutter pub get + codegen (design-system & mobile apps)
-        run: |
-          (cd packages/design-system/flutter && flutter pub get)
-          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
-            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
-          done
-
-      - name: Flutter analyze (design-system)
-        working-directory: packages/design-system/flutter
-        run: flutter analyze
-
-      - name: Flutter analyze (mobile-asha)
-        working-directory: apps/mobile-asha
-        run: flutter analyze
-
-      - name: Flutter analyze (mobile-patient)
-        working-directory: apps/mobile-patient
-        run: flutter analyze
-
-      - name: Flutter analyze (mobile-phc-admin)
-        working-directory: apps/mobile-phc-admin
-        run: flutter analyze
-
   # ===========================================================================
   test:
-    name: Test (backend / ml / mobile)
+    name: Test (backend / ml)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -170,32 +139,6 @@ jobs:
       - name: Pytest (ml-training)
         working-directory: apps/ml-training
         run: pytest --cov=src --cov-report=term-missing
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Flutter pub get + codegen (design-system & mobile apps)
-        run: |
-          (cd packages/design-system/flutter && flutter pub get)
-          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
-            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
-          done
-
-      - name: Flutter test (mobile-asha)
-        working-directory: apps/mobile-asha
-        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
-
-      - name: Flutter test (mobile-patient)
-        working-directory: apps/mobile-patient
-        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
-
-      - name: Flutter test (mobile-phc-admin)
-        working-directory: apps/mobile-phc-admin
-        run: flutter test || (test -z "$(find test -name '*_test.dart' -print -quit)" && echo "No tests found - skipping")
 
   # ===========================================================================
   build:
@@ -281,60 +224,3 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       # -----------------------------------------------------------------------
-      # Flutter release builds for the three mobile apps
-      # -----------------------------------------------------------------------
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Flutter pub get + codegen (design-system & mobile apps)
-        run: |
-          (cd packages/design-system/flutter && flutter pub get)
-          for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
-            (cd "$app" && flutter pub get && dart run build_runner build --delete-conflicting-outputs)
-          done
-
-      - name: Build APK + AAB (mobile-asha)
-        working-directory: apps/mobile-asha
-        run: |
-          flutter build apk --release --split-per-abi
-          flutter build appbundle --release
-
-      - name: Build APK + AAB (mobile-patient)
-        working-directory: apps/mobile-patient
-        run: |
-          flutter build apk --release --split-per-abi
-          flutter build appbundle --release
-
-      - name: Build APK + AAB (mobile-phc-admin)
-        working-directory: apps/mobile-phc-admin
-        run: |
-          flutter build apk --release --split-per-abi
-          flutter build appbundle --release
-
-      - name: Upload mobile-asha artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-asha-builds
-          path: |
-            apps/mobile-asha/build/app/outputs/flutter-apk/*.apk
-            apps/mobile-asha/build/app/outputs/bundle/release/*.aab
-
-      - name: Upload mobile-patient artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-patient-builds
-          path: |
-            apps/mobile-patient/build/app/outputs/flutter-apk/*.apk
-            apps/mobile-patient/build/app/outputs/bundle/release/*.aab
-
-      - name: Upload mobile-phc-admin artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobile-phc-admin-builds
-          path: |
-            apps/mobile-phc-admin/build/app/outputs/flutter-apk/*.apk
-            apps/mobile-phc-admin/build/app/outputs/bundle/release/*.aab

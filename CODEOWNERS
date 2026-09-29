@@ -9,11 +9,8 @@
 # Backend service
 /apps/backend/ @asha-sathi/backend
 
-# Mobile apps
-/apps/mobile-*/ @asha-sathi/mobile
-/packages/design-system/flutter/ @asha-sathi/mobile
-/packages/shared-types/dart/ @asha-sathi/mobile
-/packages/supabase-client/dart/ @asha-sathi/mobile
+# Mobile app (Expo)
+/apps/mobile-expo/ @asha-sathi/mobile
 
 # Web dashboard
 /apps/web-dashboard/ @asha-sathi/web
@@ -37,4 +34,3 @@
 /package.json @asha-sathi/devops
 /pnpm-workspace.yaml @asha-sathi/devops
 /turbo.json @asha-sathi/devops
-/melos.yaml @asha-sathi/mobile

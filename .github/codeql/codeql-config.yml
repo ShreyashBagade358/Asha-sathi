@@ -10,6 +10,4 @@ paths-ignore:
   - "**/node_modules"
   - "**/build"
   - "**/dist"
-  - "**/*.g.dart"
-  - "**/*.freezed.dart"
   - "**/__pycache__"

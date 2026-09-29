@@ -3,6 +3,4 @@ packages:
   - "apps/web-dashboard"
   - "apps/backend"
   - "apps/ml-training"
-  - "apps/mobile-asha"
-  - "apps/mobile-phc-admin"
-  - "apps/mobile-patient"
+  - "apps/mobile-expo"

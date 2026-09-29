@@ -29,7 +29,6 @@ echo "==> Checking prerequisites"
 have node || error "node not found. Install Node.js >= 20 (https://nodejs.org)"
 have pnpm || error "pnpm not found. Install with: npm install -g pnpm@8.15.0"
 have python3 || error "python3 not found"
-have flutter || error "flutter not found. Install Flutter >= 3.22 (https://docs.flutter.dev)"
 have docker || error "docker not found. Install Docker Desktop and start it"
 
 NODE_VERSION="$(node -v | sed 's/^v//' | cut -d. -f1)"
@@ -62,14 +61,8 @@ else
   python3 -m pip install --quiet -r apps/backend/requirements/base.txt -r apps/backend/requirements/dev.txt
 fi
 
-echo "==> Flutter packages (all mobile apps)"
-if have melos; then
-  melos bootstrap
-else
-  for app in apps/mobile-asha apps/mobile-patient apps/mobile-phc-admin; do
-    (cd "$app" && flutter pub get)
-  done
-fi
+echo "==> Mobile app (Expo)"
+(cd apps/mobile-expo && npm install --no-audit --no-fund)
 
 # --- .env provisioning -------------------------------------------------------
 echo "==> Creating .env files from examples"
@@ -106,6 +99,6 @@ echo "Next steps:"
 echo "  1. Seed demo data:        ./scripts/seed-data.sh"
 echo "  2. Start the API:         cd apps/backend && uvicorn app.main:app --reload"
 echo "  3. Start the dashboard:   cd apps/web-dashboard && pnpm dev"
-echo "  4. Run the mobile app:    cd apps/mobile-asha && flutter run"
+echo "  4. Run the mobile app:    cd apps/mobile-expo && npx expo start"
 echo "  5. DB console (Adminer):  http://localhost:8081"
 echo "  6. Optional Supabase:     docker compose --profile supabase up -d"
