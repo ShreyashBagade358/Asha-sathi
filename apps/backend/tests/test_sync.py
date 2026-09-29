@@ -637,3 +637,102 @@ async def test_base_metadata_covers_sync_tables():
     for name, model in SYNC_TABLES.items():
         assert hasattr(model, "__tablename__"), name
         assert model.__tablename__ in Base.metadata.tables, name
+
+
+# ---------------------------------------------------------------------------
+# Push: temporal coercion from client ISO strings
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_push_coerces_iso_date_string_for_create(client, auth_headers, session):
+    """Clients send date_of_birth as an ISO string; asyncpg needs a real date."""
+    headers = await auth_headers(phone="9000000001", role="super_admin")
+    household = await _make_household(
+        session, household_id="hh-iso-1", village_id="v1", asha_user_id="u1"
+    )
+    op = {
+        "entity": "beneficiaries",
+        "operation": "create",
+        "id": "ben-iso-1",
+        "version": 1,
+        "client_request_id": "req-iso-1",
+        "data": {
+            "beneficiary_id": "BEN-ISO-1",
+            "household_id": household.id,
+            "full_name": "Iso Date Patient",
+            "gender": "female",
+            "date_of_birth": "1997-03-14",
+        },
+    }
+
+    response = await client.post(
+        "/api/v1/sync/push", json={"device_id": "d1", "operations": [op]}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["summary"] == {"pushed": 1, "conflicts": 0, "failed": 0, "total": 1}
+
+    stored = (await session.execute(select(Beneficiary).where(Beneficiary.id == "ben-iso-1"))).scalar_one()
+    assert stored.date_of_birth == date(1997, 3, 14)
+    assert isinstance(stored.date_of_birth, date)
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_push_coerces_iso_date_string_for_update(client, auth_headers, session):
+    """The same coercion must apply to updates, not just creates."""
+    headers = await auth_headers(phone="9000000001", role="super_admin")
+    household = await _make_household(
+        session, household_id="hh-iso-2", village_id="v1", asha_user_id="u1"
+    )
+    record = await _make_beneficiary(
+        session, beneficiary_id="ben-iso-2", household_id=household.id, full_name="Before"
+    )
+
+    op = {
+        "entity": "beneficiaries",
+        "operation": "update",
+        "id": record.id,
+        "version": 1,
+        "client_request_id": "req-iso-2",
+        "data": {"full_name": "After", "date_of_birth": "2001-12-25"},
+    }
+
+    response = await client.post(
+        "/api/v1/sync/push", json={"device_id": "d1", "operations": [op]}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["summary"]["pushed"] == 1
+
+    await session.refresh(record)
+    assert record.full_name == "After"
+    assert record.date_of_birth == date(2001, 12, 25)
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_push_replay_returns_record_not_envelope(client, auth_headers):
+    """A retry must return the record itself, not the stored response envelope.
+
+    Clients that lost the response mid-flight retry the same client_request_id.
+    If the replay handed back the whole envelope as ``record``, the device would
+    write envelope keys into its local row.
+    """
+    headers = await auth_headers(phone="9000000001", role="super_admin")
+    op = {
+        "entity": "households",
+        "operation": "create",
+        "id": "hh-replay-shape",
+        "version": 1,
+        "client_request_id": "req-replay-shape",
+        "data": {"hhid": "HH-REPLAY-SHAPE", "village_id": "v1", "asha_id": "u1"},
+    }
+
+    payload = {"device_id": "d1", "operations": [op]}
+    first_res = await client.post("/api/v1/sync/push", json=payload, headers=headers)
+    replay_res = await client.post("/api/v1/sync/push", json=payload, headers=headers)
+    first, replay = first_res.json(), replay_res.json()
+
+    original, replayed = first["results"][0]["record"], replay["results"][0]["record"]
+    assert original == replayed
+    assert "hhid" in replayed, "replayed record must be the record itself"
+    for envelope_key in ("client_request_id", "status", "entity", "operation"):
+        assert envelope_key not in replayed, f"replay leaked envelope key '{envelope_key}'"
