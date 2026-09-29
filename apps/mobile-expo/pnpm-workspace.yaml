@@ -1,0 +1,11 @@
+# Declares this app as its OWN pnpm workspace root.
+#
+# pnpm finds a workspace root by walking UP the directory tree looking for a
+# pnpm-workspace.yaml. Without this file, any pnpm command run here (including
+# the one `npx expo install` spawns internally) continues past this folder,
+# finds the repo root, and rewrites the website's pnpm-lock.yaml.
+#
+# The app is intentionally NOT a member of the repo-root workspace so that its
+# hoisted dependency layout stays independent of the web dashboard's.
+packages:
+  - "."
