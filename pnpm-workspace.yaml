@@ -3,4 +3,3 @@ packages:
   - "apps/web-dashboard"
   - "apps/backend"
   - "apps/ml-training"
-  - "apps/mobile-expo"

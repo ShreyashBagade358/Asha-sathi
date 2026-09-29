@@ -80,3 +80,6 @@ Thumbs.db
 *.pdf
 *.pptx
 apps/backend/temp_scan.py
+
+# pnpm overrides from turbo install (expo app is installed standalone)
+apps/mobile-expo/.expo/

@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "ASHA Sathi",
+    "slug": "asha-sathi-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ashasathi",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0F766E"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.ashasathi.mobile"
+    },
+    "android": {
+      "package": "org.ashasathi.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

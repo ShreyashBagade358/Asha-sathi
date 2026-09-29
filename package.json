@@ -6,8 +6,7 @@
     "packages/*",
     "apps/web-dashboard",
     "apps/backend",
-    "apps/ml-training",
-    "apps/mobile-expo"
+    "apps/ml-training"
   ],
   "scripts": {
     "dev": "turbo run dev",
