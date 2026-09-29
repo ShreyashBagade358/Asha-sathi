@@ -25,34 +25,23 @@ asha-sathi/
 │   │   ├── data/            # Raw + processed datasets
 │   │   ├── notebooks/       # EDA + training notebooks
 │   │   └── pyproject.toml   # ML common dependencies
-│   ├── mobile-asha/         # Flutter app for ASHA workers
-│   │   ├── lib/             # Main Dart code
-│   │   ├── features/        # 17 feature modules
-│   │   ├── pubspec.yaml     # Flutter dependencies
-│   │   └── test/            # Flutter tests
-│   ├── mobile-patient/      # Flutter app for beneficiaries
-│   │   ├── lib/             # Main Dart code
-│   │   ├── features/        # 7 feature modules
-│   │   └── pubspec.yaml
-│   └── mobile-phc-admin/    # Flutter app for PHC staff
-│       ├── lib/             # Main Dart code
-│       ├── features/        # 6 feature modules
-│       └── pubspec.yaml
+│   ├── mobile-expo/         # Expo app for ASHA workers
+│   │   ├── app/             # Expo Router routes
+│   │   ├── src/             # Auth, SQLite store, sync engine
+│   │   ├── package.json     # Expo dependencies
+│   │   └── app.json         # Expo config
 │   └── web-dashboard/       # React + Vite admin dashboard
 │       └── src/pages/       # Role-based pages (auth, asha, phc, phc-admin,
 │                            # district, state, super)
 ├── packages/                # Shared monorepo packages
 │   ├── design-system/       # Shared UI components
-│   │   ├── flutter/         # Flutter widgets (8 components)
 │   │   ├── react/           # React components (scaffold)
 │   │   └── tokens/          # Design tokens
 │   ├── shared-types/        # Cross-language type definitions
-│   │   ├── dart/            # Dart type definitions
 │   │   ├── typescript/      # TypeScript type definitions
 │   │   └── python/          # Python type definitions
 │   ├── ml-common/           # ML utilities (feature_spec, risk_utils)
 │   └── supabase-client/     # Thin Supabase clients per language
-│       ├── dart/            # Flutter Supabase client
 │       ├── typescript/      # React Supabase client
 │       └── python/          # Python Supabase client
 ├── docker/                  # Docker infrastructure
@@ -72,14 +61,13 @@ asha-sathi/
 ├── scripts/                 # Automation scripts
 │   ├── setup-dev.sh         # Full development environment setup
 │   ├── seed-data.sh         # Seed demo data
-│   ├── generate-types.sh    # OpenAPI → Dart/TS clients
+│   ├── generate-types.sh    # OpenAPI -> TypeScript client
 │   ├── db-migrate.sh        # Run alembic migrations
 │   └── deploy.sh            # Deployment script
 ├── postman/                 # Postman workspace (globals, collections, specs)
 ├── .github/                 # CI/CD workflows
 │   ├── workflows/           # ci.yml, cd.yml, codeql.yml
 │   └── dependabot.yml
-├── melos.yaml               # Flutter workspace bootstrap config
 ├── package.json             # Root pnpm workspace config
 ├── pnpm-workspace.yaml      # pnpm workspace definition
 └── turbo.json               # Turbo build pipeline config
@@ -98,12 +86,15 @@ asha-sathi/
 - **ML**: ONNX model serving via inference service
 - **Tasks**: Celery for reminders, sync jobs, notifications
 
-### Flutter Apps
-| App | Target | Features |
-|-----|--------|----------|
-| `mobile-asha` | ASHA workers | 17 modules: maternal, child, NCD, incentives, household, sync, training, etc. Offline-first with drift/sqflite |
-| `mobile-patient` | Beneficiaries | 7 modules: health_records, appointments, emergency, reminders, schemes, profile, grievance |
-| `mobile-phc-admin` | PHC/ANN/MOIC | 6 modules: dashboard, facility_mgmt, staff_mgmt, beneficiary_review, alerts, reports |
+### Mobile App (Expo)
+
+| App            | Audience      | Stack                                                       |
+| -------------- | ------------- | ----------------------------------------------------------- |
+| `mobile-expo`  | ASHA workers  | Expo, React Native, TypeScript, Expo Router, expo-sqlite    |
+
+Offline-first: local SQLite is the source of truth for the UI, with a
+netinfo-driven sync engine that pushes a durable queue and pulls server
+changes using an `updated_at` watermark.
 
 ### React Dashboard (apps/web-dashboard)
 - **Framework**: React 18 + TypeScript + Vite + Tailwind CSS
@@ -114,11 +105,10 @@ asha-sathi/
 - **API**: `/api/v1` proxy to backend
 
 ### Shared Packages
-- `design-system/flutter`: 8 reusable Flutter components (buttons, cards, text fields, etc.)
 - `design-system/react`: Scaffold (types currently being populated)
 - `ml-common`: Python ML utilities (feature_spec.py, risk_utils.py)
-- `shared-types`: Cross-language type definitions (Dart/TS/Python - currently scaffolded)
-- `supabase-client`: Thin Supabase clients per language (Dart/TS/Python - currently scaffolded)
+- `shared-types`: Cross-language type definitions (TypeScript/Python - currently scaffolded)
+- `supabase-client`: Thin Supabase clients per language (TypeScript/Python - currently scaffolded)
 
 ## Quick Start for New Users
 
@@ -126,7 +116,7 @@ asha-sathi/
 # 1. Install prerequisites
 # - Node.js >= 20, pnpm >= 8
 # - Python >= 3.11
-# - Flutter >= 3.22 with toolchains
+# - Node >= 20 (for the Expo app)
 # - Docker >= 24 (or Homebrew PostgreSQL + Redis)
 
 # 2. Install dependencies
@@ -156,8 +146,8 @@ cd apps/backend && uvicorn app.main:app --reload --port 8000
 # Dashboard
 cd apps/web-dashboard && pnpm dev  # http://localhost:5173
 
-# Flutter (one at a time)
-cd apps/mobile-asha && flutter run
+# Mobile
+cd apps/mobile-expo && npx expo start
 ```
 
 ## Available Scripts
@@ -176,10 +166,9 @@ cd apps/mobile-asha && flutter run
 - `cd apps/backend && alembic upgrade head` - Run migrations
 - `cd apps/backend && python -m scripts.seed` - Seed data
 
-### Flutter
-- `melos run analyze` - Analyze all Flutter packages
-- `melos run test` - Run tests for all Flutter packages
-- `melos run format` - Format Dart files
+### Mobile
+- `npx tsc --noEmit` - Typecheck the Expo app
+- `npx expo start` - Start the Expo dev server
 
 ### Docker
 - `docker compose -f docker/docker-compose.yml up -d` - Start infra
@@ -201,17 +190,16 @@ cd apps/mobile-asha && flutter run
 - `reporting/`, `dashboard/`, `verification/`, `consent/`, `audit/`
 - `config/`, `sync/`, `abdm/`
 
-### Finding Flutter Features
-`apps/mobile-asha/lib/features/` - 17 feature directories:
-- `abha/`, `ai_assistant/`, `beneficiary/`, `child/`, `dashboard/`
-- `death_reports/`, `disease_control/`, `eligible_couple/`, `household/`
-- `incentives/`, `ncd/`, `notifications/`, `settings/`, `sync/`, `training/`
+### Finding Mobile Features
+`apps/mobile-expo/src/` - shared client infrastructure:
+- `auth/` - secure token storage, OTP login, 401 refresh
+- `db/` - SQLite schema, migrations, repositories
+- `sync/` - queue, push/pull, conflict resolution
 
 ### Finding Design System Components
-`packages/design-system/flutter/lib/components/` - 8 Flutter widgets:
-- `asha_button.dart`, `asha_card.dart`, `asha_section_header.dart`
-- `asha_text_field.dart`, `bottom_nav_bar.dart`, `error_screens.dart`
-- `status_chip.dart`, `top_app_bar.dart`
+`packages/design-system/react/src/components/` - shared React components:
+- `Button`, `Card`, `Input`, `DataTable`, `StatusChip`
+- `Sidebar`, `TopAppBar`, `ErrorScreens`
 
 ### Finding ML Models
 `apps/ml-training/src/models/` - 5 model categories:

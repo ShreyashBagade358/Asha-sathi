@@ -21,9 +21,9 @@ A healthcare platform that digitises the work of Indian **ASHA (Accredited Socia
 
 ## Overview
 
-ASHA Sathi is built as a **turborepo + melos monorepo** with:
+ASHA Sathi is built as a **turborepo monorepo** with:
 
-- **Three Flutter mobile apps** — `mobile-asha` (for ASHA workers), `mobile-patient` (beneficiary self-service), `mobile-phc-admin` (PHC staff / ANM / MOIC).
+- **An Expo mobile app** (`mobile-expo`) for ASHA workers, built with Expo Router and offline-first SQLite sync.
 - **A React dashboard** (`web-dashboard`) for block/district/state-level supervisors and program managers.
 - **A FastAPI backend** exposing a versioned REST API (`/api/v1`) with offline-sync endpoints, ABDM integration and role-based access.
 - **An ML pipeline** (`ml-training`) for maternal-risk, child-growth and NCD-risk models served via a lightweight inference service.
@@ -34,9 +34,8 @@ ASHA Sathi is built as a **turborepo + melos monorepo** with:
 
 ```
                         +-------------------------------+
-                        |         Mobile apps            |
-                        |  ASHA / Patient / PHC Admin    |
-                        |   (Flutter, offline-first)     |
+                        |        Mobile app (Expo)        |
+                        |   ASHA workers, offline-first   |
                         +---------------+---------------+
                                         | HTTPS + sync (batched, versioned)
                                         v
@@ -70,7 +69,7 @@ ASHA Sathi is built as a **turborepo + melos monorepo** with:
 
 | Layer         | Technology                                                      |
 | ------------- | --------------------------------------------------------------- |
-| Mobile        | Flutter 3.22+, Dart, melos workspaces, freezed / json_serializable |
+| Mobile        | Expo (Expo Go), React Native, TypeScript, Expo Router, expo-sqlite |
 | Dashboard     | React 18, TypeScript, Vite, pnpm                                |
 | Backend       | Python 3.11+, FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic 2 |
 | Data          | PostgreSQL 16, Redis 7, Supabase (optional)                     |
@@ -99,13 +98,11 @@ asha-sathi/
 │   │   ├── data/               # raw + processed datasets
 │   │   ├── notebooks/          # EDA + training notebooks
 │   │   └── src/                # data, features, models, serving, export
-│   ├── mobile-asha/            # Flutter app for ASHA workers
-│   ├── mobile-patient/         # Flutter app for beneficiaries
-│   ├── mobile-phc-admin/       # Flutter app for PHC / ANM / MOIC
+│   ├── mobile-expo/            # Expo app for ASHA workers
 │   └── web-dashboard/          # React + Vite admin dashboard
 │       └── src/pages/          # role-based pages (auth, asha, phc, phc-admin, ...)
 ├── packages/
-│   ├── design-system/          # shared Flutter + web design system
+│   ├── design-system/          # shared design system (web + tokens)
 │   ├── shared-types/           # shared types (Dart / TS / Python)
 │   ├── supabase-client/        # thin Supabase clients per language
 │   └── ml-common/              # shared ML utilities
@@ -124,7 +121,6 @@ asha-sathi/
 │   ├── design-mocks/           # archived Stitch AI mockup screens
 │   └── architecture/ api/ abdm-integration/ database/ deployment/ ml-models/
 ├── postman/                    # Postman workspace (globals, collections, specs)
-├── melos.yaml                  # Flutter workspace bootstrap
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
@@ -135,7 +131,7 @@ asha-sathi/
 
 - Node.js **>= 20**, pnpm **>= 8** (`npm i -g pnpm@8`)
 - Python **>= 3.11**, PostgreSQL client tools
-- Flutter **>= 3.22** with Android/iOS toolchains
+- Node **>= 20** (for the Expo app) and the Expo Go app on a device
 - Docker **>= 24** (Docker Desktop recommended)
 
 ### 1. Automatic setup
@@ -144,7 +140,7 @@ asha-sathi/
 ./scripts/setup-dev.sh
 ```
 
-This checks prerequisites, installs pnpm/melos/Python deps, creates `.env` files
+This checks prerequisites, installs pnpm/Python/Expo deps, creates `.env` files
 from `.env.example`, starts Postgres + Redis and runs `alembic upgrade head`.
 
 ### 2. Seed demo data
@@ -166,7 +162,7 @@ docker compose -f docker/docker-compose.yml up -d          # infra
 docker compose --profile supabase up -d                    # optional Supabase
 cd apps/backend && uvicorn app.main:app --reload           # API on :8000
 cd apps/web-dashboard && pnpm dev                          # dashboard on :3000
-cd apps/mobile-asha && flutter run                         # ASHA app
+cd apps/mobile-expo && npx expo start                     # ASHA app (scan QR with Expo Go)
 ```
 
 Adminer DB console: http://localhost:8081 · Prometheus: http://localhost:9090 · Grafana: http://localhost:3001
@@ -223,12 +219,11 @@ cd apps/ml-training && pytest
 # JS/TS
 pnpm lint && pnpm typecheck
 
-# Flutter (all three apps)
-melos run analyze && melos run test
+# Mobile (Expo)
+cd apps/mobile-expo && npx tsc --noEmit
 
 # Formatting
-pnpm format                      # prettier (json/md/yaml/ts/py/dart)
-melos run format                 # dart format
+pnpm format                      # prettier (json/md/yaml/ts/py)
 ```
 
 CI runs all of the above in `.github/workflows/ci.yml` (lint → test → build/push).

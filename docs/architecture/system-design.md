@@ -7,12 +7,12 @@ system layers, application modules, data flows and sequence diagrams.
 
 ## 1. System layers
 
-ASHA Sathi is organised into five layers:
+ASHA Sathi is organised into four layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  USER LAYER                                                                 │
-│   Flutter ASHA app · Flutter Patient app · Flutter PHC Admin app            │
+│   Expo ASHA app (mobile-expo)                                              │
 │   React dashboard (web-dashboard)                                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  APPLICATION LAYER                                                          │
@@ -37,12 +37,10 @@ ASHA Sathi is organised into five layers:
 
 | Surface         | Audience                                | Tech             |
 | --------------- | --------------------------------------- | ---------------- |
-| `mobile-asha`   | ASHA workers (field data capture)       | Flutter          |
-| `mobile-patient`| Beneficiaries (self-service, records)   | Flutter          |
-| `mobile-phc-admin` | ANM / MOIC / PHC staff               | Flutter          |
+| `mobile-expo`   | ASHA workers (field data capture)       | Expo / RN        |
 | `web-dashboard` | Block/district/state supervisors        | React + Vite     |
 
-The mobile apps are **offline-first**: all screens read/write a local SQLite store
+The mobile app is **offline-first**: all screens read/write a local SQLite store
 and enqueue mutations for later sync. The dashboard is online-only.
 
 ### 1.2 Application layer

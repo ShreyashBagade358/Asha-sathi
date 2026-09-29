@@ -72,8 +72,8 @@ docs(abdm): document M2 consent request flow
 chore(deps): bump fastapi to 0.110
 ```
 
-Scopes: `backend`, `web`, `mobile-asha`, `mobile-patient`, `mobile-phc-admin`,
-`ml`, `infra`, `ci`, `docs`, `deps`, `db`.
+Scopes: `backend`, `web`, `mobile-expo`, `ml`, `infra`, `ci`, `docs`, `deps`,
+`db`.
 
 ## Pull request process
 
@@ -104,24 +104,23 @@ Scopes: `backend`, `web`, `mobile-asha`, `mobile-patient`, `mobile-phc-admin`,
 - Prettier (`singleQuote`, `trailingComma: all`, `printWidth: 100`).
 - Strict TypeScript; no `any` unless truly unavoidable and documented.
 
-### Dart / Flutter (mobile)
+### TypeScript (mobile)
 
-- `dart format` (repo-wide via melos).
-- `flutter analyze` with zero warnings.
-- Models generated with `freezed` / `json_serializable` (`melos run generate:code`).
+- `npx tsc --noEmit` in `apps/mobile-expo` with zero errors.
+- Expo SDK API only; no native modules that break Expo Go.
 
 ### Git hygiene
 
 - Write descriptive commit messages (conventional).
 - Do not commit secrets, `.env*`, build artifacts, models or large binaries.
-- Keep `pnpm-lock.yaml`, `pubspec.lock` and lockfiles up to date in the same PR as dependency changes.
+- Keep `pnpm-lock.yaml`, `package-lock.json` and lockfiles up to date in the same PR as dependency changes.
 
 ## Testing requirements
 
 - **Backend:** new/changed behaviour must have pytest coverage; run `pytest --cov=app`.
 - **ML:** training/eval code must keep `apps/ml-training` pytest suite green.
 - **Web:** add/update Vitest or component tests for changed logic.
-- **Mobile:** add Flutter widget/unit tests where practical; CI skips when no tests exist.
+- **Mobile:** add unit tests for sync, queue, and auth logic under `apps/mobile-expo`.
 - Smoke test the API: `curl localhost:8000/health` should return 200.
 
 ## Reporting issues
