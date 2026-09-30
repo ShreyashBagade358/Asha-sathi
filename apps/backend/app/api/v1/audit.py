@@ -9,7 +9,7 @@ from app.schemas.common import PaginatedResponse, paginate
 
 router = APIRouter()
 
-ADMIN = require_roles(Role.ANM, Role.MOIC, Role.BPM, Role.DPM, Role.STATE_ADMIN, Role.SUPER_ADMIN)
+ADMIN = require_roles(Role.ADMIN)
 
 
 @router.get("/logs", response_model=PaginatedResponse[dict])

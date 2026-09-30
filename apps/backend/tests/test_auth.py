@@ -38,12 +38,12 @@ async def test_otp_verify_invalid(client, user_factory):
     ("phone", "role"),
     [
         ("9876543210", "asha"),
-        ("9876543211", "anm"),
-        ("9876543212", "moic"),
+        ("9876543215", "admin"),
+        ("9876543216", "patient"),
     ],
 )
 async def test_dev_otp_bypass_login_without_send(client, user_factory, phone, role):
-    """Bypass login: the three fixed phones verify with OTP 1234 even when no
+    """Bypass login: the fixed phones verify with OTP 1234 even when no
     OTP was ever sent - i.e. login does not depend on the OTP lifecycle."""
     user = await user_factory(phone=phone, role=role)
 
@@ -60,7 +60,7 @@ async def test_dev_otp_bypass_login_without_send(client, user_factory, phone, ro
 
 @pytest.mark.asyncio
 async def test_dev_otp_send_returns_fixed_code(client, user_factory):
-    user = await user_factory(phone="9876543211", role="anm")
+    user = await user_factory(phone="9876543215", role="admin")
     resp = await client.post("/api/v1/auth/otp/send", json={"phone": user.phone})
     assert resp.status_code == 200
     assert "bypass" in resp.json()["message"].lower()
@@ -69,10 +69,10 @@ async def test_dev_otp_send_returns_fixed_code(client, user_factory):
 @pytest.mark.asyncio
 async def test_dev_bypass_role_locked(client, user_factory):
     """The bypass numbers are role-locked: a mismatched role is rejected."""
-    await user_factory(phone="9876543211", role="asha")  # wrong role for 11
+    await user_factory(phone="9876543215", role="asha")  # wrong role for the admin bypass phone
     resp = await client.post(
         "/api/v1/auth/otp/verify",
-        json={"phone": "9876543211", "otp": "1234"},
+        json={"phone": "9876543215", "otp": "1234"},
     )
     assert resp.status_code == 401
 
@@ -106,3 +106,70 @@ async def test_token_refresh(client, user_factory):
     resp = await client.post("/api/v1/auth/token/refresh", json={"refresh_token": refresh})
     assert resp.status_code == 200
     assert "access_token" in resp.json()
+
+
+# --- password login -------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_password_login_success(client, user_factory):
+    from app.core.security import get_password_hash
+
+    user = await user_factory(phone=PHONE, hashed_password=get_password_hash("asha@123"))
+
+    resp = await client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "asha@123"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["user"]["id"] == user.id
+    assert body["tokens"]["token_type"] == "bearer"
+
+    # The returned access token must actually authenticate.
+    me = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {body['tokens']['access_token']}"},
+    )
+    assert me.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_password_login_wrong_password(client, user_factory):
+    from app.core.security import get_password_hash
+
+    await user_factory(phone=PHONE, hashed_password=get_password_hash("asha@123"))
+    resp = await client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "wrong"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_password_login_unknown_phone_is_indistinguishable(client, user_factory):
+    """A wrong password and an unregistered phone must fail identically, so the
+    endpoint cannot be used to discover which numbers have accounts."""
+    from app.core.security import get_password_hash
+
+    await user_factory(phone=PHONE, hashed_password=get_password_hash("asha@123"))
+    wrong_pw = await client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "wrong"})
+    unknown = await client.post("/api/v1/auth/login", json={"phone": "9000000000", "password": "wrong"})
+    assert wrong_pw.status_code == unknown.status_code == 401
+    assert wrong_pw.json() == unknown.json()
+
+
+@pytest.mark.asyncio
+async def test_password_login_inactive_user(client, user_factory):
+    from app.core.security import get_password_hash
+
+    await user_factory(phone=PHONE, hashed_password=get_password_hash("asha@123"), is_active=False)
+    resp = await client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "asha@123"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_password_login_without_password_set(client, user_factory):
+    await user_factory(phone=PHONE)
+    resp = await client.post("/api/v1/auth/login", json={"phone": PHONE, "password": "asha@123"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_password_login_rejects_bad_phone_format(client, user_factory):
+    resp = await client.post("/api/v1/auth/login", json={"phone": "12345", "password": "asha@123"})
+    assert resp.status_code == 422

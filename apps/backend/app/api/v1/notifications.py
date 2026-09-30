@@ -73,7 +73,7 @@ async def broadcast(
     payload: BroadcastCreate,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    user: User = Depends(require_roles(Role.MOIC, Role.BPM, Role.DPM, Role.STATE_ADMIN, Role.SUPER_ADMIN)),
+    user: User = Depends(require_roles(Role.ADMIN)),
 ):
     stmt = select(User.id).where(User.is_active.is_(True))
     if payload.roles:

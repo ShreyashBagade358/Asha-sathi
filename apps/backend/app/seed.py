@@ -137,7 +137,7 @@ async def seed_demo() -> None:
             )
 
             # ------------------------------------------------------------------
-            # 2. Users: ASHA, ANM, MOIC, DPM, State admin, Super admin, Patient
+            # 2. Users: ASHA, Admin, Patient
             # ------------------------------------------------------------------
             dev_password_hash = get_password_hash("asha@123")  # dev-only credential
 
@@ -162,83 +162,18 @@ async def seed_demo() -> None:
                 },
                 phone="9876543210",
             )
-            anm_user, _ = await _get_or_create(
+            admin_user, _ = await _get_or_create(
                 session,
                 User,
                 {
-                    "role": Role.ANM.value,
+                    "role": Role.ADMIN.value,
                     "state_id": state.id,
                     "district_id": district.id,
                     "block_id": block.id,
                     "phc_id": phc.id,
-                    "sub_center_id": sub_center.id,
-                    "employee_id": "EMP-UP-0005678",
-                    "email": "anita.anm@example.in",
-                    "full_name": "Anita Singh",
-                    "full_name_local": {"hi": "अनीता सिंह"},
-                    "language": "hi",
-                    "hashed_password": dev_password_hash,
-                    "is_active": True,
-                },
-                phone="9876543211",
-            )
-            moic_user, _ = await _get_or_create(
-                session,
-                User,
-                {
-                    "role": Role.MOIC.value,
-                    "state_id": state.id,
-                    "district_id": district.id,
-                    "block_id": block.id,
-                    "phc_id": phc.id,
-                    "employee_id": "EMP-UP-0009012",
-                    "email": "moic.sarojini@example.in",
-                    "full_name": "Dr. R. P. Singh",
-                    "language": "en",
-                    "hashed_password": dev_password_hash,
-                    "is_active": True,
-                },
-                phone="9876543212",
-            )
-            await _get_or_create(
-                session,
-                User,
-                {
-                    "role": Role.DPM.value,
-                    "state_id": state.id,
-                    "district_id": district.id,
-                    "employee_id": "EMP-UP-0031001",
-                    "email": "dpm.lucknow@example.in",
-                    "full_name": "DPM Lucknow",
-                    "language": "en",
-                    "hashed_password": dev_password_hash,
-                    "is_active": True,
-                },
-                phone="9876543213",
-            )
-            await _get_or_create(
-                session,
-                User,
-                {
-                    "role": Role.STATE_ADMIN.value,
-                    "state_id": state.id,
-                    "employee_id": "EMP-UP-0040001",
-                    "email": "state.admin@example.in",
-                    "full_name": "State Admin",
-                    "language": "en",
-                    "hashed_password": dev_password_hash,
-                    "is_active": True,
-                },
-                phone="9876543214",
-            )
-            await _get_or_create(
-                session,
-                User,
-                {
-                    "role": Role.SUPER_ADMIN.value,
                     "employee_id": "EMP-UP-0050001",
-                    "email": "super.admin@example.in",
-                    "full_name": "Super Admin",
+                    "email": "admin@example.in",
+                    "full_name": "System Admin",
                     "language": "en",
                     "hashed_password": dev_password_hash,
                     "is_active": True,
@@ -280,7 +215,7 @@ async def seed_demo() -> None:
                         "module2": "completed",
                         "ncd_training": "pending",
                     },
-                    "supervisor_id": anm_user.id,
+                    "supervisor_id": admin_user.id,
                     "catchment_villages": [village.id],
                     "performance_score": 87.5,
                 },
@@ -409,7 +344,7 @@ async def seed_demo() -> None:
                 danger_signs={"bleeding": False, "convulsions": False},
                 advice_given={"iron_folic_acid": True, "tt_booster": True},
                 pmsma_attended=True,
-                recorded_by=anm_user.id,
+                recorded_by=admin_user.id,
             )
             session.add_all([anc1, anc2])
 
@@ -474,7 +409,7 @@ async def seed_demo() -> None:
                             dose_number=dose_number,
                             due_date=due_date,
                             status=status,
-                            given_by=anm_user.id if status == "given" else None,
+                            given_by=admin_user.id if status == "given" else None,
                             facility_id=phc.id if status == "given" else None,
                             recorded_by=asha_user.id if status == "given" else None,
                         )
@@ -792,7 +727,7 @@ async def seed_demo() -> None:
                         delivered_at=datetime.now(UTC) - timedelta(minutes=9),
                     ),
                     Notification(
-                        user_id=anm_user.id,
+                        user_id=admin_user.id,
                         type="task",
                         priority="medium",
                         title="New high-risk pregnancy",
@@ -825,10 +760,9 @@ async def main() -> None:
     print(
         "Demo data seeded successfully.\n"
         "Login phones (dev OTP bypass, password asha@123):\n"
-        "  9876543210 asha        9876543213 dpm\n"
-        "  9876543211 anm         9876543214 state_admin\n"
-        "  9876543212 moic        9876543215 super_admin\n"
-        "                         9876543216 patient"
+        "  9876543210 asha\n"
+        "  9876543215 admin\n"
+        "  9876543216 patient"
     )
 
 

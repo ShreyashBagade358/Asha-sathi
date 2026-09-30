@@ -11,7 +11,7 @@ from app.models.user import Role, User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-ADMIN_ROLES = {Role.ANM, Role.MOIC, Role.BPM, Role.DPM, Role.STATE_ADMIN, Role.SUPER_ADMIN}
+ADMIN_ROLES = {Role.ADMIN}
 
 
 async def get_current_user(

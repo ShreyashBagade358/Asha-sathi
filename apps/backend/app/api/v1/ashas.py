@@ -193,7 +193,7 @@ async def get_asha_performance(
     asha_id: str,
     period_start: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
     db: AsyncSession = Depends(get_db_session),
-    _: User = Depends(require_roles(Role.ANM, Role.MOIC, Role.BPM, Role.DPM, Role.STATE_ADMIN, Role.SUPER_ADMIN)),
+    _: User = Depends(require_roles(Role.ADMIN)),
 ):
     start = datetime.strptime(period_start, "%Y-%m-%d").date()
     result = await db.execute(select(ASHAKPI).where(ASHAKPI.asha_id == asha_id, ASHAKPI.period_start == start))
@@ -207,7 +207,7 @@ async def get_asha_performance(
 # ASHA directory (admin views)
 # ---------------------------------------------------------------------------
 def _scope_filter(user: User, stmt):
-    if user.role in (Role.STATE_ADMIN.value, Role.SUPER_ADMIN.value):
+    if user.role == Role.ADMIN.value:
         return stmt
     if user.district_id:
         return stmt.where(User.district_id == user.district_id)

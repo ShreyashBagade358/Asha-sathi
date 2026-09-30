@@ -1,4 +1,6 @@
 import { syncApi } from '../auth/api';
+import { upsertRows } from '../db/clinical';
+import { ALL_TABLES, type TableName } from '../db/tables';
 import {
   clearConflict,
   dequeue,
@@ -8,8 +10,7 @@ import {
   markQueueState,
   recordConflict,
   setPullWatermark,
-  upsertBeneficiaries,
-  upsertHouseholds,
+  adoptPushedVersion,
   metadata,
   getPendingQueue,
 } from '../db/database';
@@ -30,8 +31,15 @@ const BATCH_SIZE = 50;
 /** Stop retrying automatically after this many attempts; surface in the UI. */
 const MAX_ATTEMPTS = 5;
 
-/** Tables pulled from the server and applied to SQLite. */
-const PULL_TABLES = ['households', 'beneficiaries'] as const;
+/**
+ * Tables pulled from the server and applied to SQLite, in dependency order so a
+ * parent row is always stored before its children. This is every table the
+ * backend scopes to the signed-in ASHA that the app also has a local table for;
+ * the remaining scoped tables (pnc_visits, delivery_outcomes, hbnc_visits,
+ * hbyc_visits, ec_followups, disease_cases, death_reports, village_forms) are
+ * not requested yet, so the server does not ship rows the app would discard.
+ */
+const PULL_TABLES: readonly TableName[] = ALL_TABLES;
 
 export interface SyncResult {
   ok: boolean;
@@ -99,12 +107,13 @@ export async function pushQueue(): Promise<SyncResult> {
     const attempts = item?.attempts ?? 0;
 
     if (outcome.status === 'success') {
+      // Adopt the server's version before dropping the queue entry, so the next
+      // edit to this row is not built on a version the server has passed.
+      if (outcome.version != null && item) {
+        await adoptPushedVersion(outcome.entity || item.entity, item.recordId, outcome.version);
+      }
       await dequeue(outcome.client_request_id);
       result.pushed += 1;
-      // Adopt the server's version so the next local edit is not stale.
-      if (outcome.version != null && item) {
-        await markQueueState(outcome.client_request_id, 'synced');
-      }
     } else if (outcome.status === 'conflict') {
       // Keep the local change out of the queue but record it so the user can
       // review. The server row is written to the conflict table, not applied
@@ -152,12 +161,17 @@ export async function pullChanges(): Promise<SyncResult> {
     };
   }
 
-  const households = response.records.households ?? [];
-  const beneficiaries = response.records.beneficiaries ?? [];
+  const records = response.records ?? {};
 
   try {
-    await upsertHouseholds(households);
-    await upsertBeneficiaries(beneficiaries);
+    // Stored table by table so one unexpected payload cannot roll back the rest,
+    // but the watermark below still only advances if every write succeeded.
+    for (const table of PULL_TABLES) {
+      const rows = records[table];
+      if (Array.isArray(rows)) {
+        await upsertRows(table, rows as Array<Record<string, unknown>>);
+      }
+    }
   } catch (error) {
     // Do not advance the watermark: the next pull must retry these rows.
     return {
@@ -170,7 +184,10 @@ export async function pullChanges(): Promise<SyncResult> {
   await setPullWatermark(response.server_time ?? new Date().toISOString());
   await metadata.set('last_sync_at', new Date().toISOString());
 
-  result.pulled = households.length + beneficiaries.length;
+  result.pulled = PULL_TABLES.reduce((total, table) => {
+    const rows = records[table];
+    return total + (Array.isArray(rows) ? rows.length : 0);
+  }, 0);
   result.hasMore = response.has_more;
   result.partial = response.has_more;
   return result;

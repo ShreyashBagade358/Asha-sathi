@@ -1,12 +1,6 @@
 import { api } from '@/lib/api'
 import type { Role, User } from '@/types'
 
-export interface LoginResponse {
-  otpRequestId?: string
-  expiresIn?: number
-  message?: string
-}
-
 export interface TokenPair {
   accessToken: string
   refreshToken: string
@@ -39,7 +33,7 @@ interface BackendUser {
   state_id?: string
 }
 
-interface VerifyOtpResponse {
+interface PasswordLoginResponse {
   tokens: BackendTokenPair
   user: BackendUserSummary
 }
@@ -61,17 +55,8 @@ function toUser(raw: BackendUserSummary | BackendUser): User {
 }
 
 export const authService = {
-  async login(phone: string): Promise<LoginResponse> {
-    const { data } = await api.post<LoginResponse>('/auth/otp/send', { phone })
-    return data
-  },
-
-  async verifyOtp(phone: string, otp: string, otpRequestId?: string): Promise<{ tokens: TokenPair; user: User }> {
-    const { data } = await api.post<VerifyOtpResponse>('/auth/otp/verify', {
-      phone,
-      otp,
-      otpRequestId,
-    })
+  async login(phone: string, password: string): Promise<{ tokens: TokenPair; user: User }> {
+    const { data } = await api.post<PasswordLoginResponse>('/auth/login', { phone, password })
     return {
       tokens: { accessToken: data.tokens.access_token, refreshToken: data.tokens.refresh_token },
       user: toUser(data.user),

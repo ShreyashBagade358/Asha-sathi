@@ -36,9 +36,9 @@ export interface AuthState {
   error: string | null;
 }
 
-export async function login(phone: string, otp: string): Promise<UserSummary> {
+export async function login(phone: string, password: string): Promise<UserSummary> {
   const deviceId = await getDeviceId();
-  const response = await authApi.verifyOtp(phone, otp, deviceId);
+  const response = await authApi.login(phone, password, deviceId);
 
   await tokenStore.save({
     accessToken: response.tokens.access_token,

@@ -12,17 +12,14 @@ class Settings(BaseSettings):
     dev_otp_code: str = "1234"  # dev-only fixed OTP that always verifies
     # Dev-only OTP bypass: phone -> role. These phones log in with dev_otp_code
     # without a real OTP being generated or delivered (bypasses the OTP flow).
+    # Each phone is role-locked, so it must match the account's real role.
     # Override with DEV_BYPASS_USERS as a JSON object, e.g.
     #   DEV_BYPASS_USERS={"9876500001":"asha"}
     dev_bypass_users: dict[str, str] = Field(
         default_factory=lambda: {
-            "9876543210": "asha",         # ASHA test login
-            "9876543211": "anm",          # ANM test login
-            "9876543212": "moic",         # MOIC / medical officer test login
-            "9876543213": "dpm",          # District Programme Manager test login
-            "9876543214": "state_admin",  # State admin test login
-            "9876543215": "super_admin",  # Super admin test login
-            "9876543216": "patient",      # Patient portal test login
+            "9876543210": "asha",    # ASHA test login
+            "9876543215": "admin",   # Admin test login (all admin areas)
+            "9876543216": "patient",  # Patient portal test login
         }
     )
     api_v1_prefix: str = "/api/v1"

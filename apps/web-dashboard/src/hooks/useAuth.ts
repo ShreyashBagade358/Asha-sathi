@@ -6,8 +6,7 @@ export function useAuth(): {
   token: string | null
   isAuthenticated: boolean
   isHydrating: boolean
-  requestOtp: (phone: string) => Promise<{ otpRequestId?: string; expiresIn?: number }>
-  verifyOtp: (phone: string, otp: string, otpRequestId?: string) => Promise<User>
+  signIn: (phone: string, password: string) => Promise<User>
   logout: () => Promise<void>
   hydrate: () => Promise<void>
 } {
@@ -15,10 +14,9 @@ export function useAuth(): {
   const token = useAuthStore((s) => s.token)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const isHydrating = useAuthStore((s) => s.isHydrating)
-  const requestOtp = useAuthStore((s) => s.requestOtp)
-  const verifyOtp = useAuthStore((s) => s.verifyOtp)
+  const signIn = useAuthStore((s) => s.signIn)
   const logout = useAuthStore((s) => s.logout)
   const hydrate = useAuthStore((s) => s.hydrate)
 
-  return { user, token, isAuthenticated, isHydrating, requestOtp, verifyOtp, logout, hydrate }
+  return { user, token, isAuthenticated, isHydrating, signIn, logout, hydrate }
 }

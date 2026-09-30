@@ -22,14 +22,12 @@ interface ManagedUser {
   lastLoginAt?: string
 }
 
-const ROLES: Role[] = ['asha', 'anm', 'moic', 'bpm', 'dpm', 'state_admin', 'super_admin']
+const ROLES: Role[] = ['asha', 'admin', 'patient']
 
 const INITIAL_USERS: ManagedUser[] = [
-  { id: 'u1', fullName: 'R. Verma', phone: '9876500001', email: 'r.verma@state.gov.in', role: 'state_admin', stateName: 'Bihar', active: true, lastLoginAt: new Date().toISOString() },
-  { id: 'u2', fullName: 'S. Mishra', phone: '9876500002', email: 's.mishra@district.gov.in', role: 'dpm', stateName: 'Bihar', districtName: 'Gaya', active: true },
-  { id: 'u3', fullName: 'A. Sinha', phone: '9876500003', role: 'moic', stateName: 'Bihar', districtName: 'Gaya', phcName: 'PHC Rampur', active: true },
-  { id: 'u4', fullName: 'D. Kumar', phone: '9876500004', role: 'bpm', stateName: 'Bihar', districtName: 'Nalanda', active: false },
-  { id: 'u5', fullName: 'K. Shah', phone: '9876500005', role: 'super_admin', stateName: 'All States', active: true },
+  { id: 'u1', fullName: 'K. Shah', phone: '9876500005', email: 'k.shah@example.in', role: 'admin', stateName: 'All States', active: true },
+  { id: 'u2', fullName: 'S. Devi', phone: '9876500002', role: 'asha', stateName: 'Bihar', districtName: 'Gaya', phcName: 'PHC Rampur', active: true },
+  { id: 'u3', fullName: 'R. Kumar', phone: '9876500003', role: 'patient', stateName: 'Bihar', districtName: 'Gaya', active: false },
 ]
 
 export default function UserManagementPage() {
@@ -113,11 +111,8 @@ export default function UserManagementPage() {
 
 function roleChip(role: Role): 'success' | 'info' | 'warning' | 'danger' | 'neutral' {
   switch (role) {
-    case 'super_admin': return 'danger'
-    case 'state_admin': return 'warning'
-    case 'dpm': return 'info'
-    case 'moic':
-    case 'bpm': return 'success'
+    case 'admin': return 'danger'
+    case 'asha': return 'success'
     default: return 'neutral'
   }
 }

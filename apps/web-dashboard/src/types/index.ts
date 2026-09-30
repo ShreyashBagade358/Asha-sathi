@@ -1,12 +1,4 @@
-export type Role =
-  | 'asha'
-  | 'anm'
-  | 'moic'
-  | 'bpm'
-  | 'dpm'
-  | 'state_admin'
-  | 'super_admin'
-  | 'patient'
+export type Role = 'asha' | 'admin' | 'patient'
 
 export type OrgLevel = 'state' | 'district' | 'block' | 'phc' | 'village'
 

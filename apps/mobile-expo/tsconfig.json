@@ -2,11 +2,21 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "jest",
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "nativewind-env.d.ts"
   ],
   "exclude": [
     "node_modules"

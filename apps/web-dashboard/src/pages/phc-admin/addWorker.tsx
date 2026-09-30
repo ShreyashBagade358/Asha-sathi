@@ -62,7 +62,7 @@ export default function AddNewAshaWorkerPhcAdmin() {
         date_of_joining: doj || undefined,
       })
       addAshaWorker(created)
-      addToast('success', `${created.name} registered. ASHA ID: ${created.ashaId}. They can now login with ${created.phone} via OTP.`)
+      addToast('success', `${created.name} registered. ASHA ID: ${created.ashaId}. They can now sign in with ${created.phone} using their password.`)
       navigate('/phc/ashas')
     } catch (err: unknown) {
       if (isAxiosError(err)) {

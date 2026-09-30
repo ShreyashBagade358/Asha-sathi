@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db_session
 from app.core.config import settings
 from app.core.exceptions import NotFoundError, ServiceUnavailableError, UnauthorizedError
-from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.core.security import create_access_token, create_refresh_token, decode_token, verify_password
 from app.models.user import User
 from app.schemas.auth import (
     BiometricRegisterRequest,
@@ -16,6 +16,7 @@ from app.schemas.auth import (
     BiometricVerifyRequest,
     BiometricVerifyResponse,
     LoginResponse,
+    PasswordLoginRequest,
     PhoneOTPRequest,
     RefreshTokenRequest,
     TokenResponse,
@@ -40,6 +41,46 @@ def _login_response(user: User) -> LoginResponse:
         expires_in=settings.access_token_expire_minutes * 60,
     )
     return LoginResponse(tokens=tokens, user=UserSummary.model_validate(user))
+
+
+# A bcrypt hash of an unguessable value. Verifying against this when the phone
+# is unknown keeps the failure path the same cost as a real wrong password, so
+# response timing cannot be used to enumerate registered accounts.
+_UNKNOWN_PHONE_HASH = "$2b$12$IVy3.eneSQnxxJYxBkGND.HcCdYukkixQGFPasjUOdG9Yq2i/Jox6"
+
+
+@router.post("/auth/login", response_model=LoginResponse)
+async def password_login(payload: PasswordLoginRequest, request: Request, db: AsyncSession = Depends(get_db_session)):
+    result = await db.execute(select(User).where(User.phone == payload.phone))
+    user = result.scalar_one_or_none()
+
+    # Every rejection below is the same 401 with the same message: a caller must
+    # not be able to tell "no such account" from "wrong password" from "inactive".
+    if user is None or not user.is_active or not user.hashed_password:
+        # Spend the same bcrypt time a real attempt would, then fail the same way.
+        hash_to_check = user.hashed_password if user and user.hashed_password else _UNKNOWN_PHONE_HASH
+        verify_password(payload.password, hash_to_check)
+        logger.info("Rejected password login for %s", payload.phone)
+        raise UnauthorizedError("Incorrect phone number or password")
+
+    if not verify_password(payload.password, user.hashed_password):
+        logger.info("Rejected password login for %s", payload.phone)
+        raise UnauthorizedError("Incorrect phone number or password")
+
+    if payload.device_id:
+        user.device_id = payload.device_id
+    user.last_login_at = datetime.now(UTC)
+    await log_action(
+        db,
+        user.id,
+        "password_login",
+        "user",
+        user.id,
+        ip_address=request.client.host if request.client else None,
+        request_id=request.headers.get("X-Request-ID"),
+    )
+    await db.commit()
+    return _login_response(user)
 
 
 @router.post("/auth/otp/send", response_model=MessageResponse)

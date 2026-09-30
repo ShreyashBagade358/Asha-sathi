@@ -1,31 +1,29 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
 
-import {
-  enqueue,
-  insertLocalBeneficiary,
-  listHouseholds,
-} from '../../src/db/database';
-import { scheduleSync } from '../../src/sync/network';
-import { isCurrentlyOnline } from '../../src/sync/network';
-import type { Household } from '../../src/types';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { SelectField, TextField } from '@/components/ui/Field';
+import { Screen } from '@/components/Screen';
+import { enqueue, insertLocalBeneficiary, listHouseholds } from '@/db/database';
+import { useLocalization } from '@/i18n/useLocalization';
+import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
+import type { Household } from '@/types';
 
 /**
- * Register a beneficiary.
+ * Port of AddNewPatientAshaSathi.tsx.
  *
- * The write lands in SQLite and the outbox first, and the form is cleared
- * immediately. Uploading happens whenever the network allows, so this screen
- * behaves identically online and offline.
+ * The write path is unchanged from the working version: SQLite and the outbox
+ * commit first, the form clears immediately, and the upload happens whenever the
+ * network allows. That is what makes the screen behave the same online and off.
+ *
+ * Two web fields are deliberately absent rather than collected-and-dropped:
+ *  - `risk_level` is not a beneficiary column anywhere in the schema. Risk is
+ *    derived from pregnancies and NCD screenings, so a value typed here would be
+ *    discarded by the server's _clean_columns and never come back on a pull.
+ *  - `clinical notes` likewise has no beneficiary column. Task and visit notes
+ *    live on asha_tasks / anc_visits instead.
  */
 function newId(): string {
   // A local uuid is enough: the server upserts on this id and the same id is
@@ -34,9 +32,13 @@ function newId(): string {
 }
 
 export default function RegisterPatientScreen() {
+  const router = useRouter();
+  const { t } = useLocalization();
+
   const [households, setHouseholds] = useState<Household[]>([]);
   const [householdId, setHouseholdId] = useState('');
   const [fullName, setFullName] = useState('');
+  const [abhaId, setAbhaId] = useState('');
   const [gender, setGender] = useState('female');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,17 +53,22 @@ export default function RegisterPatientScreen() {
     })();
   }, []);
 
+  const householdOptions = useMemo(
+    () => households.map((h) => ({ label: h.hhid || h.id, value: h.id })),
+    [households],
+  );
+
   async function save() {
     if (!fullName.trim()) {
-      setError('Name is required.');
+      setError(t('asha.fullName'));
       return;
     }
     if (!householdId) {
-      setError('Select a household.');
+      setError(t('asha.selectVillage'));
       return;
     }
     if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-      setError('Date of birth must be YYYY-MM-DD.');
+      setError(t('asha.dob'));
       return;
     }
 
@@ -73,6 +80,7 @@ export default function RegisterPatientScreen() {
       id,
       beneficiary_id: `BEN-${id.slice(-8).toUpperCase()}`,
       household_id: householdId,
+      abha_id: abhaId.trim() || null,
       full_name: fullName.trim(),
       gender,
       date_of_birth: dateOfBirth || null,
@@ -86,10 +94,11 @@ export default function RegisterPatientScreen() {
         id,
         beneficiaryId: data.beneficiary_id,
         householdId,
+        abhaId: data.abha_id ?? '',
         fullName: data.full_name,
         gender,
-        dateOfBirth: dateOfBirth,
-        phone: data.phone ?? '',
+        dateOfBirth,
+        phone: phone.trim(),
       });
 
       await enqueue({
@@ -102,149 +111,110 @@ export default function RegisterPatientScreen() {
       });
 
       setFullName('');
+      setAbhaId('');
       setDateOfBirth('');
       setPhone('');
 
       if (isCurrentlyOnline()) {
         scheduleSync(300);
-        Alert.alert('Saved', 'Patient saved and queued for upload.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        Alert.alert(t('asha.patientSavedToast'), t('errors.savedQueued'), [{ text: t('common.confirm'), onPress: () => router.back() }]);
       } else {
-        Alert.alert(
-          'Saved offline',
-          'This patient is saved on the device and will upload automatically when you are back online.',
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+        Alert.alert(t('errors.savedOfflineTitle'), t('errors.savedOfflineHint'), [
+          { text: t('common.confirm'), onPress: () => router.back() },
+        ]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the patient.');
+      setError(err instanceof Error ? err.message : t('errors.retry'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.hint}>
-        Works offline. The record is saved on this device and uploaded automatically.
-      </Text>
+    <Screen title={t('asha.newPatientTitle')} subtitle={t('asha.newPatientSubtitle')} back withTabBar={false}>
+      <View className="gap-5">
+        <Card>
+          <View className="gap-3 p-4">
+            <SectionLabel>{t('asha.personalInfo')}</SectionLabel>
+            <TextField
+              label={`${t('asha.fullName')} *`}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder={t('asha.legalNamePlaceholder')}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+            <TextField
+              label={t('asha.abhaId')}
+              value={abhaId}
+              onChangeText={setAbhaId}
+              placeholder={t('asha.abhaPlaceholder')}
+              autoCapitalize="characters"
+              returnKeyType="next"
+            />
+            <TextField
+              label={`${t('asha.mobileNumber')} *`}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder={t('asha.mobilePlaceholder')}
+              keyboardType="phone-pad"
+              returnKeyType="next"
+            />
+            <TextField
+              label={`${t('asha.dob')} *`}
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+              placeholder="YYYY-MM-DD"
+              autoCapitalize="none"
+            />
+            <SelectField
+              label={`${t('asha.gender')} *`}
+              value={gender}
+              onChange={setGender}
+              placeholder={t('asha.selectGender')}
+              options={[
+                { label: t('asha.female'), value: 'female' },
+                { label: t('asha.male'), value: 'male' },
+                { label: t('asha.other'), value: 'other' },
+              ]}
+            />
+          </View>
+        </Card>
 
-      <Text style={styles.label}>Full name *</Text>
-      <TextInput
-        style={styles.input}
-        value={fullName}
-        onChangeText={setFullName}
-        placeholder="Patient name"
-        placeholderTextColor="#94A3B8"
-        testID="full-name"
-      />
+        <Card>
+          <View className="gap-3 p-4">
+            <SectionLabel>{t('asha.familyHousehold')}</SectionLabel>
+            <SelectField
+              label={`${t('asha.villageLocality')} *`}
+              value={householdId}
+              onChange={setHouseholdId}
+              placeholder={t('asha.selectVillage')}
+              options={householdOptions}
+            />
+          </View>
+        </Card>
 
-      <Text style={styles.label}>Household *</Text>
-      <View style={styles.choices}>
-        {households.length === 0 ? (
-          <Text style={styles.hint}>No households yet. Sync first to download your area.</Text>
-        ) : (
-          households.map((hh) => (
-            <Pressable
-              key={hh.id}
-              onPress={() => setHouseholdId(hh.id)}
-              style={[styles.chip, householdId === hh.id && styles.chipActive]}
-            >
-              <Text style={householdId === hh.id ? styles.chipTextActive : styles.chipText}>
-                {hh.hhid}
-              </Text>
-            </Pressable>
-          ))
-        )}
+        {error ? (
+          <Text className="rounded-lg bg-error-container p-3 font-body-md text-body-md text-on-error-container">{error}</Text>
+        ) : null}
+
+        <View className="flex-row gap-3">
+          <Button label={t('common.cancel')} variant="ghost" shape="pill" onPress={() => router.back()} />
+          <Button
+            label={t('asha.savePatient')}
+            icon="check"
+            shape="pill"
+            loading={busy}
+            disabled={busy}
+            onPress={() => void save()}
+            className="flex-1"
+          />
+        </View>
       </View>
-
-      <Text style={styles.label}>Gender</Text>
-      <View style={styles.choices}>
-        {['female', 'male', 'other'].map((value) => (
-          <Pressable
-            key={value}
-            onPress={() => setGender(value)}
-            style={[styles.chip, gender === value && styles.chipActive]}
-          >
-            <Text style={gender === value ? styles.chipTextActive : styles.chipText}>{value}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.label}>Date of birth</Text>
-      <TextInput
-        style={styles.input}
-        value={dateOfBirth}
-        onChangeText={setDateOfBirth}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor="#94A3B8"
-        autoCapitalize="none"
-        testID="date-of-birth"
-      />
-
-      <Text style={styles.label}>Phone</Text>
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        placeholder="10-digit mobile number"
-        placeholderTextColor="#94A3B8"
-        keyboardType="phone-pad"
-        maxLength={10}
-        testID="phone"
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <Pressable
-        style={[styles.button, busy && styles.buttonDisabled]}
-        onPress={save}
-        disabled={busy}
-        testID="save-patient"
-      >
-        {busy ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.buttonText}>Save patient</Text>
-        )}
-      </Pressable>
-    </ScrollView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 16, gap: 10 },
-  hint: { fontSize: 13, color: '#64748B' },
-  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginTop: 6 },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#E2E8F0',
-  },
-  chipActive: { backgroundColor: '#0F766E' },
-  chipText: { fontSize: 13, color: '#334155' },
-  chipTextActive: { fontSize: 13, color: '#FFFFFF' },
-  error: { color: '#B91C1C', fontSize: 13, marginTop: 4 },
-  button: {
-    backgroundColor: '#0F766E',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonDisabled: { backgroundColor: '#99F6E4' },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-});
+function SectionLabel({ children }: { children: string }) {
+  return <Text className="font-headline-md text-headline-md font-semibold text-on-surface">{children}</Text>;
+}

@@ -10,8 +10,7 @@ Role rules
                       villages, plus households she is directly responsible for.
                       Every clinical record is reached through those households.
 * ``patient``       - only the beneficiary record matching the account's phone.
-* supervisor roles  - unrestricted (``anm``, ``moic``, ``bpm``, ``dpm``,
-                      ``state_admin``, ``super_admin``).
+* supervisor role  - unrestricted (``admin``).
 
 The scope is expressed as a set of household ids and a set of beneficiary ids
 so it can be applied to any table with a ``household_id`` / ``beneficiary_id``
@@ -31,7 +30,7 @@ from app.models.beneficiary import Beneficiary
 from app.models.user import ASHAProfile, User
 
 # Roles that may see the whole deployment.
-UNRESTRICTED_ROLES = frozenset({"anm", "moic", "bpm", "dpm", "state_admin", "super_admin"})
+UNRESTRICTED_ROLES = frozenset({"admin"})
 
 
 @dataclass

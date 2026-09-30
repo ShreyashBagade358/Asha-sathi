@@ -17,25 +17,27 @@ export type PermissionAction =
   | 'audit:view'
   | 'deploy:view'
 
+// A single `admin` role covers every supervisory area (PHC, district, state and
+// super). The matrix records which actions each remaining role may perform.
 const ROLE_MATRIX: Record<PermissionAction, Role[]> = {
-  'asha:view': ['moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'asha:edit': ['moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'beneficiary:view': ['asha', 'anm', 'moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'beneficiary:edit': ['asha', 'anm', 'moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'reports:view': ['moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'alerts:view': ['moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'alerts:resolve': ['moic', 'bpm', 'dpm', 'state_admin', 'super_admin'],
-  'resources:allocate': ['dpm', 'state_admin', 'super_admin'],
-  'users:manage': ['state_admin', 'super_admin'],
-  'policy:manage': ['state_admin', 'super_admin'],
-  'config:manage': ['super_admin'],
-  'audit:view': ['state_admin', 'super_admin'],
-  'deploy:view': ['super_admin'],
+  'asha:view': ['admin'],
+  'asha:edit': ['admin'],
+  'beneficiary:view': ['asha', 'admin'],
+  'beneficiary:edit': ['asha', 'admin'],
+  'reports:view': ['admin'],
+  'alerts:view': ['admin'],
+  'alerts:resolve': ['admin'],
+  'resources:allocate': ['admin'],
+  'users:manage': ['admin'],
+  'policy:manage': ['admin'],
+  'config:manage': ['admin'],
+  'audit:view': ['admin'],
+  'deploy:view': ['admin'],
 }
 
 export function can(role: Role | undefined, action: PermissionAction): boolean {
   if (!role) return false
-  if (role === 'super_admin') return true
+  if (role === 'admin') return true
   return ROLE_MATRIX[action]?.includes(role) ?? false
 }
 

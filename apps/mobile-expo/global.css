@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * react-native-css-interop consumes these directives; the bodies stay empty
+ * because all layout/spacing/typography comes from Tailwind utilities. The
+ * web's index.css equivalents (CSS keyframes for ambient-blob, loader-ring,
+ * pulse-subtle, risk-strip-*) are implemented with Reanimated in
+ * src/theme.ts since RN's CSS engine does not animate.
+ */

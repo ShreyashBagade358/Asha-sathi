@@ -77,7 +77,10 @@ async def user_factory(test_engine):
 
     async def _factory(phone: str = "9876543210", role: str = "asha", **kwargs) -> User:
         async with maker() as session:
-            user = User(phone=phone, role=role, full_name="Test User", is_active=True, **kwargs)
+            # Defaults, so a test can override any of them through kwargs.
+            kwargs.setdefault("is_active", True)
+            kwargs.setdefault("full_name", "Test User")
+            user = User(phone=phone, role=role, **kwargs)
             session.add(user)
             await session.commit()
             await session.refresh(user)

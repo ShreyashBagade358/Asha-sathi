@@ -9,7 +9,7 @@ function authErrorMessage(err: unknown, fallback: string): string {
     const status = err.response?.status
     const detail = (err.response?.data as { detail?: string } | undefined)?.detail
     if (status === 404) return 'No account found for this number. Please contact your PHC to get registered.'
-    if (status === 401) return typeof detail === 'string' ? detail : 'Invalid or expired OTP. Please try again.'
+    if (status === 401) return typeof detail === 'string' ? detail : 'Your session has expired. Please sign in again.'
     if (status === 429) return 'Too many attempts. Please wait a minute and try again.'
     if (!err.response) return 'Cannot reach the server. Check your connection.'
   }
@@ -21,8 +21,7 @@ interface AuthState {
   token: string | null
   isAuthenticated: boolean
   isHydrating: boolean
-  requestOtp: (phone: string) => Promise<{ otpRequestId?: string; expiresIn?: number }>
-  verifyOtp: (phone: string, otp: string, otpRequestId?: string) => Promise<User>
+  signIn: (phone: string, password: string) => Promise<User>
   logout: () => Promise<void>
   hydrate: () => Promise<void>
   setUser: (user: User) => void
@@ -34,23 +33,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isHydrating: true,
 
-  requestOtp: async (phone) => {
+  signIn: async (phone, password) => {
     try {
-      const res = await authService.login(phone)
-      return { otpRequestId: res.otpRequestId, expiresIn: res.expiresIn }
-    } catch (err) {
-      throw new Error(authErrorMessage(err, 'Unable to send OTP. Please try again.'))
-    }
-  },
-
-  verifyOtp: async (phone, otp, otpRequestId) => {
-    try {
-      const res = await authService.verifyOtp(phone, otp, otpRequestId)
+      const res = await authService.login(phone, password)
       writeTokens(res.tokens.accessToken, res.tokens.refreshToken)
       set({ user: res.user, token: res.tokens.accessToken, isAuthenticated: true })
       return res.user
     } catch (err) {
-      throw new Error(authErrorMessage(err, 'Invalid OTP'))
+      // The API returns one message for both an unknown phone and a wrong
+      // password, so this copy must not imply which one it was.
+      throw new Error(authErrorMessage(err, 'Incorrect phone number or password'))
     }
   },
 

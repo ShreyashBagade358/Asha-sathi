@@ -12,7 +12,7 @@ from app.services.audit import log_action
 
 router = APIRouter()
 
-ADMIN_ONLY = require_roles(Role.SUPER_ADMIN, Role.STATE_ADMIN)
+ADMIN_ONLY = require_roles(Role.ADMIN)
 
 
 @router.get("", response_model=PaginatedResponse[UserResponse])
@@ -121,11 +121,6 @@ async def get_user_permissions(
         raise NotFoundError("User not found")
     role_permissions = {
         Role.ASHA.value: ["register_households", "register_beneficiaries", "anc_pnc", "immunization", "sync_offline"],
-        Role.ANM.value: ["verify_records", "approve_claims", "reports"],
-        Role.MOIC.value: ["approve_claims", "manage_referrals", "reports"],
-        Role.BPM.value: ["block_reports", "approve_claims"],
-        Role.DPM.value: ["district_reports", "manage_users"],
-        Role.STATE_ADMIN.value: ["manage_users", "state_reports", "manage_config"],
-        Role.SUPER_ADMIN.value: ["*"],
+        Role.ADMIN.value: ["*"],
     }
     return {"user_id": user.id, "role": user.role, "permissions": role_permissions.get(user.role, [])}

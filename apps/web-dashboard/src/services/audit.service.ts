@@ -25,6 +25,7 @@ const ACTION_MAP: Record<string, AuditLogEntry['action']> = {
 const ACTION_ALIASES: Record<string, AuditLogEntry['action']> = {
   otp_sent: 'login',
   otp_verified: 'login',
+  password_login: 'login',
   asha_created: 'create',
   beneficiary_created: 'create',
   household_created: 'create',
@@ -55,7 +56,7 @@ function mapLog(r: RawLog): AuditLogEntry {
     timestamp: r.created_at ?? '',
     actorId: r.user_id,
     actorName: '',
-    actorRole: 'moic',
+    actorRole: 'admin',
     action: normalizeAction(r.action),
     resource: r.entity_type ?? '',
     resourceId: r.entity_id ?? undefined,

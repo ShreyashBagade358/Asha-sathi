@@ -63,7 +63,14 @@ async def test_list_ashas_forbidden_for_asha_role(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_list_ashas_scoped_to_user_phc(client, db_session, auth_headers):
+async def test_list_ashas_sees_whole_deployment_for_admin(client, db_session, auth_headers):
+    """The single ``admin`` role is unrestricted across the deployment.
+
+    Before the supervisor tiers were merged, mid-tier roles (anm/moic/bpm/dpm)
+    were scoped to their own district/block/phc and only state/super admin saw
+    everything. With one role that is now ``admin``, so the directory is
+    deployment-wide.
+    """
     state, district, block, phc, sub_center, village = await _org(db_session)
     asha, profile = await _seed_asha(db_session, phc, village)
 
@@ -73,13 +80,14 @@ async def test_list_ashas_scoped_to_user_phc(client, db_session, auth_headers):
     db_session.add(ASHAProfile(user_id=other.id, asha_id="ASHA-OTHER-0001"))
     await db_session.commit()
 
-    headers = await auth_headers(phone="9876543211", role="anm", phc_id=phc.id)
+    headers = await auth_headers(phone="9876543211", role="admin", phc_id=phc.id)
     resp = await client.get("/api/v1/ashas", headers=headers)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["total"] == 1
-    item = body["items"][0]
-    assert item["id"] == asha.id
+    # admin is unscoped, so the ASHA from another district is visible too
+    assert body["total"] == 2
+    items = {i["id"]: i for i in body["items"]}
+    item = items[asha.id]
     assert item["asha_id"] == "ASHA-UP-LKO-0001"
     assert item["name"] == "Sunita Devi"
     assert item["village"] == "Rampur"
@@ -95,7 +103,7 @@ async def test_list_ashas_search_and_status_filter(client, db_session, auth_head
     await _seed_asha(db_session, phc, village)
     await db_session.commit()
 
-    headers = await auth_headers(phone="9876543211", role="anm", phc_id=phc.id)
+    headers = await auth_headers(phone="9876543211", role="admin", phc_id=phc.id)
 
     resp = await client.get("/api/v1/ashas", params={"q": "Sunita"}, headers=headers)
     assert resp.status_code == 200
@@ -123,7 +131,7 @@ async def test_asha_detail_kpis_update_assign(client, db_session, auth_headers):
     )
     await db_session.commit()
 
-    headers = await auth_headers(phone="9876543211", role="anm", phc_id=phc.id)
+    headers = await auth_headers(phone="9876543211", role="admin", phc_id=phc.id)
 
     detail = await client.get(f"/api/v1/ashas/{profile.asha_id}", headers=headers)
     assert detail.status_code == 200
@@ -161,7 +169,7 @@ async def test_create_asha(client, db_session, auth_headers):
     state, district, block, phc, sub_center, village = await _org(db_session)
     await db_session.commit()
 
-    headers = await auth_headers(phone="9876543211", role="anm", phc_id=phc.id)
+    headers = await auth_headers(phone="9876543211", role="admin", phc_id=phc.id)
     resp = await client.post(
         "/api/v1/ashas",
         json={"name": "Kavita Kumari", "phone": "9876543215", "village": "Rampur", "status": "active"},
@@ -196,7 +204,7 @@ async def test_dashboard_phc_resolves_from_user(client, db_session, auth_headers
     )
     await db_session.commit()
 
-    headers = await auth_headers(phone="9876543211", role="anm", phc_id=phc.id)
+    headers = await auth_headers(phone="9876543211", role="admin", phc_id=phc.id)
     resp = await client.get("/api/v1/dashboard/phc", headers=headers)
     assert resp.status_code == 200
     body = resp.json()

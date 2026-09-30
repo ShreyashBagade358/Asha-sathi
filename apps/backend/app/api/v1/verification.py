@@ -16,7 +16,7 @@ from app.services.audit import log_action
 
 router = APIRouter()
 
-VERIFIER = require_roles(Role.ANM, Role.MOIC, Role.BPM, Role.DPM, Role.STATE_ADMIN, Role.SUPER_ADMIN)
+VERIFIER = require_roles(Role.ADMIN)
 
 ENTITY_MODELS: dict[str, Any] = {
     "death_report": DeathReport,

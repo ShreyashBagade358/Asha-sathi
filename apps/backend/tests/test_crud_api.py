@@ -424,7 +424,7 @@ async def test_ncd_and_death_and_disease_crud(client, auth_headers):
 
 
 async def test_asha_directory_crud_admin_only(client, auth_headers):
-    admin = await auth_headers(phone="9876543212", role="moic")
+    admin = await auth_headers(phone="9876543212", role="admin")
     asha = await auth_headers(phone="9876543210", role="asha")
 
     r = await client.post(
@@ -451,71 +451,69 @@ async def test_asha_directory_crud_admin_only(client, auth_headers):
 
 
 # ---------------------------------------------------------------------------
-# User management (super_admin / state_admin only)
+# User management (admin only)
 # ---------------------------------------------------------------------------
 
 
-async def test_user_management_crud_super_admin_only(client, auth_headers):
-    super_admin = await auth_headers(phone="9876543215", role="super_admin")
+async def test_user_management_crud_admin_only(client, auth_headers):
+    admin = await auth_headers(phone="9876543215", role="admin")
     asha = await auth_headers(phone="9876543210", role="asha")
-    moic = await auth_headers(phone="9876543212", role="moic")
+    patient = await auth_headers(phone="9876543216", role="patient")
 
     r = await client.post(
         "/api/v1/users",
-        headers=super_admin,
-        json={"role": "anm", "phone": _phone(), "full_name": "CRUD New ANM"},
+        headers=admin,
+        json={"role": "admin", "phone": _phone(), "full_name": "CRUD New Admin"},
     )
     assert r.status_code == 201, r.text
     u = r.json()
 
-    r = await client.get(f"/api/v1/users/{u['id']}", headers=super_admin)
+    r = await client.get(f"/api/v1/users/{u['id']}", headers=admin)
     assert r.status_code == 200
 
-    r = await client.put(
-        f"/api/v1/users/{u['id']}", headers=super_admin, json={"full_name": "CRUD ANM Updated"}
-    )
-    assert r.status_code == 200 and r.json()["full_name"] == "CRUD ANM Updated"
+    r = await client.put(f"/api/v1/users/{u['id']}", headers=admin, json={"full_name": "CRUD Admin Updated"})
+    assert r.status_code == 200 and r.json()["full_name"] == "CRUD Admin Updated"
 
-    r = await client.delete(f"/api/v1/users/{u['id']}", headers=super_admin)
+    r = await client.delete(f"/api/v1/users/{u['id']}", headers=admin)
     assert r.status_code == 200
-    r = await client.get(f"/api/v1/users/{u['id']}", headers=super_admin)
+    r = await client.get(f"/api/v1/users/{u['id']}", headers=admin)
     assert r.status_code == 200 and r.json()["is_active"] is False
 
-    # asha and moic must be refused
+    # every non-admin role must be refused
     assert (await client.get("/api/v1/users", headers=asha)).status_code == 403
-    assert (await client.get("/api/v1/users", headers=moic)).status_code == 403
+    assert (await client.get("/api/v1/users", headers=patient)).status_code == 403
 
 
 # ---------------------------------------------------------------------------
-# Notifications (broadcast gated to moic+; reminders, mark-read)
+# Notifications (broadcast gated to admin; reminders, mark-read)
 # ---------------------------------------------------------------------------
 
 
 async def test_notifications_crud_and_broadcast_guard(client, auth_headers):
-    moic = await auth_headers(phone="9876543212", role="moic")
+    admin = await auth_headers(phone="9876543212", role="admin")
     asha_headers = await auth_headers(phone="9876543210", role="asha")
 
-    me = await client.get("/api/v1/auth/me", headers=moic)
+    me = await client.get("/api/v1/auth/me", headers=admin)
     assert me.status_code == 200, me.text
-    moic_id = me.json()["id"]
+    admin_id = me.json()["id"]
 
     r = await client.post(
         "/api/v1/notifications",
-        headers=moic,
-        json={"user_id": moic_id, "type": "alert", "title": "Test Notice", "message": "Hello"},
+        headers=admin,
+        json={"user_id": admin_id, "type": "alert", "title": "Test Notice", "message": "Hello"},
     )
     assert r.status_code == 201, r.text
     note = r.json()
 
-    r = await client.put(f"/api/v1/notifications/{note['id']}/read", headers=moic)
+    r = await client.put(f"/api/v1/notifications/{note['id']}/read", headers=admin)
     assert r.status_code == 200 and r.json()["read_at"] is not None
 
-    r = await client.get("/api/v1/notifications", headers=moic)
+    r = await client.get("/api/v1/notifications", headers=admin)
     assert r.status_code == 200
 
-    # broadcast: moic ok, asha refused
+    # broadcast: admin ok, asha refused
     r = await client.post(
-        "/api/v1/notifications/broadcast", headers=moic, json={"title": "PHC Bulletin", "message": "Meeting at 10am"}
+        "/api/v1/notifications/broadcast", headers=admin, json={"title": "PHC Bulletin", "message": "Meeting at 10am"}
     )
     assert r.status_code == 200, r.text
     r = await client.post(
@@ -573,7 +571,7 @@ async def test_create_village_admin_chain(db_session, client, auth_headers):
 
 async def test_verification_approve_reject(client, auth_headers):
     asha = await auth_headers(phone="9876543210", role="asha")
-    moic = await auth_headers(phone="9876543212", role="moic")
+    admin = await auth_headers(phone="9876543212", role="admin")
     b = await _seed_beneficiary(client, asha)
 
     r = await client.post(
@@ -584,11 +582,11 @@ async def test_verification_approve_reject(client, auth_headers):
     assert r.status_code == 201, r.text
     death = r.json()
 
-    r = await client.get("/api/v1/verification/pending", headers=moic)
+    r = await client.get("/api/v1/verification/pending", headers=admin)
     assert r.status_code == 200
     assert any(item["id"] == death["id"] for item in r.json().get("items", []))
 
-    r = await client.post(f"/api/v1/verification/death_report/{death['id']}/approve", headers=moic)
+    r = await client.post(f"/api/v1/verification/death_report/{death['id']}/approve", headers=admin)
     assert r.status_code == 200, r.text
     assert "verified" in r.json()["message"]
 
@@ -603,19 +601,19 @@ async def test_verification_approve_reject(client, auth_headers):
 
 
 async def test_sanitize_and_audit_admin_gated(client, auth_headers):
-    moic = await auth_headers(phone="9876543212", role="moic")
+    admin = await auth_headers(phone="9876543212", role="admin")
     asha = await auth_headers(phone="9876543210", role="asha")
 
-    r = await client.get("/api/v1/sanitize/summary", headers=moic)
+    r = await client.get("/api/v1/sanitize/summary", headers=admin)
     assert r.status_code == 200
     assert r.json()["beneficiaries_total"] >= 0
 
     r = await client.post(
-        "/api/v1/sanitize/fix", headers=moic, json={"actions": ["fix_beneficiary_phones"]}
+        "/api/v1/sanitize/fix", headers=admin, json={"actions": ["fix_beneficiary_phones"]}
     )
     assert r.status_code == 200 and r.json()["success"] is True
 
-    r = await client.get("/api/v1/audit/logs", headers=moic)
+    r = await client.get("/api/v1/audit/logs", headers=admin)
     assert r.status_code == 200
     assert r.json()["items"] == [] or isinstance(r.json()["items"], list)
 
@@ -694,20 +692,33 @@ async def test_sync_device_register_and_status(client, auth_headers):
 
 
 async def test_permission_boundary_sweep(client, auth_headers):
-    asha = await auth_headers(phone="9876543210", role="asha")
-    anm = await auth_headers(phone="9876543211", role="anm")
-    state_admin = await auth_headers(phone="9876543214", role="state_admin")
+    """Only ``admin`` reaches the supervisory endpoints.
 
-    assert (await client.get("/api/v1/users", headers=anm)).status_code == 403
-    assert (await client.get("/api/v1/ashas", headers=asha)).status_code == 403
-    assert (await client.get("/api/v1/audit/logs", headers=asha)).status_code == 403
-    assert (await client.get("/api/v1/sanitize/summary", headers=asha)).status_code == 403
-    assert (await client.get("/api/v1/verification/pending", headers=asha)).status_code == 403
-    assert (
-        await client.post("/api/v1/notifications/broadcast", headers=anm, json={"title": "x", "message": "y"})
-    ).status_code == 403
-    # state_admin can create users (allowed) but not the asha-only self scopes improperly
-    assert (await client.get("/api/v1/users", headers=state_admin)).status_code == 200
+    Since the six supervisor tiers collapsed into one, the boundary is now
+    binary: asha and patient are refused everywhere an admin is allowed.
+    """
+    asha = await auth_headers(phone="9876543210", role="asha")
+    patient = await auth_headers(phone="9876543216", role="patient")
+    admin = await auth_headers(phone="9876543215", role="admin")
+
+    for role_headers in (asha, patient):
+        assert (await client.get("/api/v1/users", headers=role_headers)).status_code == 403
+        assert (await client.get("/api/v1/ashas", headers=role_headers)).status_code == 403
+        assert (await client.get("/api/v1/audit/logs", headers=role_headers)).status_code == 403
+        assert (await client.get("/api/v1/sanitize/summary", headers=role_headers)).status_code == 403
+        assert (await client.get("/api/v1/verification/pending", headers=role_headers)).status_code == 403
+        assert (
+            await client.post(
+                "/api/v1/notifications/broadcast", headers=role_headers, json={"title": "x", "message": "y"}
+            )
+        ).status_code == 403
+
+    # the single admin role reaches them all
+    assert (await client.get("/api/v1/users", headers=admin)).status_code == 200
+    assert (await client.get("/api/v1/ashas", headers=admin)).status_code == 200
+    assert (await client.get("/api/v1/audit/logs", headers=admin)).status_code == 200
+    assert (await client.get("/api/v1/sanitize/summary", headers=admin)).status_code == 200
+    assert (await client.get("/api/v1/verification/pending", headers=admin)).status_code == 200
 
 
 async def test_inactive_user_rejected(db_session, client, auth_headers):

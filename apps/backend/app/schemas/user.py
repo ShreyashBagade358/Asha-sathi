@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.other_domain import ASHAKPIResponse
 
-RoleLiteral = Literal["asha", "anm", "moic", "bpm", "dpm", "state_admin", "patient", "super_admin"]
+RoleLiteral = Literal["asha", "admin", "patient"]
 
 
 class UserCreate(BaseModel):

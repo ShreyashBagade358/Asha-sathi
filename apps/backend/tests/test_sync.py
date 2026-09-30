@@ -88,7 +88,7 @@ async def _make_beneficiary(
 
 async def test_push_is_idempotent_on_replay(client, auth_headers, session):
     """Replaying the same client_request_id must not create a second record."""
-    headers = await auth_headers(phone="9000000001", role="super_admin")
+    headers = await auth_headers(phone="9000000001", role="admin")
     op = {
         "entity": "households",
         "operation": "create",
@@ -126,7 +126,7 @@ async def test_stale_version_returns_conflict_and_is_ledgered(client, auth_heade
     The conflict must also be written to SyncOperation so /sync/status and the
     client's conflict list can see it.
     """
-    headers = await auth_headers(phone="9000000002", role="super_admin")
+    headers = await auth_headers(phone="9000000002", role="admin")
 
     await _make_household(session, household_id="hh-conf-1", village_id="v1", asha_user_id="u1")
 
@@ -169,7 +169,7 @@ async def test_stale_version_returns_conflict_and_is_ledgered(client, auth_heade
 
 
 async def test_status_counts_conflicts(client, auth_headers, session):
-    headers = await auth_headers(phone="9000000003", role="super_admin")
+    headers = await auth_headers(phone="9000000003", role="admin")
     await _make_household(session, household_id="hh-conf-2", village_id="v1", asha_user_id="u1")
 
     await client.post(
@@ -351,7 +351,7 @@ async def test_asha_with_no_catchment_sees_nothing(client, user_factory, session
 
 async def test_admin_pull_is_unrestricted(client, user_factory, session):
     """Supervisors keep full visibility."""
-    admin = await user_factory(phone="9500000001", role="super_admin")
+    admin = await user_factory(phone="9500000001", role="admin")
     asha = await user_factory(phone="9500000002", role="asha")
     await _make_household(session, household_id="hh-adm", village_id="village-adm", asha_user_id=asha.id)
     await _make_beneficiary(
@@ -418,7 +418,7 @@ async def test_pull_uses_updated_at_not_created_at(client, user_factory, session
 
 async def test_pull_respects_watermark(client, user_factory, session):
     """Rows older than the watermark are not re-sent."""
-    admin = await user_factory(phone="9700000001", role="super_admin")
+    admin = await user_factory(phone="9700000001", role="admin")
     asha = await user_factory(phone="9700000002", role="asha")
     await _make_household(session, household_id="hh-old", village_id="village-old", asha_user_id=asha.id)
 
@@ -450,7 +450,7 @@ async def test_pull_respects_watermark(client, user_factory, session):
 
 
 async def test_pull_reports_has_more_when_truncated(client, user_factory, session):
-    admin = await user_factory(phone="9800000001", role="super_admin")
+    admin = await user_factory(phone="9800000001", role="admin")
     asha = await user_factory(phone="9800000002", role="asha")
     for i in range(5):
         await _make_household(
@@ -647,7 +647,7 @@ async def test_base_metadata_covers_sync_tables():
 @pytest.mark.asyncio(loop_scope="function")
 async def test_push_coerces_iso_date_string_for_create(client, auth_headers, session):
     """Clients send date_of_birth as an ISO string; asyncpg needs a real date."""
-    headers = await auth_headers(phone="9000000001", role="super_admin")
+    headers = await auth_headers(phone="9000000001", role="admin")
     household = await _make_household(
         session, household_id="hh-iso-1", village_id="v1", asha_user_id="u1"
     )
@@ -680,7 +680,7 @@ async def test_push_coerces_iso_date_string_for_create(client, auth_headers, ses
 @pytest.mark.asyncio(loop_scope="function")
 async def test_push_coerces_iso_date_string_for_update(client, auth_headers, session):
     """The same coercion must apply to updates, not just creates."""
-    headers = await auth_headers(phone="9000000001", role="super_admin")
+    headers = await auth_headers(phone="9000000001", role="admin")
     household = await _make_household(
         session, household_id="hh-iso-2", village_id="v1", asha_user_id="u1"
     )
@@ -716,7 +716,7 @@ async def test_push_replay_returns_record_not_envelope(client, auth_headers):
     If the replay handed back the whole envelope as ``record``, the device would
     write envelope keys into its local row.
     """
-    headers = await auth_headers(phone="9000000001", role="super_admin")
+    headers = await auth_headers(phone="9000000001", role="admin")
     op = {
         "entity": "households",
         "operation": "create",

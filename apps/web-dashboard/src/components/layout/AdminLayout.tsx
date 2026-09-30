@@ -61,45 +61,33 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
       ],
     },
   ],
-  phc: [
+  admin: [
     {
+      titleKey: 'nav.main',
       items: [
         { labelKey: 'nav.dashboard', path: '/phc/dashboard', icon: 'dashboard', end: true },
         { labelKey: 'nav.ashas', path: '/phc/ashas', icon: 'users' },
         { labelKey: 'nav.beneficiaries', path: '/phc/beneficiaries', icon: 'heart' },
-        { labelKey: 'nav.reports', path: '/phc/reports', icon: 'fileText' },
         { labelKey: 'nav.alerts', path: '/phc/alerts', icon: 'alert' },
       ],
     },
-  ],
-  district: [
     {
+      titleKey: 'nav.oversight',
       items: [
-        { labelKey: 'nav.dashboard', path: '/district/dashboard', icon: 'dashboard', end: true },
+        { labelKey: 'nav.reports', path: '/phc/reports', icon: 'fileText' },
+        { labelKey: 'nav.analytics', path: '/phc/analytics', icon: 'barChart' },
+        { labelKey: 'nav.riskAnalysis', path: '/phc/risk-analysis', icon: 'shield' },
         { labelKey: 'nav.phcComparison', path: '/district/phc-comparison', icon: 'barChart' },
-        { labelKey: 'nav.resourceAllocation', path: '/district/resources', icon: 'box' },
-      ],
-    },
-  ],
-  state: [
-    {
-      items: [
-        { labelKey: 'nav.dashboard', path: '/state/dashboard', icon: 'dashboard', end: true },
         { labelKey: 'nav.districtComparison', path: '/state/district-comparison', icon: 'barChart' },
       ],
     },
     {
       titleKey: 'nav.administration',
       items: [
+        { labelKey: 'nav.resourceAllocation', path: '/district/resources', icon: 'box' },
         { labelKey: 'nav.policyConfig', path: '/state/policy-config', icon: 'fileText' },
-        { labelKey: 'nav.auditLogs', path: '/state/audit-logs', icon: 'shield' },
-      ],
-    },
-  ],
-  super: [
-    {
-      items: [
-        { labelKey: 'nav.userManagement', path: '/super/users', icon: 'users', end: true },
+        { labelKey: 'nav.auditLogs', path: '/phc/audit-logs', icon: 'shield' },
+        { labelKey: 'nav.userManagement', path: '/super/users', icon: 'users' },
         { labelKey: 'nav.systemConfig', path: '/super/system-config', icon: 'settings' },
         { labelKey: 'nav.deployment', path: '/super/deployment', icon: 'server' },
       ],
@@ -134,12 +122,7 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
 
 const ROLE_SECTIONS: Record<Role, string[]> = {
   asha: ['asha'],
-  anm: ['phc'],
-  moic: ['phc'],
-  bpm: ['phc'],
-  dpm: ['district'],
-  state_admin: ['state'],
-  super_admin: ['super', 'state', 'district', 'phc'],
+  admin: ['admin'],
   patient: ['patient'],
 }
 

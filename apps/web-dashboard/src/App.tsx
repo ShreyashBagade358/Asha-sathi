@@ -9,7 +9,6 @@ import type { Role } from '@/types'
 
 // ─── Stitch auth screens ────────────────────────────────────────────────
 import LoginAshaSathi from '@/pages/auth/LoginAshaSathi'
-import VerifyOtpAshaSathi from '@/pages/auth/VerifyOtpAshaSathi'
 import AccountRecoveryAshaSathi from '@/pages/auth/AccountRecoveryAshaSathi'
 import RedirectingAshaSathi from '@/pages/auth/RedirectingAshaSathi'
 
@@ -94,26 +93,18 @@ import ResourceAllocationPage from '@/pages/district/ResourceAllocationPage'
 import StateDashboardPage from '@/pages/state/DashboardPage'
 import DistrictComparisonPage from '@/pages/state/DistrictComparisonPage'
 import PolicyConfigPage from '@/pages/state/PolicyConfigPage'
-import AuditLogsPage from '@/pages/state/AuditLogsPage'
 import UserManagementPage from '@/pages/super/UserManagementPage'
 import SystemConfigPage from '@/pages/super/SystemConfigPage'
 import DeploymentPage from '@/pages/super/DeploymentPage'
 
 export const ROLE_HOME: Record<Role, string> = {
   asha: '/asha/home',
-  anm: '/phc/dashboard',
-  moic: '/phc/dashboard',
-  bpm: '/phc/dashboard',
-  dpm: '/district/dashboard',
-  state_admin: '/state/dashboard',
-  super_admin: '/super/users',
+  admin: '/phc/dashboard',
   patient: '/patient/dashboard',
 }
 
-const PHC_ROLES: Role[] = ['asha', 'anm', 'moic', 'bpm']
-const DISTRICT_ROLES: Role[] = ['dpm']
-const STATE_ROLES: Role[] = ['state_admin']
-const SUPER_ROLES: Role[] = ['super_admin']
+const ADMIN_ROLES: Role[] = ['admin']
+const ASHA_ROLES: Role[] = ['asha']
 const PATIENT_ROLES: Role[] = ['patient']
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -135,7 +126,7 @@ function RoleRoute({ roles, children }: { roles: Role[]; children: ReactNode }) 
   if (!user) {
     return <Navigate to="/login" replace />
   }
-  if (user.role !== 'super_admin' && !roles.includes(user.role)) {
+  if (!roles.includes(user.role)) {
     return <Navigate to={ROLE_HOME[user.role]} replace />
   }
   return <>{children}</>
@@ -175,14 +166,6 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/otp',
-    element: (
-      <ErrorBoundary>
-        <VerifyOtpAshaSathi />
-      </ErrorBoundary>
-    ),
-  },
-  {
     path: '/account-recovery',
     element: (
       <ErrorBoundary>
@@ -216,28 +199,28 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <Navigate to="/asha/home" replace /> },
-          { path: 'home', element: <RoleRoute roles={PHC_ROLES}><AshaWorkerHomeAshaSathi /></RoleRoute> },
-          { path: 'tasks', element: <RoleRoute roles={PHC_ROLES}><TasksAshaSathi /></RoleRoute> },
-          { path: 'patients', element: <RoleRoute roles={PHC_ROLES}><PatientDashboardAshaSathi /></RoleRoute> },
-          { path: 'patients/:id', element: <RoleRoute roles={PHC_ROLES}><PatientDetailsAshaSathi /></RoleRoute> },
-          { path: 'patients/:id/profile', element: <RoleRoute roles={PHC_ROLES}><MyHealthProfileAshaSathi /></RoleRoute> },
-          { path: 'patients/:id/immunization', element: <RoleRoute roles={PHC_ROLES}><ImmunizationScheduleAshaSathi /></RoleRoute> },
-          { path: 'patients/new', element: <RoleRoute roles={PHC_ROLES}><AddNewPatientAshaSathi /></RoleRoute> },
-          { path: 'households', element: <RoleRoute roles={PHC_ROLES}><AssignedHouseholdsAshaSathi /></RoleRoute> },
-          { path: 'households/:id/visit', element: <RoleRoute roles={PHC_ROLES}><HouseholdVisitSurveyAshaSathi /></RoleRoute> },
-          { path: 'checkup-completed', element: <RoleRoute roles={PHC_ROLES}><CheckUpCompletedAshaSathi /></RoleRoute> },
-          { path: 'sync', element: <RoleRoute roles={PHC_ROLES}><OfflineSyncCenterAshaSathi /></RoleRoute> },
-          { path: 'health-survey', element: <RoleRoute roles={PHC_ROLES}><HealthSurveyAshaSathi /></RoleRoute> },
-          { path: 'pregnancy', element: <RoleRoute roles={PHC_ROLES}><PregnancyTrackingAshaSathi /></RoleRoute> },
-          { path: 'child-health', element: <RoleRoute roles={PHC_ROLES}><ChildHealthAshaSathi /></RoleRoute> },
-          { path: 'health-checkup', element: <RoleRoute roles={PHC_ROLES}><HealthCheckUpAshaSathi /></RoleRoute> },
-          { path: 'referrals', element: <RoleRoute roles={PHC_ROLES}><ReferralAshaSathi /></RoleRoute> },
-          { path: 'follow-ups', element: <RoleRoute roles={PHC_ROLES}><FollowUpAshaSathi /></RoleRoute> },
-          { path: 'notifications', element: <RoleRoute roles={PHC_ROLES}><NotificationsAshaSathi /></RoleRoute> },
-          { path: 'profile', element: <RoleRoute roles={PHC_ROLES}><ProfileSettingsAshaSathi /></RoleRoute> },
+          { path: 'home', element: <RoleRoute roles={ASHA_ROLES}><AshaWorkerHomeAshaSathi /></RoleRoute> },
+          { path: 'tasks', element: <RoleRoute roles={ASHA_ROLES}><TasksAshaSathi /></RoleRoute> },
+          { path: 'patients', element: <RoleRoute roles={ASHA_ROLES}><PatientDashboardAshaSathi /></RoleRoute> },
+          { path: 'patients/:id', element: <RoleRoute roles={ASHA_ROLES}><PatientDetailsAshaSathi /></RoleRoute> },
+          { path: 'patients/:id/profile', element: <RoleRoute roles={ASHA_ROLES}><MyHealthProfileAshaSathi /></RoleRoute> },
+          { path: 'patients/:id/immunization', element: <RoleRoute roles={ASHA_ROLES}><ImmunizationScheduleAshaSathi /></RoleRoute> },
+          { path: 'patients/new', element: <RoleRoute roles={ASHA_ROLES}><AddNewPatientAshaSathi /></RoleRoute> },
+          { path: 'households', element: <RoleRoute roles={ASHA_ROLES}><AssignedHouseholdsAshaSathi /></RoleRoute> },
+          { path: 'households/:id/visit', element: <RoleRoute roles={ASHA_ROLES}><HouseholdVisitSurveyAshaSathi /></RoleRoute> },
+          { path: 'checkup-completed', element: <RoleRoute roles={ASHA_ROLES}><CheckUpCompletedAshaSathi /></RoleRoute> },
+          { path: 'sync', element: <RoleRoute roles={ASHA_ROLES}><OfflineSyncCenterAshaSathi /></RoleRoute> },
+          { path: 'health-survey', element: <RoleRoute roles={ASHA_ROLES}><HealthSurveyAshaSathi /></RoleRoute> },
+          { path: 'pregnancy', element: <RoleRoute roles={ASHA_ROLES}><PregnancyTrackingAshaSathi /></RoleRoute> },
+          { path: 'child-health', element: <RoleRoute roles={ASHA_ROLES}><ChildHealthAshaSathi /></RoleRoute> },
+          { path: 'health-checkup', element: <RoleRoute roles={ASHA_ROLES}><HealthCheckUpAshaSathi /></RoleRoute> },
+          { path: 'referrals', element: <RoleRoute roles={ASHA_ROLES}><ReferralAshaSathi /></RoleRoute> },
+          { path: 'follow-ups', element: <RoleRoute roles={ASHA_ROLES}><FollowUpAshaSathi /></RoleRoute> },
+          { path: 'notifications', element: <RoleRoute roles={ASHA_ROLES}><NotificationsAshaSathi /></RoleRoute> },
+          { path: 'profile', element: <RoleRoute roles={ASHA_ROLES}><ProfileSettingsAshaSathi /></RoleRoute> },
         ],
       },
-      { path: '/asha/connection-error', element: <RoleRoute roles={PHC_ROLES}><ConnectionErrorAshaSathi /></RoleRoute> },
+      { path: '/asha/connection-error', element: <RoleRoute roles={ASHA_ROLES}><ConnectionErrorAshaSathi /></RoleRoute> },
 
       // Patient (mobile bottom nav) ────────────────────────────────────
       {
@@ -263,62 +246,62 @@ export const router = createBrowserRouter([
       },
 
       // PHC Admin (desktop) ────────────────────────────────────────────
-      { path: '/phc/dashboard', element: <RoleRoute roles={PHC_ROLES}><Dashboard /></RoleRoute> },
-      { path: '/phc/ashas', element: <RoleRoute roles={PHC_ROLES}><Workers /></RoleRoute> },
-      { path: '/phc/ashas/:id', element: <RoleRoute roles={PHC_ROLES}><WorkerProfile /></RoleRoute> },
-      { path: '/phc/ashas/new', element: <RoleRoute roles={PHC_ROLES}><AddWorker /></RoleRoute> },
-      { path: '/phc/beneficiaries', element: <RoleRoute roles={PHC_ROLES}><Beneficiaries /></RoleRoute> },
-      { path: '/phc/beneficiaries/:id', element: <RoleRoute roles={PHC_ROLES}><BeneficiaryDetails /></RoleRoute> },
-      { path: '/phc/households', element: <RoleRoute roles={PHC_ROLES}><Households /></RoleRoute> },
-      { path: '/phc/households/new', element: <RoleRoute roles={PHC_ROLES}><AddHousehold /></RoleRoute> },
-      { path: '/phc/households/:id', element: <RoleRoute roles={PHC_ROLES}><HouseholdDetails /></RoleRoute> },
-      { path: '/phc/households/:id/survey', element: <RoleRoute roles={PHC_ROLES}><HouseholdSurvey /></RoleRoute> },
-      { path: '/phc/maternal', element: <RoleRoute roles={PHC_ROLES}><MaternalHealth /></RoleRoute> },
-      { path: '/phc/maternal/pregnant', element: <RoleRoute roles={PHC_ROLES}><PregnantWomen /></RoleRoute> },
-      { path: '/phc/maternal/:id', element: <RoleRoute roles={PHC_ROLES}><PregnancyDetails /></RoleRoute> },
-      { path: '/phc/children', element: <RoleRoute roles={PHC_ROLES}><ChildrenDir /></RoleRoute> },
-      { path: '/phc/children/:id', element: <RoleRoute roles={PHC_ROLES}><ChildProfile /></RoleRoute> },
-      { path: '/phc/children/:id/vaccination', element: <RoleRoute roles={PHC_ROLES}><VaccinationSchedule /></RoleRoute> },
-      { path: '/phc/growth-nutrition', element: <RoleRoute roles={PHC_ROLES}><NutritionMonitoring /></RoleRoute> },
-      { path: '/phc/vaccination', element: <RoleRoute roles={PHC_ROLES}><Vaccination /></RoleRoute> },
-      { path: '/phc/health-checkups/new', element: <RoleRoute roles={PHC_ROLES}><NewCheckup /></RoleRoute> },
-      { path: '/phc/health-checkups/history', element: <RoleRoute roles={PHC_ROLES}><CheckupHistory /></RoleRoute> },
-      { path: '/phc/referrals', element: <RoleRoute roles={PHC_ROLES}><Referrals /></RoleRoute> },
-      { path: '/phc/referrals/new', element: <RoleRoute roles={PHC_ROLES}><NewReferral /></RoleRoute> },
-      { path: '/phc/referrals/:id', element: <RoleRoute roles={PHC_ROLES}><ReferralDetails /></RoleRoute> },
-      { path: '/phc/alerts', element: <RoleRoute roles={PHC_ROLES}><Alerts /></RoleRoute> },
-      { path: '/phc/alerts/critical', element: <RoleRoute roles={PHC_ROLES}><CriticalAlerts /></RoleRoute> },
-      { path: '/phc/reports/maternal', element: <RoleRoute roles={PHC_ROLES}><MaternalReport /></RoleRoute> },
-      { path: '/phc/reports/child-vaccination', element: <RoleRoute roles={PHC_ROLES}><ChildVaccinationReport /></RoleRoute> },
-      { path: '/phc/reports/asha-performance', element: <RoleRoute roles={PHC_ROLES}><AshaPerformance /></RoleRoute> },
-      { path: '/phc/analytics', element: <RoleRoute roles={PHC_ROLES}><Analytics /></RoleRoute> },
-      { path: '/phc/risk-analysis', element: <RoleRoute roles={PHC_ROLES}><RiskAnalysis /></RoleRoute> },
-      { path: '/phc/beneficiaries/new', element: <RoleRoute roles={PHC_ROLES}><AddPatient /></RoleRoute> },
-      { path: '/phc/follow-ups', element: <RoleRoute roles={PHC_ROLES}><FollowUps /></RoleRoute> },
-      { path: '/phc/notifications', element: <RoleRoute roles={PHC_ROLES}><Notifications /></RoleRoute> },
-      { path: '/phc/settings', element: <RoleRoute roles={PHC_ROLES}><Settings /></RoleRoute> },
-      { path: '/phc/audit-logs', element: <RoleRoute roles={PHC_ROLES}><AuditLogs /></RoleRoute> },
-      { path: '/phc/reports', element: <RoleRoute roles={PHC_ROLES}><ReportCenter /></RoleRoute> },
-      { path: '/phc/vaccination/new', element: <RoleRoute roles={PHC_ROLES}><NewVaccination /></RoleRoute> },
-      { path: '/phc/births/new', element: <RoleRoute roles={PHC_ROLES}><NewBirth /></RoleRoute> },
-      { path: '/phc/villages/new', element: <RoleRoute roles={PHC_ROLES}><AddVillage /></RoleRoute> },
-      { path: '/phc/sanitize', element: <RoleRoute roles={PHC_ROLES}><Sanitize /></RoleRoute> },
+      { path: '/phc/dashboard', element: <RoleRoute roles={ADMIN_ROLES}><Dashboard /></RoleRoute> },
+      { path: '/phc/ashas', element: <RoleRoute roles={ADMIN_ROLES}><Workers /></RoleRoute> },
+      { path: '/phc/ashas/:id', element: <RoleRoute roles={ADMIN_ROLES}><WorkerProfile /></RoleRoute> },
+      { path: '/phc/ashas/new', element: <RoleRoute roles={ADMIN_ROLES}><AddWorker /></RoleRoute> },
+      { path: '/phc/beneficiaries', element: <RoleRoute roles={ADMIN_ROLES}><Beneficiaries /></RoleRoute> },
+      { path: '/phc/beneficiaries/:id', element: <RoleRoute roles={ADMIN_ROLES}><BeneficiaryDetails /></RoleRoute> },
+      { path: '/phc/households', element: <RoleRoute roles={ADMIN_ROLES}><Households /></RoleRoute> },
+      { path: '/phc/households/new', element: <RoleRoute roles={ADMIN_ROLES}><AddHousehold /></RoleRoute> },
+      { path: '/phc/households/:id', element: <RoleRoute roles={ADMIN_ROLES}><HouseholdDetails /></RoleRoute> },
+      { path: '/phc/households/:id/survey', element: <RoleRoute roles={ADMIN_ROLES}><HouseholdSurvey /></RoleRoute> },
+      { path: '/phc/maternal', element: <RoleRoute roles={ADMIN_ROLES}><MaternalHealth /></RoleRoute> },
+      { path: '/phc/maternal/pregnant', element: <RoleRoute roles={ADMIN_ROLES}><PregnantWomen /></RoleRoute> },
+      { path: '/phc/maternal/:id', element: <RoleRoute roles={ADMIN_ROLES}><PregnancyDetails /></RoleRoute> },
+      { path: '/phc/children', element: <RoleRoute roles={ADMIN_ROLES}><ChildrenDir /></RoleRoute> },
+      { path: '/phc/children/:id', element: <RoleRoute roles={ADMIN_ROLES}><ChildProfile /></RoleRoute> },
+      { path: '/phc/children/:id/vaccination', element: <RoleRoute roles={ADMIN_ROLES}><VaccinationSchedule /></RoleRoute> },
+      { path: '/phc/growth-nutrition', element: <RoleRoute roles={ADMIN_ROLES}><NutritionMonitoring /></RoleRoute> },
+      { path: '/phc/vaccination', element: <RoleRoute roles={ADMIN_ROLES}><Vaccination /></RoleRoute> },
+      { path: '/phc/health-checkups/new', element: <RoleRoute roles={ADMIN_ROLES}><NewCheckup /></RoleRoute> },
+      { path: '/phc/health-checkups/history', element: <RoleRoute roles={ADMIN_ROLES}><CheckupHistory /></RoleRoute> },
+      { path: '/phc/referrals', element: <RoleRoute roles={ADMIN_ROLES}><Referrals /></RoleRoute> },
+      { path: '/phc/referrals/new', element: <RoleRoute roles={ADMIN_ROLES}><NewReferral /></RoleRoute> },
+      { path: '/phc/referrals/:id', element: <RoleRoute roles={ADMIN_ROLES}><ReferralDetails /></RoleRoute> },
+      { path: '/phc/alerts', element: <RoleRoute roles={ADMIN_ROLES}><Alerts /></RoleRoute> },
+      { path: '/phc/alerts/critical', element: <RoleRoute roles={ADMIN_ROLES}><CriticalAlerts /></RoleRoute> },
+      { path: '/phc/reports/maternal', element: <RoleRoute roles={ADMIN_ROLES}><MaternalReport /></RoleRoute> },
+      { path: '/phc/reports/child-vaccination', element: <RoleRoute roles={ADMIN_ROLES}><ChildVaccinationReport /></RoleRoute> },
+      { path: '/phc/reports/asha-performance', element: <RoleRoute roles={ADMIN_ROLES}><AshaPerformance /></RoleRoute> },
+      { path: '/phc/analytics', element: <RoleRoute roles={ADMIN_ROLES}><Analytics /></RoleRoute> },
+      { path: '/phc/risk-analysis', element: <RoleRoute roles={ADMIN_ROLES}><RiskAnalysis /></RoleRoute> },
+      { path: '/phc/beneficiaries/new', element: <RoleRoute roles={ADMIN_ROLES}><AddPatient /></RoleRoute> },
+      { path: '/phc/follow-ups', element: <RoleRoute roles={ADMIN_ROLES}><FollowUps /></RoleRoute> },
+      { path: '/phc/notifications', element: <RoleRoute roles={ADMIN_ROLES}><Notifications /></RoleRoute> },
+      { path: '/phc/settings', element: <RoleRoute roles={ADMIN_ROLES}><Settings /></RoleRoute> },
+      { path: '/phc/audit-logs', element: <RoleRoute roles={ADMIN_ROLES}><AuditLogs /></RoleRoute> },
+      { path: '/phc/reports', element: <RoleRoute roles={ADMIN_ROLES}><ReportCenter /></RoleRoute> },
+      { path: '/phc/vaccination/new', element: <RoleRoute roles={ADMIN_ROLES}><NewVaccination /></RoleRoute> },
+      { path: '/phc/births/new', element: <RoleRoute roles={ADMIN_ROLES}><NewBirth /></RoleRoute> },
+      { path: '/phc/villages/new', element: <RoleRoute roles={ADMIN_ROLES}><AddVillage /></RoleRoute> },
+      { path: '/phc/sanitize', element: <RoleRoute roles={ADMIN_ROLES}><Sanitize /></RoleRoute> },
 
       // District ───────────────────────────────────────────────────────
-      { path: '/district/dashboard', element: <RoleRoute roles={DISTRICT_ROLES}><DistrictDashboardPage /></RoleRoute> },
-      { path: '/district/phc-comparison', element: <RoleRoute roles={DISTRICT_ROLES}><PHCComparisonPage /></RoleRoute> },
-      { path: '/district/resources', element: <RoleRoute roles={DISTRICT_ROLES}><ResourceAllocationPage /></RoleRoute> },
+      { path: '/district/dashboard', element: <RoleRoute roles={ADMIN_ROLES}><DistrictDashboardPage /></RoleRoute> },
+      { path: '/district/phc-comparison', element: <RoleRoute roles={ADMIN_ROLES}><PHCComparisonPage /></RoleRoute> },
+      { path: '/district/resources', element: <RoleRoute roles={ADMIN_ROLES}><ResourceAllocationPage /></RoleRoute> },
 
       // State ──────────────────────────────────────────────────────────
-      { path: '/state/dashboard', element: <RoleRoute roles={STATE_ROLES}><StateDashboardPage /></RoleRoute> },
-      { path: '/state/district-comparison', element: <RoleRoute roles={STATE_ROLES}><DistrictComparisonPage /></RoleRoute> },
-      { path: '/state/policy-config', element: <RoleRoute roles={STATE_ROLES}><PolicyConfigPage /></RoleRoute> },
-      { path: '/state/audit-logs', element: <RoleRoute roles={STATE_ROLES}><AuditLogsPage /></RoleRoute> },
+      { path: '/state/dashboard', element: <RoleRoute roles={ADMIN_ROLES}><StateDashboardPage /></RoleRoute> },
+      { path: '/state/district-comparison', element: <RoleRoute roles={ADMIN_ROLES}><DistrictComparisonPage /></RoleRoute> },
+      { path: '/state/policy-config', element: <RoleRoute roles={ADMIN_ROLES}><PolicyConfigPage /></RoleRoute> },
+      { path: '/state/audit-logs', element: <RoleRoute roles={ADMIN_ROLES}><AuditLogs /></RoleRoute> },
 
       // Super admin ────────────────────────────────────────────────────
-      { path: '/super/users', element: <RoleRoute roles={SUPER_ROLES}><UserManagementPage /></RoleRoute> },
-      { path: '/super/system-config', element: <RoleRoute roles={SUPER_ROLES}><SystemConfigPage /></RoleRoute> },
-      { path: '/super/deployment', element: <RoleRoute roles={SUPER_ROLES}><DeploymentPage /></RoleRoute> },
+      { path: '/super/users', element: <RoleRoute roles={ADMIN_ROLES}><UserManagementPage /></RoleRoute> },
+      { path: '/super/system-config', element: <RoleRoute roles={ADMIN_ROLES}><SystemConfigPage /></RoleRoute> },
+      { path: '/super/deployment', element: <RoleRoute roles={ADMIN_ROLES}><DeploymentPage /></RoleRoute> },
 
       { path: '/session-expired', element: <SessionExpiredScreen /> },
     ],

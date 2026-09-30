@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, Link } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 type LoginRole = 'health-worker' | 'patient' | 'phc-admin'
@@ -20,9 +20,11 @@ const isPhoneValid = (value: string) => /^[6-9]\d{9}$/.test(value)
 
 export default function LoginAshaSathi() {
   const navigate = useNavigate()
-  const { isAuthenticated, isHydrating, requestOtp } = useAuth()
+  const { isAuthenticated, isHydrating, signIn } = useAuth()
   const [role, setRole] = useState<LoginRole>('health-worker')
   const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shakeKey, setShakeKey] = useState(0)
@@ -36,6 +38,8 @@ export default function LoginAshaSathi() {
   const phoneValid = hasTyped && isPhoneValid(digits)
   const phoneInvalid = hasTyped && !phoneValid
 
+  const canSubmit = isPhoneValid(digits) && password.length > 0
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!isPhoneValid(digits)) {
@@ -43,13 +47,20 @@ export default function LoginAshaSathi() {
       setShakeKey((k) => k + 1)
       return
     }
+    if (!password) {
+      setError('Enter your password')
+      setShakeKey((k) => k + 1)
+      return
+    }
     setError(null)
     setLoading(true)
     try {
-      const { otpRequestId, expiresIn } = await requestOtp(digits)
-      navigate('/otp', { state: { phone: digits, otpRequestId, expiresIn } })
+      await signIn(digits, password)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to send OTP. Please try again.')
+      // The API deliberately returns the same message for an unknown phone and
+      // a wrong password, so the copy must not hint at which one failed.
+      setError(err instanceof Error ? err.message : 'Incorrect phone number or password')
       setShakeKey((k) => k + 1)
     } finally {
       setLoading(false)
@@ -198,6 +209,43 @@ export default function LoginAshaSathi() {
                 )}
               </div>
 
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="font-body-md text-body-md text-on-surface"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined fill-icon pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
+                    lock
+                  </span>
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setError(null)
+                    }}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="h-touch-target w-full rounded-lg border border-outline bg-surface pl-11 pr-12 font-body-md text-body-md text-on-surface transition-colors placeholder:text-outline focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               {error && (
                 <div
                   key={shakeKey}
@@ -211,32 +259,23 @@ export default function LoginAshaSathi() {
 
               <button
                 type="submit"
-                disabled={loading || digits.length < 10}
+                disabled={loading || !canSubmit}
                 className="group flex h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all duration-200 hover:bg-on-primary-fixed-variant hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-on-primary/40 border-t-on-primary" />
-                    Sending…
+                    Signing in…
                   </>
                 ) : (
                   <>
-                    Send OTP
+                    Sign in
                     <span className="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:translate-x-1">
                       arrow_forward
                     </span>
                   </>
                 )}
               </button>
-
-              <div className="flex justify-center">
-                <Link
-                  to="/login"
-                  className="font-label-md text-label-md font-semibold text-primary transition-colors hover:text-on-primary-fixed-variant hover:underline"
-                >
-                  Login with Password
-                </Link>
-              </div>
             </form>
 
             <div className="mt-6 flex items-start gap-3 rounded-lg border border-outline-variant/40 bg-surface-container-low p-3">

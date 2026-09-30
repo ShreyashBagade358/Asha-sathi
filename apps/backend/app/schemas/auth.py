@@ -13,6 +13,12 @@ class VerifyOTPRequest(BaseModel):
     device_id: str | None = None
 
 
+class PasswordLoginRequest(BaseModel):
+    phone: str = Field(pattern=r"^[6-9]\d{9}$")
+    password: str = Field(min_length=1, max_length=128)
+    device_id: str | None = None
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
