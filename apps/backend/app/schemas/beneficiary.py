@@ -17,6 +17,11 @@ class HouseholdCreate(BaseModel):
     address: str | None = None
     address_local: dict[str, str] | None = None
     amenities: dict[str, Any] | None = None
+    head_name: str | None = Field(default=None, max_length=200)
+    ward: str | None = Field(default=None, max_length=100)
+    family_size: int | None = Field(default=None, ge=0, le=99)
+    contact_phone: str | None = Field(default=None, max_length=15)
+    notes: str | None = Field(default=None, max_length=500)
     consent_given: bool = False
     consent_date: date | None = None
     consent_version: str | None = None
@@ -28,6 +33,11 @@ class HouseholdUpdate(BaseModel):
     address: str | None = None
     address_local: dict[str, str] | None = None
     amenities: dict[str, Any] | None = None
+    head_name: str | None = Field(default=None, max_length=200)
+    ward: str | None = Field(default=None, max_length=100)
+    family_size: int | None = Field(default=None, ge=0, le=99)
+    contact_phone: str | None = Field(default=None, max_length=15)
+    notes: str | None = Field(default=None, max_length=500)
     abha_consent: bool | None = None
 
 
@@ -41,10 +51,21 @@ class HouseholdResponse(BaseModel):
     address: str | None = None
     address_local: dict[str, str] | None = None
     amenities: dict[str, Any] | None = None
+    head_name: str | None = None
+    ward: str | None = None
+    family_size: int | None = None
+    contact_phone: str | None = None
+    notes: str | None = None
     consent_given: bool
     consent_date: date | None = None
     consent_version: str | None = None
     abha_consent: bool
+    # Resolved/hydrated server-side — not columns on the household row.
+    village: str | None = None
+    member_count: int = 0
+    eligible_women: int = 0
+    children_under5: int = 0
+    pregnant_women: int = 0
     created_at: datetime
 
 
@@ -61,8 +82,8 @@ class BeneficiaryCreate(BaseModel):
     date_of_birth: date | None = None
     age_years: int | None = None
     age_months: int | None = None
-    phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
-    alternate_phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
+    phone: str | None = Field(default=None, pattern=r"^\d{10}$")
+    alternate_phone: str | None = Field(default=None, pattern=r"^\d{10}$")
     marital_status: str | None = None
     blood_group: str | None = None
     religion: str | None = None
@@ -73,6 +94,11 @@ class BeneficiaryCreate(BaseModel):
     is_lactating: bool = False
     registration_date: date | None = None
     status: str = "active"
+    # Stored on `Beneficiary.metadata_json` — the model has no dedicated
+    # columns for these, they are intake-time annotations.
+    risk: str | None = Field(default=None, max_length=32)
+    notes: str | None = Field(default=None, max_length=2000)
+    village: str | None = Field(default=None, max_length=200)
 
 
 class BeneficiaryUpdate(BaseModel):
@@ -86,8 +112,8 @@ class BeneficiaryUpdate(BaseModel):
     date_of_birth: date | None = None
     age_years: int | None = None
     age_months: int | None = None
-    phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
-    alternate_phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
+    phone: str | None = Field(default=None, pattern=r"^\d{10}$")
+    alternate_phone: str | None = Field(default=None, pattern=r"^\d{10}$")
     marital_status: str | None = None
     blood_group: str | None = None
     education_level: str | None = None
@@ -95,6 +121,9 @@ class BeneficiaryUpdate(BaseModel):
     is_pregnant: bool | None = None
     is_lactating: bool | None = None
     status: str | None = None
+    risk: str | None = Field(default=None, max_length=32)
+    notes: str | None = Field(default=None, max_length=2000)
+    village: str | None = Field(default=None, max_length=200)
 
 
 class BeneficiaryResponse(BaseModel):
@@ -124,6 +153,35 @@ class BeneficiaryResponse(BaseModel):
     village_id: str | None = None
     village: str | None = None
     asha_id: str | None = None
+    # `risk`, `notes` and `village` are read back from `metadata_json` (see the
+    # matching properties on the model); `photo_url` is a real column.
+    risk: str | None = None
+    notes: str | None = None
+    photo_url: str | None = None
+
+
+class BeneficiaryPhotoResponse(BaseModel):
+    photo_url: str
+
+
+# ---------------------------------------------------------------------------
+# Household surveys
+# ---------------------------------------------------------------------------
+class HouseholdSurveyCreate(BaseModel):
+    answers: dict[str, Any] = Field(min_length=1)
+    consent_obtained: bool = False
+    visited_at: date | None = None
+
+
+class HouseholdSurveyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    household_id: str
+    answers: dict[str, Any]
+    consent_obtained: bool
+    visited_at: date | None = None
+    created_at: datetime
 
 
 class BeneficiarySearchParams(BaseModel):

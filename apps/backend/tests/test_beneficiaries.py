@@ -83,7 +83,7 @@ async def test_get_missing_beneficiary(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_beneficiary_has_abha_and_village_filters(client, db_session, auth_headers):
-    from app.models.admin import Block, District, PHC, State, SubCenter, Village
+    from app.models.admin import PHC, Block, District, State, SubCenter, Village
     from app.models.beneficiary import Beneficiary, Household
 
     headers = await auth_headers()
@@ -112,7 +112,13 @@ async def test_beneficiary_has_abha_and_village_filters(client, db_session, auth
     await db_session.flush()
 
     db_session.add(
-        Beneficiary(beneficiary_id="B50001", full_name="With ABHA", gender="female", household_id=hh.id, abha_id="91-1000-1234")
+        Beneficiary(
+            beneficiary_id="B50001",
+            full_name="With ABHA",
+            gender="female",
+            household_id=hh.id,
+            abha_id="91-1000-1234",
+        )
     )
     db_session.add(
         Beneficiary(beneficiary_id="B50002", full_name="No ABHA", gender="female", household_id=hh.id)

@@ -4,17 +4,17 @@ from app.schemas.common import SuccessResponse
 
 
 class PhoneOTPRequest(BaseModel):
-    phone: str = Field(pattern=r"^[6-9]\d{9}$", description="10-digit Indian mobile number")
+    phone: str = Field(pattern=r"^\d{10}$", description="10-digit Indian mobile number")
 
 
 class VerifyOTPRequest(BaseModel):
-    phone: str = Field(pattern=r"^[6-9]\d{9}$")
+    phone: str = Field(pattern=r"^\d{10}$")
     otp: str = Field(min_length=4, max_length=8)
     device_id: str | None = None
 
 
 class PasswordLoginRequest(BaseModel):
-    phone: str = Field(pattern=r"^[6-9]\d{9}$")
+    phone: str = Field(pattern=r"^\d{10}$")
     password: str = Field(min_length=1, max_length=128)
     device_id: str | None = None
 

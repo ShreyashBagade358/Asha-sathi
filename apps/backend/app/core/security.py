@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -57,3 +58,26 @@ def create_otp(length: int = 6) -> str:
 
 def generate_secure_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex}"
+
+
+def generate_patient_password(phone: str) -> str:
+    """Credential for a freshly registered patient.
+
+    Format ``Pat@<last4><4 random>`` (e.g. ``Pat@3216K7m2``): the phone tail lets the
+    ASHA worker see which patient the password belongs to, while a random suffix stops
+    it being guessable from the phone number alone. Always at least 12 characters.
+    """
+    suffix = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(4))
+    return f"Pat@{phone[-4:]}{suffix}"
+
+
+def generate_asha_password(phone: str) -> str:
+    """Credential handed to a freshly created ASHA worker.
+
+    Format ``Ash@<last4><4 random>`` (e.g. ``Ash@9779K7m2``): same shape as
+    :func:`generate_patient_password` but with its own prefix, so a password
+    leaked from one account type is not immediately usable against another.
+    Always at least 12 characters.
+    """
+    suffix = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(4))
+    return f"Ash@{phone[-4:]}{suffix}"

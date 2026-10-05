@@ -2,15 +2,65 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db_session
+from app.api.deps import get_current_user, get_db_session, require_roles
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.config import AppConfig
-from app.models.user import User
+from app.models.user import Role, User
 from app.schemas.admin import VillageCreate
 from app.schemas.common import MessageResponse
+from app.schemas.config import ConfigUpdateRequest, ConfigUpdateResponse
 
 router = APIRouter()
+
+ADMIN_ONLY = require_roles(Role.ADMIN)
+
+
+@router.put("/app", response_model=ConfigUpdateResponse)
+async def update_app_config(
+    payload: ConfigUpdateRequest,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(ADMIN_ONLY),
+):
+    items: list[AppConfig] = []
+    for entry in payload.configs:
+        row = (
+            await db.execute(select(AppConfig).where(AppConfig.config_key == entry.config_key))
+        ).scalar_one_or_none()
+        if row is None:
+            row = AppConfig(
+                config_key=entry.config_key,
+                config_value=entry.config_value,
+                description=entry.description,
+                is_public=entry.is_public,
+                scope="app",
+                created_by=user.id,
+            )
+            db.add(row)
+        else:
+            if "config_value" in entry.model_fields_set:
+                row.config_value = entry.config_value
+            if "description" in entry.model_fields_set:
+                row.description = entry.description
+            if "is_public" in entry.model_fields_set:
+                row.is_public = entry.is_public
+            row.version = (row.version or 1) + 1
+        items.append(row)
+    await db.commit()
+
+    return {
+        "updated": len(items),
+        "items": [
+            {
+                "config_key": row.config_key,
+                "config_value": row.config_value,
+                "scope": row.scope,
+                "is_public": row.is_public,
+                "version": row.version,
+            }
+            for row in items
+        ],
+    }
 
 
 @router.get("/app", response_model=MessageResponse)

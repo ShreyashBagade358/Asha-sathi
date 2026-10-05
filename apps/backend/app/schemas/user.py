@@ -10,7 +10,7 @@ RoleLiteral = Literal["asha", "admin", "patient"]
 
 class UserCreate(BaseModel):
     role: RoleLiteral = "asha"
-    phone: str = Field(pattern=r"^[6-9]\d{9}$")
+    phone: str = Field(pattern=r"^\d{10}$")
     email: EmailStr | None = None
     full_name: str = Field(min_length=2, max_length=200)
     full_name_local: dict[str, str] | None = None
@@ -57,6 +57,27 @@ class UserResponse(BaseModel):
     is_active: bool
     last_login_at: datetime | None = None
     created_at: datetime
+    state_id: str | None = None
+    district_id: str | None = None
+    block_id: str | None = None
+    phc_id: str | None = None
+    state_name: str | None = None
+    district_name: str | None = None
+    phc_name: str | None = None
+
+
+class UserCreateResponse(UserResponse):
+    """`UserResponse` plus the one-time plaintext credential.
+
+    Returned only by `POST /users`; the password is stored as a bcrypt hash so
+    this is the only moment it can ever be read back.
+    """
+
+    password: str
+
+
+class AvatarResponse(BaseModel):
+    avatar_url: str
 
 
 class ASHAProfileCreate(BaseModel):
@@ -121,7 +142,7 @@ class ASHADetailResponse(BaseModel):
 
 class ASHACreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
-    phone: str = Field(pattern=r"^[6-9]\d{9}$")
+    phone: str = Field(pattern=r"^\d{10}$")
     village: str | None = None
     status: str = "active"
     email: EmailStr | None = None
@@ -129,14 +150,25 @@ class ASHACreate(BaseModel):
     gender: str | None = Field(default=None, pattern=r"^(female|male|other)$")
     aadhaar: str | None = Field(default=None, pattern=r"^\d{4}\s?\d{4}\s?\d{4}$")
     emergency_contact_name: str | None = Field(default=None, max_length=200)
-    emergency_contact_phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
+    emergency_contact_phone: str | None = Field(default=None, pattern=r"^\d{10}$")
     sub_center: str | None = Field(default=None, max_length=200)
     date_of_joining: date | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+
+class ASHACreateResponse(ASHAUserResponse):
+    """`ASHAUserResponse` plus the one-time plaintext credential.
+
+    Returned only by `POST /ashas`; every other ASHA endpoint keeps
+    `ASHAUserResponse` so older clients see no change.
+    """
+
+    password: str
 
 
 class ASHAUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=200)
-    phone: str | None = Field(default=None, pattern=r"^[6-9]\d{9}$")
+    phone: str | None = Field(default=None, pattern=r"^\d{10}$")
     village: str | None = None
     status: str | None = None
     performance_score: float | None = Field(default=None, ge=0, le=100)

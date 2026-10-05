@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -18,6 +19,8 @@ configure_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
+    if not getattr(app.state, "started_at", None):
+        app.state.started_at = datetime.now(UTC)
     client = get_supabase()
     if client is not None:
         app.state.supabase = client
@@ -32,6 +35,8 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
     lifespan=lifespan,
 )
+
+app.state.started_at = datetime.now(UTC)
 
 app.add_middleware(
     CORSMiddleware,

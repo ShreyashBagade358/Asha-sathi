@@ -13,8 +13,6 @@ Revision ID: 0006
 Revises: 0005
 """
 
-import sqlalchemy as sa
-
 from alembic import op
 
 revision = "0006"
@@ -22,24 +20,17 @@ down_revision = "0005"
 branch_labels = None
 depends_on = None
 
-LEGACY_ADMIN_ROLES = ("anm", "moic", "bpm", "dpm", "state_admin", "super_admin")
-
 
 def upgrade() -> None:
+    # Literal SQL on purpose: the role list is fixed by this revision, and a
+    # fully static statement keeps it clearly free of injection risk (S608).
     op.execute(
-        sa.text(
-            "UPDATE users SET role = :new WHERE role IN :legacy"
-        ).bindparams(
-            new="admin",
-            legacy=sa.bindparam("legacy", expanding=True),
-        ),
-        {"legacy": list(LEGACY_ADMIN_ROLES)},
+        "UPDATE users SET role = 'admin' "
+        "WHERE role IN ('anm', 'moic', 'bpm', 'dpm', 'state_admin', 'super_admin')"
     )
 
 
 def downgrade() -> None:
     # Irreversible in the data sense: the pre-merge tier of each account is not
     # recoverable, so demoted rows stay 'admin'. Only the vocabulary is restored.
-    op.execute(
-        sa.text("UPDATE users SET role = :new WHERE role = :old").bindparams(new="super_admin", old="admin")
-    )
+    op.execute("UPDATE users SET role = 'super_admin' WHERE role = 'admin'")

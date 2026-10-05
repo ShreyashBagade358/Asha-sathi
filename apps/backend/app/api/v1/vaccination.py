@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
+from app.models.beneficiary import Beneficiary
 from app.models.child import Child, Immunization
 from app.models.user import User
 
@@ -231,20 +232,25 @@ async def get_due_vaccinations(
 ):
     """Children with immunizations still due based on age."""
     result = await db.execute(
-        select(Immunization, Child)
+        select(Immunization, Child, Beneficiary)
         .join(Child, Child.id == Immunization.child_id)
+        .outerjoin(Beneficiary, Beneficiary.id == Child.beneficiary_id)
         .where(Immunization.status == "due", Immunization.due_date.is_not(None))
     )
     due: list[dict] = []
-    for imm, child in result.all():
+    for imm, child, beneficiary in result.all():
+        child_name = beneficiary.full_name if beneficiary else None
         due.append(
             {
                 "child_id": child.id,
                 "beneficiary_id": child.beneficiary_id,
+                "child_name": child_name,
+                "beneficiary_name": child_name,
                 "vaccine_code": imm.vaccine_code,
                 "vaccine_name": imm.vaccine_name,
                 "dose_number": imm.dose_number,
                 "due_date": imm.due_date.isoformat(),
+                "status": imm.status,
             }
         )
     return {"count": len(due), "due": due}

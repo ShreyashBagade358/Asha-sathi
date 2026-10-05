@@ -36,12 +36,17 @@ async def _get_pregnancy(db: AsyncSession, pregnancy_id: str) -> Pregnancy:
 @router.get("", response_model=PaginatedResponse[PregnancyResponse])
 async def list_pregnancies(
     status: str = "ongoing",
+    beneficiary_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
     db: AsyncSession = Depends(get_db_session),
     user: User = Depends(get_current_user),
 ):
-    stmt = select(Pregnancy).where(Pregnancy.status == status)
+    stmt = select(Pregnancy)
+    if status != "all":
+        stmt = stmt.where(Pregnancy.status == status)
+    if beneficiary_id:
+        stmt = stmt.where(Pregnancy.beneficiary_id == beneficiary_id)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(
         stmt.order_by(Pregnancy.created_at.desc()).offset((page - 1) * page_size).limit(page_size)

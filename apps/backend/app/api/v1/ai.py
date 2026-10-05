@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
@@ -96,7 +97,32 @@ async def predict_ncd_risk(
 @router.get("/models", response_model=list[ModelInfo])
 async def list_models(user: User = Depends(get_current_user)):
     versions = settings.model_versions
-    return [ModelInfo(name=name, version=version, status="available") for name, version in versions.items()]
+    availability = ml_service.model_availability()
+    return [
+        ModelInfo(
+            name=name,
+            version=version,
+            status="available" if availability.get(name) else "unavailable",
+        )
+        for name, version in versions.items()
+    ]
+
+
+@router.get("/predictions", response_model=list[AIPredictionResponse])
+async def list_predictions(
+    beneficiary_id: str = Query(...),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Prediction history for one beneficiary, newest first."""
+    result = await db.execute(
+        select(AIPrediction)
+        .where(AIPrediction.beneficiary_id == beneficiary_id)
+        .order_by(AIPrediction.created_at.desc())
+        .limit(limit)
+    )
+    return [AIPredictionResponse.model_validate(p) for p in result.scalars().all()]
 
 
 @router.post("/chat")

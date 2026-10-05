@@ -443,8 +443,12 @@ async def test_asha_directory_crud_admin_only(client, auth_headers):
     )
     assert r.status_code == 200
 
-    # asha must NOT see admin directory
+    # an ASHA may read the list (scoped to their own PHC) but nothing else here
     r = await client.get("/api/v1/ashas", headers=asha)
+    assert r.status_code == 200
+    r = await client.get(f"/api/v1/ashas/{new_asha['asha_id']}", headers=asha)
+    assert r.status_code == 403
+    r = await client.patch(f"/api/v1/ashas/{new_asha['asha_id']}", headers=asha, json={"name": "nope"})
     assert r.status_code == 403
     r = await client.get("/api/v1/ashas", headers=admin)
     assert r.status_code == 200
@@ -692,10 +696,13 @@ async def test_sync_device_register_and_status(client, auth_headers):
 
 
 async def test_permission_boundary_sweep(client, auth_headers):
-    """Only ``admin`` reaches the supervisory endpoints.
+    """Supervisory endpoints stay ``admin``-only, with one deliberate exception.
 
-    Since the six supervisor tiers collapsed into one, the boundary is now
-    binary: asha and patient are refused everywhere an admin is allowed.
+    The ASHA directory *list* is also readable by an ASHA caller because the
+    patient-registration form has to offer the workers a patient can be
+    assigned to; ``_scope_filter`` narrows that response to the caller's own
+    district/block/PHC. Everything else — including per-worker detail — remains
+    admin-only, and ``patient`` is refused everywhere.
     """
     asha = await auth_headers(phone="9876543210", role="asha")
     patient = await auth_headers(phone="9876543216", role="patient")
@@ -703,7 +710,6 @@ async def test_permission_boundary_sweep(client, auth_headers):
 
     for role_headers in (asha, patient):
         assert (await client.get("/api/v1/users", headers=role_headers)).status_code == 403
-        assert (await client.get("/api/v1/ashas", headers=role_headers)).status_code == 403
         assert (await client.get("/api/v1/audit/logs", headers=role_headers)).status_code == 403
         assert (await client.get("/api/v1/sanitize/summary", headers=role_headers)).status_code == 403
         assert (await client.get("/api/v1/verification/pending", headers=role_headers)).status_code == 403
@@ -712,6 +718,11 @@ async def test_permission_boundary_sweep(client, auth_headers):
                 "/api/v1/notifications/broadcast", headers=role_headers, json={"title": "x", "message": "y"}
             )
         ).status_code == 403
+
+    # the ASHA directory list is the one ASHA-readable supervisory endpoint
+    assert (await client.get("/api/v1/ashas", headers=asha)).status_code == 200
+    # ...but a patient never gets it
+    assert (await client.get("/api/v1/ashas", headers=patient)).status_code == 403
 
     # the single admin role reaches them all
     assert (await client.get("/api/v1/users", headers=admin)).status_code == 200
@@ -744,3 +755,310 @@ async def test_child_requires_existing_beneficiary(client, auth_headers):
         "/api/v1/children", headers=headers, json={"beneficiary_id": _uid(), "birth_weight_grams": 2500}
     )
     assert r.status_code == 404
+
+# ---------------------------------------------------------------------------
+# Regression: payloads the web forms actually send used to 422
+# ---------------------------------------------------------------------------
+
+
+async def test_referral_accepts_plain_text_clinical_summary(client, auth_headers):
+    """The referral form submits a free-text summary; it must not be rejected."""
+    headers = await auth_headers(phone="9876543210", role="asha")
+    b = await _seed_beneficiary(client, headers)
+
+    r = await client.post(
+        "/api/v1/referrals",
+        headers=headers,
+        json={
+            "beneficiary_id": b["id"],
+            "referral_type": "general",
+            "urgency": "routine",
+            "reason": "Suspected TB",
+            "clinical_summary": "Persistent cough for 3 weeks, night sweats",
+        },
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["reason"] == "Suspected TB"
+
+
+async def test_referral_still_accepts_structured_clinical_summary(client, auth_headers):
+    """Widening the field must not break callers that post an object."""
+    headers = await auth_headers(phone="9876543211", role="asha")
+    b = await _seed_beneficiary(client, headers)
+
+    r = await client.post(
+        "/api/v1/referrals",
+        headers=headers,
+        json={
+            "beneficiary_id": b["id"],
+            "referral_type": "general",
+            "urgency": "routine",
+            "reason": "Fever",
+            "clinical_summary": {"bp": 140, "note": "observed"},
+        },
+    )
+    assert r.status_code == 201, r.text
+
+
+async def test_anc_visit_accepts_danger_signs_as_a_list(client, auth_headers):
+    """The check-up form posts an array of selected signs; it must not be rejected."""
+    headers = await auth_headers(phone="9876543212", role="asha")
+    b = await _seed_beneficiary(client, headers)
+
+    lmp = TODAY - timedelta(days=100)
+    r = await client.post(
+        "/api/v1/pregnancies",
+        headers=headers,
+        json={"beneficiary_id": b["id"], "lmp": lmp.isoformat()},
+    )
+    assert r.status_code == 201, r.text
+    preg = r.json()
+
+    r = await client.post(
+        f"/api/v1/pregnancies/{preg['id']}/anc",
+        headers=headers,
+        json={
+            "visit_number": 1,
+            "visit_date": TODAY.isoformat(),
+            "bp_systolic": 150,
+            "danger_signs": ["blurred vision", "severe headache"],
+        },
+    )
+    assert r.status_code == 201, r.text
+
+
+async def test_anc_visit_still_accepts_danger_signs_as_an_object(client, auth_headers):
+    headers = await auth_headers(phone="9876543213", role="asha")
+    b = await _seed_beneficiary(client, headers)
+
+    lmp = TODAY - timedelta(days=100)
+    r = await client.post(
+        "/api/v1/pregnancies",
+        headers=headers,
+        json={"beneficiary_id": b["id"], "lmp": lmp.isoformat()},
+    )
+    assert r.status_code == 201, r.text
+    preg = r.json()
+
+    r = await client.post(
+        f"/api/v1/pregnancies/{preg['id']}/anc",
+        headers=headers,
+        json={
+            "visit_number": 1,
+            "visit_date": TODAY.isoformat(),
+            "danger_signs": {"blurred_vision": True},
+        },
+    )
+    assert r.status_code == 201, r.text
+
+
+async def test_audit_logs_expose_actor_name_and_support_search(client, auth_headers, db_session):
+    """The audit page reads actor names and filters server-side."""
+    admin = await auth_headers(phone="9876543240", role="admin", full_name="Ashok Kumar")
+    asha = await auth_headers(phone="9876543241", role="asha", full_name="Meena Sharma")
+    _b = await _seed_beneficiary(client, asha)
+
+    r = await client.get("/api/v1/audit/logs", headers=admin)
+    assert r.status_code == 200, r.text
+    items = r.json()["items"]
+    assert items, "the beneficiary create above should have been audited"
+
+    by_action = {i["action"]: i for i in items}
+    created = by_action.get("beneficiary_created") or items[0]
+    assert created["actor_name"] == "Meena Sharma", created
+
+    # Free-text search narrows the result set instead of returning everything.
+    r = await client.get("/api/v1/audit/logs", headers=admin, params={"q": "Meena"})
+    assert r.status_code == 200
+    assert all(i["actor_name"] == "Meena Sharma" for i in r.json()["items"])
+
+    r = await client.get("/api/v1/audit/logs", headers=admin, params={"q": "zzz-no-such-thing"})
+    assert r.status_code == 200 and r.json()["items"] == []
+
+
+async def test_audit_summary_counts_by_status(client, auth_headers):
+    admin = await auth_headers(phone="9876543242", role="admin")
+    asha = await auth_headers(phone="9876543243", role="asha")
+    await _seed_beneficiary(client, asha)
+
+    r = await client.get("/api/v1/audit/summary", headers=admin)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert set(body) == {"total", "success", "denied", "error"}
+    assert body["total"] == sum(body[k] for k in ("success", "denied", "error"))
+    assert body["total"] >= 1
+
+    assert (await client.get("/api/v1/audit/summary", headers=asha)).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Household demographics (added for the registration form's missing columns)
+# ---------------------------------------------------------------------------
+
+
+async def test_household_demographics_round_trip(client, auth_headers):
+    """head_name/ward/family_size/contact_phone/notes must survive create -> read."""
+    headers = await auth_headers(phone="9876543250", role="asha")
+
+    r = await client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={
+            "hhid": f"TEST-DEM-{_uid().upper()}",
+            "village_id": _uid(),
+            "address": "12 Main Rd",
+            "head_name": "Ramesh Kumar",
+            "ward": "Ward 3",
+            "family_size": 5,
+            "contact_phone": "9876501234",
+            "notes": "Corner house, blue gate",
+        },
+    )
+    assert r.status_code == 201, r.text
+    hh = r.json()
+    assert hh["head_name"] == "Ramesh Kumar"
+    assert hh["ward"] == "Ward 3"
+    assert hh["family_size"] == 5
+    assert hh["contact_phone"] == "9876501234"
+    assert hh["notes"] == "Corner house, blue gate"
+
+    r = await client.get(f"/api/v1/households/{hh['id']}", headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["head_name"] == "Ramesh Kumar"
+    assert r.json()["family_size"] == 5
+
+
+async def test_household_update_leaves_unset_demographics_alone(client, auth_headers):
+    """PATCH must not wipe fields the caller did not send (exclude_unset)."""
+    headers = await auth_headers(phone="9876543251", role="asha")
+
+    r = await client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={
+            "hhid": f"TEST-DEM2-{_uid().upper()}",
+            "village_id": _uid(),
+            "head_name": "Sunita Devi",
+            "family_size": 4,
+        },
+    )
+    assert r.status_code == 201, r.text
+    hh = r.json()
+
+    r = await client.put(
+        f"/api/v1/households/{hh['id']}", headers=headers, json={"address": "4 Park St"}
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["address"] == "4 Park St"
+    assert body["head_name"] == "Sunita Devi"
+    assert body["family_size"] == 4
+
+
+async def test_household_demographics_optional(client, auth_headers):
+    """Creating without them still works — sync and older callers send none."""
+    headers = await auth_headers(phone="9876543252", role="asha")
+    r = await client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={"hhid": f"TEST-DEM3-{_uid().upper()}", "village_id": _uid()},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["head_name"] is None
+    assert r.json()["family_size"] is None
+
+
+# ---------------------------------------------------------------------------
+# Household read-path hydration (village name + member roll-ups)
+# ---------------------------------------------------------------------------
+
+
+async def test_household_resolves_village_and_member_counts(db_session, client, auth_headers):
+    async def _mk(model, **kw):
+        obj = model(**kw)
+        db_session.add(obj)
+        await db_session.flush()
+        return obj
+
+    state = await _mk(State, code="ST", name=f"TEST State {_uid()}")
+    district = await _mk(District, code="DT", name=f"TEST Dist {_uid()}", state_id=state.id)
+    block = await _mk(Block, code="BL", name=f"TEST Block {_uid()}", district_id=district.id)
+    phc = await _mk(PHC, code="PH", name=f"TEST PHC {_uid()}", block_id=block.id)
+    await _mk(SubCenter, code="SC", name=f"TEST SC {_uid()}", phc_id=phc.id)
+    await db_session.commit()
+
+    headers = await auth_headers(phone="9876543260", role="asha")
+    village_name = f"TEST Village {_uid()}"
+    r = await client.post(
+        f"/api/v1/config/phc/{phc.id}/villages",
+        headers=headers,
+        json={"name": village_name, "total_population": 900},
+    )
+    assert r.status_code == 201, r.text
+    village_id = r.json()["id"]
+
+    r = await client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={
+            "hhid": f"TEST-HYD-{_uid().upper()}",
+            "village_id": village_id,
+            "head_name": "Ramesh Kumar",
+        },
+    )
+    assert r.status_code == 201, r.text
+    hh = r.json()
+    assert hh["village"] == village_name
+    assert hh["member_count"] == 0
+
+    # A pregnant adult and a 3-year-old.
+    pregnant = None
+    for name, age, is_pregnant in [
+        ("Pregnant Woman", 26, True),
+        ("Toddler", 3, False),
+    ]:
+        r = await client.post(
+            "/api/v1/beneficiaries",
+            headers=headers,
+            json={
+                "beneficiary_id": f"TEST-{_uid().upper()}",
+                "household_id": hh["id"],
+                "full_name": name,
+                "gender": "female",
+                "age_years": age,
+                "is_pregnant": is_pregnant,
+                "status": "active",
+            },
+        )
+        assert r.status_code == 201, r.text
+        if is_pregnant:
+            pregnant = r.json()["id"]
+
+    # Register her as an eligible couple so the EC roll-up has something to count.
+    r = await client.post(
+        "/api/v1/eligible-couples",
+        headers=headers,
+        json={"wife_id": pregnant, "status": "active"},
+    )
+    assert r.status_code == 201, r.text
+
+    r = await client.get(f"/api/v1/households/{hh['id']}", headers=headers)
+    assert r.status_code == 200, r.text
+    detail = r.json()
+    assert detail["village"] == village_name
+    assert detail["member_count"] == 2
+    assert detail["pregnant_women"] == 1
+    assert detail["children_under5"] == 1
+    assert detail["eligible_women"] == 1
+
+    # The list endpoint must agree with the detail endpoint.
+    r = await client.get("/api/v1/households", headers=headers, params={"page_size": 1000})
+    assert r.status_code == 200, r.text
+    matches = [h for h in r.json()["items"] if h["id"] == hh["id"]]
+    assert matches, "household missing from list"
+    listed = matches[0]
+    assert listed["village"] == village_name
+    assert listed["member_count"] == 2
+    assert listed["pregnant_women"] == 1
+    assert listed["children_under5"] == 1
+    assert listed["eligible_women"] == 1

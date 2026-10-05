@@ -19,6 +19,7 @@ router = APIRouter()
 async def list_disease_cases(
     disease_type: str | None = None,
     status: str | None = None,
+    beneficiary_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
     db: AsyncSession = Depends(get_db_session),
@@ -29,6 +30,8 @@ async def list_disease_cases(
         stmt = stmt.where(DiseaseCase.disease_type == disease_type)
     if status:
         stmt = stmt.where(DiseaseCase.status == status)
+    if beneficiary_id:
+        stmt = stmt.where(DiseaseCase.beneficiary_id == beneficiary_id)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(
         stmt.order_by(DiseaseCase.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -137,35 +140,3 @@ async def delete_disease_case(
     await db.delete(case)
     await db.commit()
     return MessageResponse(message="Disease case deleted")
-
-
-@router.get("/outbreaks")
-async def get_outbreaks(
-    days: int = 30,
-    db: AsyncSession = Depends(get_db_session),
-    user: User = Depends(get_current_user),
-):
-    """Group disease cases by village + disease_type for the given window."""
-    since = date.today() - timedelta(days=days)
-    result = await db.execute(
-        select(
-            DiseaseCase.village_id,
-            DiseaseCase.disease_type,
-            func.count(DiseaseCase.id).label("case_count"),
-        )
-        .where(DiseaseCase.detection_date >= since, DiseaseCase.village_id.is_not(None))
-        .group_by(DiseaseCase.village_id, DiseaseCase.disease_type)
-        .order_by(func.count(DiseaseCase.id).desc())
-    )
-    rows = result.all()
-    outbreaks = [
-        {
-            "village_id": row.village_id,
-            "disease_type": row.disease_type,
-            "count": row.case_count,
-            "alert": row.case_count >= 3,
-            "window_days": days,
-        }
-        for row in rows
-    ]
-    return {"since": since.isoformat(), "outbreaks": outbreaks}

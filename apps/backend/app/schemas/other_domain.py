@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
@@ -213,11 +213,18 @@ class ASHATaskCreate(BaseModel):
     status: str = "pending"
     scheduled_time: datetime | None = None
     notes: str | None = None
-    metadata: dict[str, Any] | None = None
+    # Column on `asha_tasks` is `metadata`; the legacy `metadata` key is still
+    # accepted so older payloads keep working.
+    metadata_json: dict[str, Any] | None = Field(
+        default=None, validation_alias=AliasChoices("metadata_json", "metadata")
+    )
 
 
 class ASHATaskUpdate(BaseModel):
     status: str | None = None
+    task_date: date | None = None
+    priority: str | None = None
+    scheduled_time: datetime | None = None
     completed_time: datetime | None = None
     gps_latitude: float | None = None
     gps_longitude: float | None = None
@@ -226,6 +233,9 @@ class ASHATaskUpdate(BaseModel):
 
 
 class ASHATaskResponse(BaseModel):
+    """Every column on `asha_tasks` (plus `BaseModel` bookkeeping and the joined
+    household `hhid` / village name the task list renders."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -239,7 +249,16 @@ class ASHATaskResponse(BaseModel):
     status: str
     scheduled_time: datetime | None = None
     completed_time: datetime | None = None
+    gps_latitude: float | None = None
+    gps_longitude: float | None = None
+    gps_accuracy: float | None = None
     notes: str | None = None
+    metadata_json: dict[str, Any] | None = None
+    household_hhid: str | None = None
+    village_name: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    version: int = 1
 
 
 class ASHAKPIResponse(BaseModel):
@@ -418,7 +437,9 @@ class ReferralCreate(BaseModel):
     referral_type: str
     urgency: str = "routine"
     reason: str | None = None
-    clinical_summary: dict[str, Any] | None = None
+    # Free-text from the referral form, or a structured object if a caller
+    # prefers one. Backed by a JSON column, so either shape persists.
+    clinical_summary: str | dict[str, Any] | None = None
     investigations: dict[str, Any] | None = None
     provisional_diagnosis: str | None = None
     followup_required: bool = False
@@ -479,34 +500,59 @@ class MaternalRiskRequest(BaseModel):
     gravida: int | None = None
     parity: int | None = None
     lmp_days_ago: int | None = None
+    gestational_weeks: int | None = None
     hemoglobin: float | None = None
+    blood_sugar: float | None = None
     bp_systolic: int | None = None
     bp_diastolic: int | None = None
     weight_kg: float | None = None
+    height_cm: float | None = None
+    bmi: float | None = None
     previous_csection: bool = False
     previous_miscarriages: int | None = None
+    previous_pph: bool | None = None
+    previous_preterm: bool | None = None
+    previous_stillbirth: bool | None = None
     multiple_pregnancy: bool = False
+    htn: bool | None = None
+    diabetes: bool | None = None
+    heart_disease: bool | None = None
+    kidney_disease: bool | None = None
+    anc_visits_attended: int | None = None
+    pmsma_attended: bool | None = None
     has_risk_factors: bool = False
 
 
 class ChildGrowthRequest(BaseModel):
     beneficiary_id: str
     age_months: int | None = None
+    sex: str | None = None
     weight_kg: float | None = None
     height_cm: float | None = None
     muac_mm: float | None = None
     birth_weight_grams: int | None = None
+    gestation_weeks: int | None = None
     breastfeeding: str | None = None
+    complementary_feeding: bool | None = None
+    diarrhea_episodes: int | None = None
+    immunization_complete: bool | None = None
 
 
 class NCDRiskRequest(BaseModel):
     beneficiary_id: str
     age: int | None = None
+    sex: str | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
+    bmi: float | None = None
     tobacco_use: bool = False
     alcohol_use: bool = False
     waist_circumference_cm: float | None = None
+    physical_activity: str | None = None
     family_history_diabetes: bool = False
     family_history_hypertension: bool = False
+    known_diabetes: bool | None = None
+    known_hypertension: bool | None = None
     bp_systolic: int | None = None
     bp_diastolic: int | None = None
     blood_sugar_random: float | None = None

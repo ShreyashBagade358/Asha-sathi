@@ -17,11 +17,14 @@ from app.api.v1 import (
     households,
     ncd,
     notifications,
+    patients,
     pregnancies,
     referrals,
     reporting,
+    resources,
     sanitize,
     sync,
+    system,
     users,
     vaccination,
     verification,
@@ -35,6 +38,7 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(ashas.router, prefix="/ashas", tags=["ashas"])
 api_router.include_router(households.router, prefix="/households", tags=["households"])
 api_router.include_router(beneficiaries.router, prefix="/beneficiaries", tags=["beneficiaries"])
+api_router.include_router(patients.router, prefix="/patients", tags=["patients"])
 api_router.include_router(pregnancies.router, prefix="/pregnancies", tags=["pregnancies"])
 api_router.include_router(children.router, prefix="/children", tags=["children"])
 api_router.include_router(eligible_couples.router, prefix="/eligible-couples", tags=["eligible couples"])
@@ -51,6 +55,8 @@ api_router.include_router(verification.router, prefix="/verification", tags=["ve
 api_router.include_router(consent.router, prefix="/consent", tags=["consent"])
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(config.router, prefix="/config", tags=["config"])
+api_router.include_router(system.router, prefix="/system", tags=["system"])
+api_router.include_router(resources.router, prefix="/resources", tags=["resources"])
 api_router.include_router(sync.router, prefix="/sync", tags=["sync"])
 api_router.include_router(abdm.router, prefix="/abdm", tags=["abdm"])
 api_router.include_router(sanitize.router, prefix="/sanitize", tags=["sanitize"])

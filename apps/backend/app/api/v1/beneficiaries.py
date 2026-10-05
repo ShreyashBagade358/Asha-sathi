@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,14 +12,24 @@ from app.models.beneficiary import Beneficiary, Household
 from app.models.user import User
 from app.schemas.beneficiary import (
     BeneficiaryCreate,
+    BeneficiaryPhotoResponse,
     BeneficiaryResponse,
     BeneficiaryUpdate,
 )
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
 from app.schemas.other_domain import ABHAResponse
+from app.services import images
+from app.services import storage as storage_svc
 from app.services.audit import log_action
 
 router = APIRouter()
+
+
+async def _get_beneficiary_or_none(db: AsyncSession, beneficiary_id: str) -> Beneficiary | None:
+    result = await db.execute(
+        select(Beneficiary).where(or_(Beneficiary.id == beneficiary_id, Beneficiary.beneficiary_id == beneficiary_id))
+    )
+    return result.scalar_one_or_none()
 
 
 async def _hydrate_beneficiaries(db: AsyncSession, beneficiaries: list[Beneficiary]) -> list[BeneficiaryResponse]:
@@ -246,3 +256,52 @@ async def get_beneficiary_abha(
     if not record:
         raise NotFoundError("No ABHA record found for beneficiary")
     return record
+
+
+@router.post("/{beneficiary_id}/photo", response_model=BeneficiaryPhotoResponse)
+async def upload_beneficiary_photo(
+    beneficiary_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Attach a profile photo to a beneficiary (any authenticated caller)."""
+    beneficiary = await _get_beneficiary_or_none(db, beneficiary_id)
+    if not beneficiary:
+        raise NotFoundError("Beneficiary not found")
+    data, ext = await images.read_image(file)
+    photo_url = storage_svc.upload(
+        f"beneficiaries/{beneficiary_id}.{ext}",
+        data,
+        content_type=file.content_type or "image/jpeg",
+    )
+    beneficiary.photo_url = photo_url
+    await log_action(
+        db,
+        user.id,
+        "beneficiary_photo_uploaded",
+        "beneficiary",
+        beneficiary.id,
+        new_values={"photo_url": photo_url},
+    )
+    await db.commit()
+    return BeneficiaryPhotoResponse(photo_url=photo_url)
+
+
+@router.delete("/{beneficiary_id}/photo", response_model=MessageResponse)
+async def delete_beneficiary_photo(
+    beneficiary_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    beneficiary = await _get_beneficiary_or_none(db, beneficiary_id)
+    if not beneficiary:
+        raise NotFoundError("Beneficiary not found")
+    if beneficiary.photo_url:
+        parsed = storage_svc.bucket_and_path_from_url(beneficiary.photo_url)
+        if parsed:
+            storage_svc.delete(parsed[1], bucket=parsed[0])
+    beneficiary.photo_url = None
+    await log_action(db, user.id, "beneficiary_photo_deleted", "beneficiary", beneficiary.id)
+    await db.commit()
+    return MessageResponse(message="Photo removed")

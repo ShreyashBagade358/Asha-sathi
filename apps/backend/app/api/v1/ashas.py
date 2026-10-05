@@ -1,14 +1,15 @@
 import hashlib
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user, get_db_session, require_roles
 from app.core.exceptions import ConflictError, NotFoundError
-from app.core.security import get_password_hash
-from app.models.admin import Village
+from app.core.security import generate_asha_password, get_password_hash
+from app.models.admin import SubCenter, Village
 from app.models.audit import SyncLog
 from app.models.beneficiary import Household
 from app.models.incentive import IncentiveClaim
@@ -18,13 +19,16 @@ from app.schemas.beneficiary import HouseholdResponse
 from app.schemas.common import PaginatedResponse, paginate
 from app.schemas.other_domain import (
     ASHAKPIResponse,
+    ASHATaskCreate,
     ASHATaskResponse,
+    ASHATaskUpdate,
     IncentiveClaimCreate,
     IncentiveClaimResponse,
 )
 from app.schemas.user import (
     ASHAAssignVillages,
     ASHACreate,
+    ASHACreateResponse,
     ASHADetailResponse,
     ASHAProfileCreate,
     ASHAProfileResponse,
@@ -34,6 +38,7 @@ from app.schemas.user import (
 )
 from app.services.audit import log_action
 from app.services.incentive_calc import calculate_claim
+from app.services.task_plan import generate_daily_plan, pending_first_order, plan_today
 
 router = APIRouter()
 
@@ -129,6 +134,104 @@ async def get_my_work_plan(
     return paginate([ASHATaskResponse.model_validate(t) for t in result.scalars().all()], total, page, page_size)
 
 
+# ---------------------------------------------------------------------------
+# ASHA task REST (the worker's own to-do list)
+# ---------------------------------------------------------------------------
+@router.get("/me/tasks", response_model=list[ASHATaskResponse])
+async def list_my_tasks(
+    status: str | None = Query(None),
+    day: date | None = Query(
+        None,
+        alias="date",
+        description="Plan day (YYYY-MM-DD). Asking for today builds that day's visit plan first.",
+    ),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """The worker's own task list.
+
+    Passing today's date lazily generates the day's plan (carry-over first,
+    then up to five new visits) so no scheduler has to run at midnight.
+    """
+    if day is not None and day == plan_today():
+        try:
+            await generate_daily_plan(db, user.id, day)
+        except IntegrityError:
+            # A concurrent tab/device built the same plan first — its commit
+            # wins, we simply read the result.
+            await db.rollback()
+
+    stmt = (
+        select(ASHATask, Household.hhid, Village.name)
+        .outerjoin(Household, Household.id == ASHATask.household_id)
+        .outerjoin(Village, Village.id == func.coalesce(ASHATask.village_id, Household.village_id))
+        .where(ASHATask.asha_id == user.id)
+    )
+    if day is not None:
+        stmt = stmt.where(ASHATask.task_date == day)
+    if status:
+        stmt = stmt.where(ASHATask.status == status)
+
+    result = await db.execute(stmt.order_by(*pending_first_order()))
+    items: list[ASHATaskResponse] = []
+    for task, household_hhid, village_name in result.all():
+        item = ASHATaskResponse.model_validate(task).model_dump()
+        item["household_hhid"] = household_hhid
+        item["village_name"] = village_name
+        items.append(ASHATaskResponse(**item))
+    return items
+
+
+@router.post("/me/tasks", response_model=ASHATaskResponse, status_code=201)
+async def create_my_task(
+    payload: ASHATaskCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    task = ASHATask(**payload.model_dump(), asha_id=user.id)
+    db.add(task)
+    try:
+        await db.flush()
+        await log_action(
+            db, user.id, "asha_task_created", "asha_task", task.id, new_values=payload.model_dump()
+        )
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictError("This task is already scheduled for that household and day") from exc
+    await db.refresh(task)
+    return task
+
+
+@router.patch("/me/tasks/{task_id}", response_model=ASHATaskResponse)
+async def update_my_task(
+    task_id: str,
+    payload: ASHATaskUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    task = await db.get(ASHATask, task_id)
+    # A task belongs to exactly one worker: someone else's id must look the
+    # same as a task that does not exist.
+    if not task or task.asha_id != user.id:
+        raise NotFoundError("Task not found")
+    data = payload.model_dump(exclude_unset=True)
+    await log_action(
+        db,
+        user.id,
+        "asha_task_updated",
+        "asha_task",
+        task.id,
+        old_values=task.to_dict(),
+        new_values=data,
+    )
+    for key, value in data.items():
+        setattr(task, key, value)
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
 @router.get("/me/incentives", response_model=list[IncentiveClaimResponse])
 async def get_my_incentives(
     user: User = Depends(get_current_user),
@@ -207,14 +310,21 @@ async def get_asha_performance(
 # ASHA directory (admin views)
 # ---------------------------------------------------------------------------
 def _scope_filter(user: User, stmt):
+    """Restrict the directory to what the caller is allowed to see.
+
+    Admins are unrestricted. An ASHA is narrowed to the *narrowest* geography
+    they are anchored to, because the directory response carries worker phone
+    numbers and household counts — a district-wide view would leak colleagues
+    outside their own facility.
+    """
     if user.role == Role.ADMIN.value:
         return stmt
-    if user.district_id:
-        return stmt.where(User.district_id == user.district_id)
-    if user.block_id:
-        return stmt.where(User.block_id == user.block_id)
     if user.phc_id:
         return stmt.where(User.phc_id == user.phc_id)
+    if user.block_id:
+        return stmt.where(User.block_id == user.block_id)
+    if user.district_id:
+        return stmt.where(User.district_id == user.district_id)
     return stmt
 
 
@@ -256,11 +366,18 @@ async def list_ashas(
     status: str = Query(None),
     role: str = Query(None),
     phc_id: str = Query(None),
+    village: str = Query(None, description="Village id or name — narrows the directory to that catchment"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=1000),
-    user: User = Depends(get_current_admin),
+    user: User = Depends(require_roles(Role.ASHA, Role.ADMIN)),
     db: AsyncSession = Depends(get_db_session),
 ):
+    """ASHA directory.
+
+    Admins see everyone; an ASHA caller is narrowed to their own
+    district/block/PHC by `_scope_filter`, which is what the registration form
+    needs to list the workers a patient can be assigned to.
+    """
     hh_count = (
         select(func.count(Household.id)).where(Household.asha_id == User.id).correlate(User).scalar_subquery()
     )
@@ -287,6 +404,8 @@ async def list_ashas(
         )
     if status in ("active", "inactive"):
         stmt = stmt.where(User.is_active == (status == "active"))
+    if village:
+        stmt = stmt.where(or_(User.village_id == village, Village.name == village))
 
     total = (
         await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))
@@ -392,7 +511,7 @@ async def update_asha(
     )
 
 
-@router.post("", response_model=ASHAUserResponse, status_code=201)
+@router.post("", response_model=ASHACreateResponse, status_code=201)
 async def create_asha(
     payload: ASHACreate,
     user: User = Depends(get_current_admin),
@@ -404,24 +523,47 @@ async def create_asha(
     if existing:
         raise ConflictError("A user with this phone number already exists")
     village_id = None
+    village_name = payload.village
     if payload.village:
+        # Match by id or by name, like the sub-centre lookup below: with the
+        # full India directory a bare name can be ambiguous (4 duplicated names).
         village = (
-            await db.execute(select(Village).where(Village.name == payload.village))
-        ).scalar_one_or_none()
-        village_id = village.id if village else None
+            await db.execute(
+                select(Village).where(
+                    or_(Village.id == payload.village, Village.name == payload.village)
+                )
+            )
+        ).scalars().first()
+        if village:
+            village_id = village.id
+            village_name = village.name
+    # The form may name the sub-centre by id or by label; an unknown or absent
+    # value falls back to the admin's own sub-centre (the previous behaviour).
+    sub_center_id = user.sub_center_id
+    if payload.sub_center:
+        sub_center = (
+            await db.execute(
+                select(SubCenter).where(
+                    or_(SubCenter.id == payload.sub_center, SubCenter.name == payload.sub_center)
+                )
+            )
+        ).scalars().first()
+        if sub_center:
+            sub_center_id = sub_center.id
+    password = payload.password or generate_asha_password(payload.phone)
     new_user = User(
         role=Role.ASHA.value,
         state_id=user.state_id,
         district_id=user.district_id,
         block_id=user.block_id,
         phc_id=user.phc_id,
-        sub_center_id=user.sub_center_id,
+        sub_center_id=sub_center_id,
         village_id=village_id,
         phone=payload.phone,
         email=payload.email,
         full_name=payload.name,
         is_active=payload.status != "inactive",
-        hashed_password=get_password_hash(f"dev-{payload.phone}"),
+        hashed_password=get_password_hash(password),
     )
     db.add(new_user)
     await db.flush()
@@ -455,7 +597,9 @@ async def create_asha(
     )
     await db.commit()
 
-    return _build_asha_user_response(new_user, profile, payload.village, 0, None)
+    created = _build_asha_user_response(new_user, profile, village_name, 0, None)
+    # Returned exactly once: only the bcrypt hash is stored.
+    return ASHACreateResponse(**created.model_dump(), password=password)
 
 
 @router.post("/{asha_id}/villages", response_model=ASHAUserResponse)
@@ -469,11 +613,14 @@ async def assign_villages(
     asha_user = await db.get(User, profile.user_id)
     if not asha_user:
         raise NotFoundError("ASHA user not found")
-    names = [v.strip() for v in payload.villages if v and v.strip()]
+    # Ids or names both work (the form sends ids; names stay supported).
+    values = [v.strip() for v in payload.villages if v and v.strip()]
     ids: list[str] = []
-    if names:
+    if values:
         found = (
-            await db.execute(select(Village.id).where(Village.name.in_(names)))
+            await db.execute(
+                select(Village.id).where(or_(Village.id.in_(values), Village.name.in_(values)))
+            )
         ).scalars().all()
         ids = list(found)
     profile.catchment_villages = ids

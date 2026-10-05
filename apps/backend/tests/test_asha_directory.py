@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.models.admin import Block, District, PHC, State, SubCenter, Village
+from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.beneficiary import Household
 from app.models.task import ASHAKPI
 from app.models.user import ASHAProfile, User
@@ -41,7 +41,9 @@ async def _seed_asha(db_session, phc, village):
     )
     db_session.add(asha)
     await db_session.flush()
-    profile = ASHAProfile(user_id=asha.id, asha_id="ASHA-UP-LKO-0001", catchment_villages=[village.id], performance_score=87.5)
+    profile = ASHAProfile(
+        user_id=asha.id, asha_id="ASHA-UP-LKO-0001", catchment_villages=[village.id], performance_score=87.5
+    )
     db_session.add(profile)
     db_session.add(Household(hhid="HH-001", village_id=village.id, asha_id=asha.id))
     db_session.add(Household(hhid="HH-002", village_id=village.id, asha_id=asha.id))
@@ -56,8 +58,66 @@ async def test_list_ashas_requires_auth(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_list_ashas_forbidden_for_asha_role(client, auth_headers):
+async def test_list_ashas_scoped_for_asha_role(client, db_session, auth_headers):
+    """An ASHA caller may list the directory, but only within their own PHC.
+
+    The registration form needs this to offer assignable workers. `_scope_filter`
+    keeps the response inside the caller's district/block/PHC, so an ASHA never
+    sees workers from another facility.
+    """
+    _, district, block, phc, sub_center, village = await _org(db_session)
+    _asha, _profile = await _seed_asha(db_session, phc, village)
+
+    # a worker belonging to a different PHC must stay invisible
+    other_phc = PHC(block_id=block.id, code="SRJ02", name="Other PHC")
+    db_session.add(other_phc)
+    await db_session.flush()
+    outsider = User(
+        role="asha",
+        phone="9876543214",
+        full_name="Outsider Devi",
+        phc_id=other_phc.id,
+        district_id=district.id,
+        is_active=True,
+    )
+    db_session.add(outsider)
+    await db_session.flush()
+    db_session.add(ASHAProfile(user_id=outsider.id, asha_id="ASHA-OTHER-0001"))
+    await db_session.commit()
+
+    # the caller is an ASHA anchored to `phc` (and, more broadly, to the
+    # district/block above it — PHC must still win)
+    headers = await auth_headers(
+        phone="9876543213",
+        role="asha",
+        phc_id=phc.id,
+        district_id=district.id,
+        block_id=block.id,
+    )
+
+    resp = await client.get("/api/v1/ashas", headers=headers)
+    assert resp.status_code == 200, resp.text
+    names = {item["name"] for item in resp.json()["items"]}
+    assert "Sunita Devi" in names
+    assert "Outsider Devi" not in names, "worker from another PHC leaked into the ASHA's scope"
+
+
+@pytest.mark.asyncio
+async def test_asha_detail_still_admin_only(client, db_session, auth_headers):
+    """Relaxing the list endpoint must not open per-worker detail to ASHAs."""
+    _, _, _, phc, _, village = await _org(db_session)
+    _, _profile = await _seed_asha(db_session, phc, village)
+    await db_session.commit()
+
     headers = await auth_headers(phone="9876543213", role="asha")
+    resp = await client.get("/api/v1/ashas/ASHA-UP-LKO-0001", headers=headers)
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_ashas_forbidden_for_patient_role(client, auth_headers):
+    """A patient is still refused the ASHA directory."""
+    headers = await auth_headers(phone="9876543213", role="patient")
     resp = await client.get("/api/v1/ashas", headers=headers)
     assert resp.status_code == 403
 

@@ -33,6 +33,7 @@ async def _get_referral(db: AsyncSession, referral_id: str) -> Referral:
 async def list_referrals(
     status: str | None = None,
     referral_type: str | None = None,
+    beneficiary_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
     db: AsyncSession = Depends(get_db_session),
@@ -43,6 +44,8 @@ async def list_referrals(
         stmt = stmt.where(Referral.status == status)
     if referral_type:
         stmt = stmt.where(Referral.referral_type == referral_type)
+    if beneficiary_id:
+        stmt = stmt.where(Referral.beneficiary_id == beneficiary_id)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(stmt.order_by(Referral.created_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return paginate([ReferralResponse.model_validate(r) for r in result.scalars().all()], total, page, page_size)

@@ -84,7 +84,9 @@ class ANCVisitCreate(BaseModel):
     fetal_heart_rate: int | None = None
     fetal_movement: str | None = None
     lie_presentation: str | None = None
-    danger_signs: dict[str, Any] | None = None
+    # The check-up form submits a flat list of selected signs; some callers
+    # send a keyed object. JSON column, so both shapes persist.
+    danger_signs: list[str] | dict[str, Any] | None = None
     clinical_findings: dict[str, Any] | None = None
     advice_given: dict[str, Any] | None = None
     referral_made: bool = False
@@ -104,7 +106,9 @@ class ANCVisitResponse(BaseModel):
     bp_diastolic: int | None = None
     weight_kg: float | None = None
     hemoglobin: float | None = None
-    danger_signs: dict[str, Any] | None = None
+    fundal_height_cm: float | None = None
+    fetal_heart_rate: int | None = None
+    danger_signs: list[str] | dict[str, Any] | None = None
     referral_made: bool
     referral_reason: str | None = None
     created_at: datetime
