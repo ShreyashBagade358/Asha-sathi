@@ -174,7 +174,7 @@ Use the **Sync screen** to:
 | Sync failed | Check connectivity, retry; review the queue for conflicts. |
 | Session expired | Tokens refresh automatically while online; log in again if the refresh token is also expired. |
 | Wrong language | Change it in Settings. |
-| Model flags a beneficiary high-risk | Follow the referral pathway shown on screen; contact your MO/ANM if unsure. |
+| Model flags a beneficiary high-risk | Follow the referral pathway shown on screen; contact your PHC admin if unsure. |
 
 For PHC/block admins, the **web dashboard** (`apps/web-dashboard`) manages
 users, area assignment, forms review and approvals, and provides the aggregate

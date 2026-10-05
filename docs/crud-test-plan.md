@@ -35,14 +35,14 @@ Test records are prefixed `TEST-` so they are trivially identifiable for cleanup
 | 5 | `test_referral_lifecycle` | Referral create; state machine `initiated → accepted → completed`; duplicate accept → **409**; follow-up create + list; outcome update; delete |
 | 6 | `test_ncd_and_death_and_disease_crud` | NCD create/read/due/delete; death report create/read/update/delete; disease case create/read/update/delete |
 | 7 | `test_asha_directory_crud_admin_only` | ASHA create/read/patch by `asha_id` code; ASHA role → 403 on directory |
-| 8 | `test_user_management_crud_super_admin_only` | User create/read/update/soft-delete (`is_active=false`); ASHA & MOIC → 403 |
-| 9 | `test_notifications_crud_and_broadcast_guard` | Notification create/read/mark-read; broadcast allowed for MOIC, **403 for ASHA**; reminder schedule create + list |
+| 8 | `test_user_management_crud_admin_only` | User create/read/update/soft-delete (`is_active=false`); ASHA & patient → 403 |
+| 9 | `test_notifications_crud_and_broadcast_guard` | Notification create/read/mark-read; broadcast allowed for admin, **403 for ASHA**; reminder schedule create + list |
 | 10 | `test_create_village_admin_chain` | Village create + list under a seeded State→District→Block→PHC→SubCenter chain |
-| 11 | `test_verification_approve_reject` | Pending queue visible to MOIC, death report approved → `verified`; ASHA → 403 |
-| 12 | `test_sanitize_and_audit_admin_gated` | Sanitize summary + fix for MOIC; audit logs list; ASHA → 403 on both |
+| 11 | `test_verification_approve_reject` | Pending queue visible to admin, death report approved → `verified`; ASHA → 403 |
+| 12 | `test_sanitize_and_audit_admin_gated` | Sanitize summary + fix for admin; audit logs list; ASHA → 403 on both |
 | 13 | `test_dashboard_and_reports_readonly` | Dashboard `kpis/phc/state`; all six report kinds; vaccination coverage |
 | 14 | `test_sync_device_register_and_status` | Device register, sync status, sync pull |
-| 15 | `test_permission_boundary_sweep` | Negative matrix across users/ashas/audit/sanitize/verification/broadcast; `state_admin` allowed on users |
+| 15 | `test_permission_boundary_sweep` | Negative matrix across users/ashas/audit/sanitize/verification/broadcast; `admin` allowed, ASHA & patient → 403 |
 | 16 | `test_inactive_user_rejected` | Deactivated user → **401** |
 | 17 | `test_child_requires_existing_beneficiary` | Child create with unknown beneficiary → **404** |
 
@@ -71,12 +71,12 @@ Test records are prefixed `TEST-` so they are trivially identifiable for cleanup
 | Death report | ✅ | ✅ | ✅ | hard | any authenticated |
 | Disease case | ✅ | ✅ | ✅ * | hard | any authenticated |
 | Village config | ✅ | ✅ | — | — | any authenticated |
-| ASHA directory | ✅ | ✅ | ✅ | — | ANM/MOIC/BPM/DPM/state/super admin |
-| User management | ✅ | ✅ | ✅ | soft | super admin, state admin |
+| ASHA directory | ✅ | ✅ | ✅ | — | admin |
+| User management | ✅ | ✅ | ✅ | soft | admin |
 | Notification | ✅ | ✅ | mark-read | — | any authenticated |
-| Broadcast | ✅ | — | — | — | MOIC/BPM/DPM/state/super admin |
-| Verification | — | ✅ | approve/reject | — | ANM/MOIC/BPM/DPM/state/super admin |
-| Sanitize / Audit | ✅ (fix) | ✅ | — | — | admin roles |
+| Broadcast | ✅ | — | — | — | admin |
+| Verification | — | ✅ | approve/reject | — | admin |
+| Sanitize / Audit | ✅ (fix) | ✅ | — | — | admin |
 | Dashboard / Reports | — | ✅ | — | — | any authenticated |
 | Sync device/status/pull | ✅ | ✅ | — | — | any authenticated |
 
@@ -87,8 +87,8 @@ Test records are prefixed `TEST-` so they are trivially identifiable for cleanup
 - `GET /ncd/due` requires the `from_date` query parameter.
 - `PUT /api/v1/diseases/{id}` requires `disease_type` (create schema reused).
 - ASHA directory detail/update use the `asha_id` code (`ASH-…`), **not** the user UUID.
-- `GET /verification/pending` and approve/reject are available to ANM, MOIC,
-  BPM, DPM, state admin and super admin — not ASHA.
+- `GET /verification/pending` and approve/reject are available to `admin` —
+  not ASHA or patient.
 - Beneficiary delete is a soft delete (`status=inactive`) and the record remains
   readable; household delete is a hard delete (subsequent GET → 404).
 - Dashboard `phc`/`state` require the caller to be linked to a PHC/state.
@@ -109,11 +109,7 @@ Dev login bypass phones (fixed OTP `1234`, `APP_ENV=dev`), seeded in
 | Phone | Role |
 | --- | --- |
 | 9876543210 | asha |
-| 9876543211 | anm |
-| 9876543212 | moic |
-| 9876543213 | dpm |
-| 9876543214 | state_admin |
-| 9876543215 | super_admin |
+| 9876543215 | admin |
 | 9876543216 | patient |
 
 ## How to run

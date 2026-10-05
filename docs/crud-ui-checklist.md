@@ -44,11 +44,14 @@ components/layouts not covered here):
 - **Fully wired (API) CRUD** is concentrated in `phc-admin/` and `phc/`:
   households, beneficiaries, pregnancies, children, referrals, notifications,
   ASHA create + village assignment, sanitize.
-- **`asha/` field-app pages** persist to a local Zustand `persist` store
-  (`app.store`, localStorage) with **no API side effects** — treated as
-  offline-capable by design, but marked ⚠️ below because they never sync.
-- **`state/`, `district/`, `super/`, `patient/`** are read-only or mock
-  demos; create/update actions are toast/local-state stubs.
+- **`asha/` field-app pages** are now split: patient registration, child health,
+  checkups, immunization, referrals, follow-ups, profile language and PHC
+  settings call the API; the remainder still persist to a local Zustand
+  `persist` store (`app.store`, localStorage) with **no API side effects**
+  (⚠️ below because they never sync).
+- **`state/`, `district/`, `super/`** are read-only or mock demos;
+  create/update actions are toast/local-state stubs. `patient/` now reads and
+  edits its own record via `/patients/me`.
 - **Delete is the weakest dimension**: only 5 pages have a wired delete, all in
   `phc-admin/` (households, beneficiaries, pregnancy details, child profile,
   referral details). No other area exposes delete at all.
@@ -61,15 +64,15 @@ components/layouts not covered here):
 | Page | Purpose | Create | Read | Update | Delete | Gaps |
 | --- | --- | --- | --- | --- | --- | --- |
 | `addHousehold.tsx` | Register household form | ❌ | — | — | — | **Stub** — submit only toasts + navigates, no API |
-| `addPatient.tsx` | Create beneficiary | ✅ | ✅ list households | — | — | |
+| `addPatient.tsx` | Create beneficiary | ✅ incl. `village`/`risk`/`notes` + photo | ✅ list households | — | — | |
 | `addVillage.tsx` | Create village | ✅ | ✅ | — | — | |
-| `addWorker.tsx` | Create ASHA worker | ✅ + store sync | — | — | — | |
-| `alerts.tsx` | Alerts inbox | ✅ create notification | ✅ | — | — | |
+| `addWorker.tsx` | Create ASHA worker | ✅ + one-time password shown | — | — | — | Dead Username input removed; avatar upload |
+| `alerts.tsx` | Alerts inbox | ✅ `POST /notifications/broadcast` | ✅ | — | — | |
 | `analytics.tsx` | Analytics dashboards | — | ✅ 5 services | — | — | Read-only aggregation |
 | `ashaPerformance.tsx` | ASHA performance | — | ❌ | — | — | **Static stub** (39 lines) |
 | `auditLogs.tsx` | Audit log | — | ⚠️ store mock | — | — | No API |
-| `beneficiaries.tsx` | Beneficiary directory | ✅ link→addPatient | ✅ search+village+page | — | ✅ `deleteBeneficiary` | Risk Level column always "—" |
-| `beneficiaryDetails.tsx` | Beneficiary detail | — | ✅ | ❌ | ❌ | Disabled button; one button with no `onClick` |
+| `beneficiaries.tsx` | Beneficiary directory | ✅ link→addPatient | ✅ search+village+page | — | ✅ `deleteBeneficiary` | Risk Level column renders stored `risk` |
+| `beneficiaryDetails.tsx` | Beneficiary detail | — | ✅ + photo | ❌ | ❌ | Disabled button; one button with no `onClick` |
 | `checkupHistory.tsx` | Visit history | — | ⚠️ store mock | — | — | No API |
 | `childProfile.tsx` | Child detail | — | ✅ child + immunizations + growth photos | — | ✅ `deleteChild` | Record dose → schedule |
 | `childVaccinationReport.tsx` | Vaccination report | — | ✅ | — | — | |
@@ -85,7 +88,7 @@ components/layouts not covered here):
 | `newBirth.tsx` | Birth registration | ✅ `createChild` | ✅ | — | — | |
 | `newCheckup.tsx` | ANC checkup | ✅ `addANCVisit` | ✅ | — | — | |
 | `newReferral.tsx` | Create referral | ✅ | ✅ | — | — | |
-| `newVaccination.tsx` | Record dose | ✅ `createImmunization` | ✅ | — | — | |
+| `newVaccination.tsx` | Record dose | ✅ `createImmunization` (incl. `batch_number`) | ✅ | — | — | |
 | `notifications.tsx` | Notifications | — | ✅ | ✅ mark read | — | |
 | `nutritionMonitoring.tsx` | Nutrition tracking | ✅ growth record | ✅ growth + photos | — | — | Photos shown in timeline |
 | `pregnancyDetails.tsx` | Pregnancy detail | — | ✅ + ANC visits | — | ✅ `deletePregnancy` | |
@@ -95,10 +98,10 @@ components/layouts not covered here):
 | `report.tsx` | Reports | — | ✅ | ⚠️ export only | — | |
 | `riskAnalysis.tsx` | Risk analysis | — | ❌ | — | — | **Static stub** (35 lines) |
 | `sanitize.tsx` | Data repair tool | — | ✅ summary | ✅ `sanitize.fix` | — | Admin utility |
-| `settings.tsx` | PHC configuration | — | ✅ config | — | — | Read-only |
+| `settings.tsx` | PHC configuration | — | ✅ config | ✅ `PUT /config/app` | — | Prefills, then merges `phc.profile` / `phc.notifications` |
 | `vaccination.tsx` | Vaccination coverage | ❌ no record link | ✅ | — | — | |
 | `vaccinationSchedule.tsx` | Child vaccination record | ⚠️ dead "Record Dose" | ✅ | — | — | Button has no handler |
-| `workerProfile.tsx` | ASHA profile | — | ✅ | — | — | |
+| `workerProfile.tsx` | ASHA profile | — | ✅ + avatar | — | — | |
 | `workers.tsx` | ASHA directory | ✅ link→addWorker | ✅ | — | — | No status toggle / delete |
 
 ### `phc-admin/` follow-ups
@@ -118,30 +121,31 @@ components/layouts not covered here):
 
 ## `asha/` (20 pages)
 
-Field-worker app. All writes go to the persisted Zustand store, **not** the API
-(⚠️ = persisted locally only). Only `ProfileSettings` logout uses `authService`.
+Field-worker app. Pages marked ✅ now call the API; the rest still write to the
+persisted Zustand store (`app.store`, localStorage) with **no API side effects**
+(⚠️ = persisted locally only). `ProfileSettings` logout uses `authService`.
 
 | Page | Purpose | Create | Read | Update | Delete | Gaps |
 | --- | --- | --- | --- | --- | --- | --- |
-| `AddNewPatientAshaSathi.tsx` | Register patient | ⚠️ local store | ❌ | ❌ | ❌ | Hardcoded village/ward; auto ABHA id |
+| `AddNewPatientAshaSathi.tsx` | Register patient | ✅ `POST /patients/register` + photo | ❌ | ❌ | ❌ | Village/ward picked from API; password shown once |
 | `AshaWorkerHomeAshaSathi.tsx` | Worker dashboard | ⚠️ link only | ⚠️ store | ⚠️ toggle task | ❌ | "Review Now" + visit button dead |
 | `AssignedHouseholdsAshaSathi.tsx` | Assigned households | ❌ dead FAB | ⚠️ `MOCK_HOUSEHOLDS` | ❌ | ❌ | FAB no `onClick`; "Planned" disabled |
 | `CheckUpCompletedAshaSathi.tsx` | Checkup success | ❌ | ❌ static | ❌ | ❌ | Dates/sync text hardcoded |
-| `ChildHealthAshaSathi.tsx` | Child health registry | ⚠️ local store | ⚠️ store | ❌ | ❌ | Schedule link hardcoded |
+| `ChildHealthAshaSathi.tsx` | Child health registry | ✅ `createChild` | ✅ | ❌ | ❌ | Schedule link hardcoded |
 | `ConnectionErrorAshaSathi.tsx` | Offline/error screen | ❌ | ❌ | ❌ | ❌ | "Retry" is fake timeout |
-| `FollowUpAshaSathi.tsx` | Follow-up visits | ❌ | ⚠️ store | ⚠️ mark done | ❌ | No create |
-| `HealthCheckUpAshaSathi.tsx` | Checkup records | ⚠️ local store | ⚠️ store | ❌ | ❌ | "View Checkup" → generic page |
+| `FollowUpAshaSathi.tsx` | Follow-up visits | ❌ (no create form) | ✅ `GET /referrals` + `/referrals/{id}/followups` | ❌ dropped "Mark Done" | ❌ | No complete/overdue endpoint |
+| `HealthCheckUpAshaSathi.tsx` | Checkup records | ✅ ANC/NCD screening create | ✅ | ❌ | ❌ | "View Checkup" → generic page |
 | `HealthSurveyAshaSathi.tsx` | Health survey list | ❌ | ⚠️ `MOCK_SURVEYS` | ❌ | ❌ | Link hardcoded |
 | `HouseholdVisitSurveyAshaSathi.tsx` | Household visit survey | ⚠️ local toggles | ⚠️ mock | ⚠️ never persisted | ❌ | Add member / chevron dead; answers not saved |
-| `ImmunizationScheduleAshaSathi.tsx` | Vaccination schedule | ❌ | ⚠️ store | ⚠️ mark given | ❌ | Certificate = toast; patient fallback |
+| `ImmunizationScheduleAshaSathi.tsx` | Vaccination schedule | ❌ | ✅ | ✅ `updateImmunization` | ❌ | Certificate = toast; patient fallback |
 | `MyHealthProfileAshaSathi.tsx` | Patient health profile | ❌ | ⚠️ store + hardcoded | ❌ | ❌ | Vitals/history/prescriptions hardcoded |
 | `NotificationsAshaSathi.tsx` | Notification inbox | ❌ | ⚠️ store | ⚠️ mark read | ❌ | No API push/poll |
 | `OfflineSyncCenterAshaSathi.tsx` | Offline sync queue | ❌ | ⚠️ `SYNC_QUEUE` | ⚠️ simulated | ❌ | Sync faked via `setTimeout` |
 | `PatientDashboardAshaSathi.tsx` | Patient list + search | ❌ no add | ⚠️ store | ❌ | ❌ | Store-only |
 | `PatientDetailsAshaSathi.tsx` | Patient detail (tabs) | ⚠️ toast | ⚠️ store + hardcoded | ⚠️ toast "Edit" | ❌ | Edit / Refer Specialist toast-only |
 | `PregnancyTrackingAshaSathi.tsx` | Pregnancy registry | ⚠️ local store | ⚠️ store | ❌ | ❌ | Profile link hardcoded; `ancVisits:0` |
-| `ProfileSettingsAshaSathi.tsx` | Profile & settings | ❌ | ⚠️ user + state | ⚠️ toggles not persisted | ❌ | Logout **is** wired ✅; toggles lost on reload |
-| `ReferralAshaSathi.tsx` | Referrals | ⚠️ local store | ⚠️ store | ❌ | ❌ | No status-update UI |
+| `ProfileSettingsAshaSathi.tsx` | Profile & settings | ❌ | ✅ user + state | ✅ language → `PUT /auth/me`; ⚠️ 4 toggles local | ❌ | Offline/auto-sync toggles have no backend field |
+| `ReferralAshaSathi.tsx` | Referrals | ✅ `POST /referrals` | ✅ | ❌ | ❌ | No status-update UI |
 | `TasksAshaSathi.tsx` | Task list | ❌ | ⚠️ store | ⚠️ toggle | ❌ | No task create |
 | `mockData.ts` | Mock data module | — | — | — | — | Supplies `MOCK_*` arrays |
 
@@ -162,19 +166,20 @@ Field-worker app. All writes go to the persisted Zustand store, **not** the API
 
 ## `patient/` (8 pages)
 
-All patient pages are UI-only demos on `useAppStore` mock state; actions toast
-or mutate local state only.
+Patient pages read their own record from the patient-scoped API
+(`GET/PUT /patients/me`, `PUT /auth/me`, `/ai`); pages still marked ⚠️ use
+`useAppStore` mock state.
 
 | Page | Purpose | Create | Read | Update | Delete | Gaps |
 | --- | --- | --- | --- | --- | --- | --- |
 | `PatientHomePage.tsx` | Patient home | ❌ | ⚠️ mock store | ❌ | ❌ | Download = toast |
 | `PatientAppointmentsPage.tsx` | Appointments | ⚠️ book = toast | ⚠️ mock | ⚠️ mark-attended local | ❌ | Booking stub |
 | `PatientNotificationsPage.tsx` | Notifications | ❌ | ⚠️ mock | ⚠️ mark read local | ❌ | No service |
-| `PatientHealthProfilePage.tsx` | Health profile | ❌ | ⚠️ mock | ⚠️ edit = toast | ❌ | Edit stub |
+| `PatientHealthProfilePage.tsx` | Health profile | ❌ | ✅ `GET /patients/me` | ✅ `PUT /patients/me` (HealthProfileEditModal) | ❌ | AI risk card runs `/ai/{ncd,maternal}-risk/predict` |
 | `PatientHealthRecordsPage.tsx` | Health records | ❌ | ⚠️ mock | ❌ | ❌ | Download = toast |
 | `PatientVaccinationPage.tsx` | Vaccination schedule | ❌ | ⚠️ mock | ⚠️ local store | ❌ | Certificate = toast |
 | `PatientReferralsPage.tsx` | Referrals | ⚠️ request = toast | ⚠️ mock | ❌ | ❌ | Request stub |
-| `PatientProfileSettingsPage.tsx` | Profile settings | ❌ | ⚠️ mock | ⚠️ toggles local | ❌ | Settings never persist |
+| `PatientProfileSettingsPage.tsx` | Profile settings | ❌ | ✅ user | ✅ language → `PUT /auth/me`; ⚠️ toggles local | ❌ | 3 toggles have no backend field |
 
 ---
 
@@ -260,16 +265,19 @@ Sourced from the live route inventory (158 endpoints, 25 modules in
 | ASHA offline page writes | `POST /sync/push`, `POST /sync/pull` (19 entity tables) | asha |
 | ASHA notification inbox | `GET /notifications`, `PUT /notifications/{id}/read` | asha |
 | Alerts real data + deletes for NCD/death/disease | `GET /notifications`; existing `DELETE` endpoints | phc, new |
+| Patient profile read/edit + AI risk (`PatientHealthProfilePage`) | `GET/PUT /patients/me`, `POST /ai/{ncd,maternal}-risk/predict` | patient |
+| Profile language switch (`ProfileSettings`, `PatientProfileSettings`) | `PUT /auth/me` | asha, patient |
+| PHC settings save (`settings.tsx`) | `PUT /config/app` | phc-admin |
+| One-time worker/patient passwords on create | `POST /users`, `POST /ashas`, `POST /patients/register` return `password` | phc-admin, asha, super |
 
 ### Buildable with backend work (endpoint/schema missing)
 
 | Feature | What's missing | Area |
 | --- | --- | --- |
 | Alerts ack / resolve | No `/alerts` route — alerts are server-side generated, surfaced only via `/notifications` | phc |
-| Profile/app-settings persistence | No settings endpoint (`/auth/me` is profile-only) | asha, patient, super, state |
+| Profile/app-settings persistence | `PUT /auth/me` used for language; the remaining toggles (offline, auto-sync, notifications, data-saver) have no backend field | asha, patient, super, state |
 | Password / account recovery | No reset endpoint (`AccountRecoveryAshaSathi` cannot submit) | auth |
 | Survey capture (household/health/visit) | No survey model, table or endpoint | phc-admin, asha |
-| Patient app (8 pages) | No patient-scoped API module; patient role is DA-verified but has no dedicated surface | patient |
 
 ### Not planned / out of scope
 
@@ -277,8 +285,8 @@ Sourced from the live route inventory (158 endpoints, 25 modules in
 | --- | --- |
 | Resource allocation (`district/ResourceAllocationPage`) | No endpoint; design concept only |
 | Deployment / service status (`super/DeploymentPage`) | No endpoint; ops tooling, not CRUD |
-| System config save (`super/SystemConfigPage`) | `/config/app` is GET-only |
-| State policy config save (`state/PolicyConfigPage`) | `/config/app` is GET-only |
+| System config editor (`super/SystemConfigPage`) | `/config/app` PUT takes a typed `configs[]` list, not the page's free-form JSON; PHC settings page does persist its own keys |
+| State policy config save (`state/PolicyConfigPage`) | Same as above |
 
 Backend read coverage for these areas is still fully exercised — see
 `crud-test-plan.md`; only the write/save paths above have no API to attach to.

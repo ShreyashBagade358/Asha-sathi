@@ -42,8 +42,9 @@ web-build/
 *.env.local
 *.env.production
 
-# Machine learning artifacts
-models/
+# Machine learning artifacts (trained weights live under artifacts/ + *.onnx/pkl/joblib;
+# do NOT ignore models/ — it matches source dirs like backend app/models/ and
+# ml-training src/models/).
 artifacts/
 *.onnx
 *.pkl
@@ -57,6 +58,9 @@ backups/
 *.dump
 *.sql.gz
 apps/backend/test.db
+apps/backend/asha_sathi.db
+*.sqlite3
+apps/backend/data/
 
 # Logs & temp
 *.log
@@ -79,6 +83,7 @@ Thumbs.db
 # Local scratch / exported docs at repo root
 *.pdf
 *.pptx
+A Study on ASHA Sathi System.docx
 apps/backend/temp_scan.py
 
 # pnpm overrides from turbo install (expo app is installed standalone)

@@ -145,14 +145,14 @@ impossible, the record is flagged `needs_review`.
    - `pregnancy.anc_count`, `last_anc_date`, `next_anc_due`
    - maternal-risk score (via `/ai/risk` if eligible)
    - KPI counters (`asha_kpis.anc_visits`)
-5. If danger signs → auto-create a high-risk referral + notification to ANM/MOIC.
+5. If danger signs → auto-create a high-risk referral + notification to the PHC admin.
 6. If due date is today+ → schedule a reminder notification (Celery beat).
 
 ### 3.3 Incentive claim flow
 
 1. Monthly cron aggregates ASHA KPIs into a draft `IncentiveClaim` per ASHA.
 2. ASHA reviews and submits from the app; `status=draft → submitted`.
-3. ANM/MOIC verifies via dashboard → `approved`/`rejected` (+ `review_notes`).
+3. The admin verifies via dashboard → `approved`/`rejected` (+ `review_notes`).
 4. Finance batch processes approved claims → `paid` with `payment_reference`.
 5. PDF receipts are generated and stored; push notification confirms payment.
 
@@ -211,7 +211,7 @@ sequenceDiagram
     ML-->>B: {risk: high, score, explanation}
     B->>P: Update pregnancy risk_level=high
     B->>P: Create referral (asha -> PHC)
-    B->>N: Notify ANM + MOIC (push/in-app)
+    B->>N: Notify admin (push/in-app)
     N-->>B: queued
     B-->>A: {referral_id, risk_level}
     A->>B: GET /api/v1/referrals/{id} (status)
