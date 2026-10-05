@@ -49,8 +49,6 @@ export const MORE_NAV: NavItem[] = [
   { path: '/profile', labelKey: 'nav.profile', icon: 'settings' },
 ];
 
-export const ALL_NAV: NavItem[] = [...BOTTOM_NAV, ...MORE_NAV];
-
 /** Web AdminLayout groups; used only for the "More" sheet section headings. */
 export const MORE_SECTIONS: { titleKey: string; items: NavItem[] }[] = [
   { titleKey: 'nav.work', items: MORE_NAV.slice(0, 6) },

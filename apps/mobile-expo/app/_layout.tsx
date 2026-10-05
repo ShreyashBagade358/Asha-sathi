@@ -86,6 +86,9 @@ export default function RootLayout() {
         {/* Login draws its own top bar via Screen, so the native header is
             hidden here to avoid two stacked bars. */}
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="redirecting" options={{ headerShown: false }} />
+        <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
+        <Stack.Screen name="account-recovery" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
       </Stack>
     </SafeAreaProvider>

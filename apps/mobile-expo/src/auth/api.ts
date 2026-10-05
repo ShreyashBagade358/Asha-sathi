@@ -136,11 +136,33 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 // --- Auth -----------------------------------------------------------------
 
+/** POST /auth/otp/send responds with MessageResponse: { message: string }. */
+export interface OtpSendResponse {
+  message: string;
+}
+
 export const authApi = {
   login(phone: string, password: string, deviceId?: string) {
     return apiRequest<LoginResponse>('/auth/login', {
       method: 'POST',
       body: { phone, password, device_id: deviceId },
+      auth: false,
+    });
+  },
+
+  otpSend(phone: string) {
+    return apiRequest<OtpSendResponse>('/auth/otp/send', {
+      method: 'POST',
+      body: { phone },
+      auth: false,
+    });
+  },
+
+  /** Same LoginResponse shape as /auth/login: { tokens, user }. */
+  otpVerify(phone: string, otp: string, deviceId?: string) {
+    return apiRequest<LoginResponse>('/auth/otp/verify', {
+      method: 'POST',
+      body: { phone, otp, device_id: deviceId },
       auth: false,
     });
   },

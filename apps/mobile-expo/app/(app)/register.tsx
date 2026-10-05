@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -18,18 +18,29 @@ import type { Household } from '@/types';
  * commit first, the form clears immediately, and the upload happens whenever the
  * network allows. That is what makes the screen behave the same online and off.
  *
- * Two web fields are deliberately absent rather than collected-and-dropped:
+ * Validation matches the web's `validate()`: each field reports its own message
+ * under the input rather than a single banner at the top, and the message clears
+ * as soon as the field is edited.
+ *
+ * Fields the web collects that are deliberately absent here rather than
+ * collected-and-dropped:
  *  - `risk_level` is not a beneficiary column anywhere in the schema. Risk is
  *    derived from pregnancies and NCD screenings, so a value typed here would be
  *    discarded by the server's _clean_columns and never come back on a pull.
  *  - `clinical notes` likewise has no beneficiary column. Task and visit notes
  *    live on asha_tasks / anc_visits instead.
+ *  - Blood group and the assigned ASHA worker are not `beneficiaries` columns
+ *    this app syncs either, and the web's worker picker needs a directory
+ *    endpoint the offline app does not call. Both would be sent once and lost
+ *    on the next pull, so they are left out.
  */
 function newId(): string {
   // A local uuid is enough: the server upserts on this id and the same id is
   // reused as the idempotency anchor on retry.
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+type Field = 'fullName' | 'abhaId' | 'phone' | 'dateOfBirth' | 'gender' | 'householdId';
 
 export default function RegisterPatientScreen() {
   const router = useRouter();
@@ -39,9 +50,10 @@ export default function RegisterPatientScreen() {
   const [householdId, setHouseholdId] = useState('');
   const [fullName, setFullName] = useState('');
   const [abhaId, setAbhaId] = useState('');
-  const [gender, setGender] = useState('female');
+  const [gender, setGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [phone, setPhone] = useState('');
+  const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,19 +70,34 @@ export default function RegisterPatientScreen() {
     [households],
   );
 
+  /** Mirror of the web's `set()`: writing a field also clears its error. */
+  const setField = <K extends Field>(key: K, value: string, assign: (next: string) => void) => {
+    assign(value);
+    setErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  function validate(): Partial<Record<Field, string>> {
+    const next: Partial<Record<Field, string>> = {};
+    if (!fullName.trim()) next.fullName = t('asha.errNameRequired');
+    // Exactly 10 digits, digits only — the input itself strips anything else.
+    if (!/^\d{10}$/.test(phone)) next.phone = t('asha.errPhoneRequired');
+    if (!dateOfBirth) next.dateOfBirth = t('asha.errDobRequired');
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) next.dateOfBirth = t('asha.errDobFormat');
+    if (!gender) next.gender = t('asha.errGenderRequired');
+    if (abhaId.trim().length < 4) next.abhaId = t('asha.errAbhaRequired');
+    if (!householdId) next.householdId = t('asha.errVillageRequired');
+    return next;
+  }
+
   async function save() {
-    if (!fullName.trim()) {
-      setError(t('asha.fullName'));
-      return;
-    }
-    if (!householdId) {
-      setError(t('asha.selectVillage'));
-      return;
-    }
-    if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-      setError(t('asha.dob'));
-      return;
-    }
+    const found = validate();
+    setErrors(found);
+    if (Object.values(found).some(Boolean)) return;
 
     setBusy(true);
     setError(null);
@@ -80,11 +107,11 @@ export default function RegisterPatientScreen() {
       id,
       beneficiary_id: `BEN-${id.slice(-8).toUpperCase()}`,
       household_id: householdId,
-      abha_id: abhaId.trim() || null,
+      abha_id: abhaId.trim(),
       full_name: fullName.trim(),
       gender,
-      date_of_birth: dateOfBirth || null,
-      phone: phone.trim() || null,
+      date_of_birth: dateOfBirth,
+      phone,
     };
 
     try {
@@ -94,11 +121,11 @@ export default function RegisterPatientScreen() {
         id,
         beneficiaryId: data.beneficiary_id,
         householdId,
-        abhaId: data.abha_id ?? '',
+        abhaId: data.abha_id,
         fullName: data.full_name,
         gender,
         dateOfBirth,
-        phone: phone.trim(),
+        phone,
       });
 
       await enqueue({
@@ -114,6 +141,8 @@ export default function RegisterPatientScreen() {
       setAbhaId('');
       setDateOfBirth('');
       setPhone('');
+      setGender('');
+      setErrors({});
 
       if (isCurrentlyOnline()) {
         scheduleSync(300);
@@ -124,7 +153,7 @@ export default function RegisterPatientScreen() {
         ]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.retry'));
+      setError(err instanceof Error && err.message ? err.message : t('asha.errRegistration'));
     } finally {
       setBusy(false);
     }
@@ -139,15 +168,17 @@ export default function RegisterPatientScreen() {
             <TextField
               label={`${t('asha.fullName')} *`}
               value={fullName}
-              onChangeText={setFullName}
+              onChangeText={(next) => setField('fullName', next, setFullName)}
+              errorText={errors.fullName}
               placeholder={t('asha.legalNamePlaceholder')}
               autoCapitalize="words"
               returnKeyType="next"
             />
             <TextField
-              label={t('asha.abhaId')}
+              label={`${t('asha.abhaId')} *`}
               value={abhaId}
-              onChangeText={setAbhaId}
+              onChangeText={(next) => setField('abhaId', next, setAbhaId)}
+              errorText={errors.abhaId}
               placeholder={t('asha.abhaPlaceholder')}
               autoCapitalize="characters"
               returnKeyType="next"
@@ -155,22 +186,27 @@ export default function RegisterPatientScreen() {
             <TextField
               label={`${t('asha.mobileNumber')} *`}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(next) => setField('phone', next.replace(/\D/g, '').slice(0, 10), setPhone)}
+              errorText={errors.phone}
+              prefixText="+91"
               placeholder={t('asha.mobilePlaceholder')}
               keyboardType="phone-pad"
+              maxLength={10}
               returnKeyType="next"
             />
             <TextField
               label={`${t('asha.dob')} *`}
               value={dateOfBirth}
-              onChangeText={setDateOfBirth}
+              onChangeText={(next) => setField('dateOfBirth', next, setDateOfBirth)}
+              errorText={errors.dateOfBirth}
               placeholder="YYYY-MM-DD"
               autoCapitalize="none"
             />
             <SelectField
               label={`${t('asha.gender')} *`}
               value={gender}
-              onChange={setGender}
+              onChange={(next) => setField('gender', next, setGender)}
+              errorText={errors.gender}
               placeholder={t('asha.selectGender')}
               options={[
                 { label: t('asha.female'), value: 'female' },
@@ -187,7 +223,8 @@ export default function RegisterPatientScreen() {
             <SelectField
               label={`${t('asha.villageLocality')} *`}
               value={householdId}
-              onChange={setHouseholdId}
+              onChange={(next) => setField('householdId', next, setHouseholdId)}
+              errorText={errors.householdId}
               placeholder={t('asha.selectVillage')}
               options={householdOptions}
             />

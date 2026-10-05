@@ -92,4 +92,3 @@ export function isTableName(value: string): value is TableName {
 }
 
 /** Tables the backend can scope to one ASHA, in the same order as ALL_TABLES. */
-export const SCOPED_TABLES: TableName[] = [...ALL_TABLES];

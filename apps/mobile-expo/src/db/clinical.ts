@@ -181,6 +181,7 @@ export type RiskLevel = 'high' | 'medium' | 'low';
 export type PatientRow = {
   id: string;
   beneficiary_id: string | null;
+  abha_id: string | null;
   full_name: string;
   gender: string | null;
   age_years: number | null;
@@ -193,6 +194,7 @@ export type PatientRow = {
   /** Derived from pregnancies / NCD screenings, since the server has no risk column on beneficiaries. */
   risk: RiskLevel;
   risk_reason: string | null;
+  updated_at: string | null;
 };
 
 function riskRank(level: RiskLevel): number {
@@ -238,7 +240,34 @@ const RISK_SQL = `
         END)
       FROM ncd_screenings n
       WHERE n.beneficiary_id = b.id
-    ), 0) AS risk_score
+    ), 0) AS risk_score,
+    COALESCE((
+      SELECT CASE LOWER(COALESCE(pr.risk_level, 'low'))
+               WHEN 'high' THEN 'High-risk pregnancy'
+               WHEN 'high_risk' THEN 'High-risk pregnancy'
+               WHEN 'medium' THEN 'Moderate-risk pregnancy'
+               WHEN 'moderate' THEN 'Moderate-risk pregnancy'
+             END
+      FROM pregnancies pr
+      WHERE pr.beneficiary_id = b.id
+        AND COALESCE(pr.status, 'active') NOT IN ('delivered', 'aborted', 'closed')
+      ORDER BY CASE LOWER(COALESCE(pr.risk_level, 'low'))
+                 WHEN 'high' THEN 0 WHEN 'high_risk' THEN 0
+                 WHEN 'medium' THEN 1 WHEN 'moderate' THEN 1
+                 ELSE 2 END
+      LIMIT 1
+    ), (
+      SELECT CASE WHEN MAX(
+        CASE
+          WHEN LOWER(COALESCE(n.diabetes_risk, '')) IN ('high', 'yes', 'true')
+            OR LOWER(COALESCE(n.hypertension_risk, '')) IN ('high', 'yes', 'true') THEN 2
+          WHEN LOWER(COALESCE(n.diabetes_risk, '')) IN ('medium', 'moderate')
+            OR LOWER(COALESCE(n.hypertension_risk, '')) IN ('medium', 'moderate') THEN 1
+          ELSE 0
+        END) >= 1 THEN 'NCD screening' END
+      FROM ncd_screenings n
+      WHERE n.beneficiary_id = b.id
+    )) AS risk_reason
   FROM beneficiaries b
   LEFT JOIN households h ON h.id = b.household_id
 `;
@@ -283,7 +312,8 @@ export async function getPatient(id: string): Promise<PatientRow | null> {
 function toPatientRow(row: Record<string, unknown>): PatientRow {
   return {
     id: String(row.id),
-    beneficiary_id: row.beneficiary_id === null ? null : String(row.beneficiary_id),
+    beneficiary_id: row.beneficiary_id === null || row.beneficiary_id === undefined ? null : String(row.beneficiary_id),
+    abha_id: row.abha_id === null || row.abha_id === undefined ? null : String(row.abha_id),
     full_name: String(row.full_name ?? ''),
     gender: row.gender === null ? null : String(row.gender),
     age_years: row.age_years === null ? null : Number(row.age_years),
@@ -293,7 +323,11 @@ function toPatientRow(row: Record<string, unknown>): PatientRow {
     household_hhid: row.household_hhid === null || row.household_hhid === undefined ? null : String(row.household_hhid),
     status: row.status === null ? null : String(row.status),
     risk: RISK_BY_SCORE[Number(row.risk_score ?? 0)] ?? 'low',
-    risk_reason: row.risk_reason === null ? null : String(row.risk_reason),
+    // `risk_reason` is an alias, not a column, so an unselected row reports
+    // `undefined` rather than `null`; `==` catches both before String() would
+    // turn a missing value into the literal text "undefined".
+    risk_reason: row.risk_reason == null ? null : String(row.risk_reason),
+    updated_at: row.updated_at == null ? null : String(row.updated_at),
   };
 }
 
@@ -327,6 +361,50 @@ export async function listImmunizations(childId?: string): Promise<Immunization[
     return db.getAllAsync<Immunization>('SELECT * FROM immunizations WHERE child_id = ? ORDER BY due_date ASC', childId);
   }
   return db.getAllAsync<Immunization>('SELECT * FROM immunizations ORDER BY due_date ASC');
+}
+
+export type ImmunizationDetail = Immunization & {
+  batch_number: string | null;
+  site: string | null;
+  /** Optimistic-concurrency token; see AshaTask.version. */
+  version: number;
+};
+
+export async function listImmunizationDetails(childId: string): Promise<ImmunizationDetail[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<ImmunizationDetail>(
+    'SELECT * FROM immunizations WHERE child_id = ? ORDER BY due_date ASC',
+    childId,
+  );
+}
+
+/**
+ * Record a dose as given.
+ *
+ * Same offline-first contract as setTaskStatus: the local row and the outbox
+ * copy are written in one transaction, so a dose marked in a village with no
+ * signal still reaches the server on the next push.
+ */
+export async function markImmunizationGiven(row: ImmunizationDetail, givenDate: string): Promise<void> {
+  const db = await getDatabase();
+  const { version, ...fields } = row;
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      'UPDATE immunizations SET status = ?, given_date = ? WHERE id = ?',
+      'given',
+      givenDate,
+      row.id,
+    );
+    await enqueue({
+      clientRequestId: `update-immunization-${row.id}`,
+      entity: 'immunizations',
+      operation: 'update',
+      recordId: row.id,
+      version,
+      data: { ...fields, status: 'given', given_date: givenDate },
+    });
+  });
 }
 
 export async function listGrowthRecords(childId?: string): Promise<GrowthRecord[]> {
@@ -556,12 +634,6 @@ export async function getHouseholdAddress(householdId: string): Promise<string |
   const db = await getDatabase();
   const row = await db.getFirstAsync<{ address: string | null }>('SELECT address FROM households WHERE id = ?', householdId);
   return row?.address ?? null;
-}
-
-export async function countRows(table: TableName): Promise<number> {
-  const db = await getDatabase();
-  const row = await db.getFirstAsync<{ count: number }>(`SELECT COUNT(*) AS count FROM ${quote(table)}`);
-  return Number(row?.count ?? 0);
 }
 
 // --- Programme modules -----------------------------------------------------
@@ -851,4 +923,528 @@ export function readFormData(form: VillageForm): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+// --- Local writes for the ASHA module forms --------------------------------
+
+/**
+ * Local create for the clinical tables.
+ *
+ * `upsertRows` compiles to `ON CONFLICT(id)`, but only `households`,
+ * `beneficiaries` and `village_forms` declare a PRIMARY KEY - the conflict
+ * clause is rejected outright on `pregnancies`, `children`, `referrals`,
+ * `ncd_screenings` and `anc_visits`. The module forms mint a fresh local id on
+ * every submit and the task refresh re-reads the same ids, so the statement is
+ * a delete-by-id followed by an INSERT: idempotent without needing a unique
+ * constraint that most of these tables do not have.
+ */
+export async function saveRows(table: TableName, records: Array<Record<string, unknown>>): Promise<void> {
+  if (records.length === 0) return;
+  const columns = TABLES[table];
+  if (!columns.includes('id')) {
+    throw new Error(`table ${table} has no id column; saveRows requires one`);
+  }
+
+  const columnList = columns.map(quote).join(', ');
+  const placeholders = columns.map(() => '?').join(', ');
+  const insert = `INSERT INTO ${quote(table)} (${columnList}) VALUES (${placeholders})`;
+  const remove = `DELETE FROM ${quote(table)} WHERE ${quote('id')} = ?`;
+  const db = await getDatabase();
+
+  await db.withTransactionAsync(async () => {
+    for (const record of records) {
+      const id = record.id;
+      if (typeof id === 'string' && id !== '') await db.runAsync(remove, id);
+      await db.runAsync(insert, ...pick(record, columns));
+    }
+  });
+}
+
+export type TaskMeta = { carried_from?: unknown; [key: string]: unknown };
+
+/**
+ * Reads the `asha_tasks` JSON blob.
+ *
+ * The local column is `metadata`, but the server serialises the same column as
+ * `metadata_json`, so a row that has just come off the wire carries the other
+ * spelling. Both are accepted rather than trusting either one.
+ */
+export function readTaskMetadata(task: object): TaskMeta {
+  const source = task as { metadata?: unknown; metadata_json?: unknown };
+  const raw = source.metadata ?? source.metadata_json;
+  if (typeof raw !== 'string' || raw === '') return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as TaskMeta) : {};
+  } catch {
+    return {};
+  }
+}
+
+// --- Follow-up completion ---------------------------------------------------
+
+/** Completed referrals and tasks, i.e. the history the follow-up list used to drop. */
+export async function listFollowUpHistory(): Promise<FollowUp[]> {
+  const db = await getDatabase();
+
+  const referrals = await db.getAllAsync<{
+    id: string;
+    patient_name: string | null;
+    household_hhid: string | null;
+    referral_type: string | null;
+    reason: string | null;
+    followup_date: string | null;
+    urgency: string | null;
+    status: string | null;
+  }>(
+    `SELECT r.id, b.full_name AS patient_name, h.hhid AS household_hhid,
+            r.referral_type, r.reason, r.followup_date, r.urgency, r.status
+       FROM referrals r
+       LEFT JOIN beneficiaries b ON b.id = r.beneficiary_id
+       LEFT JOIN households h ON h.id = b.household_id
+      WHERE r.followup_required = 1
+        AND COALESCE(r.status, '') IN ('completed', 'cancelled')
+      ORDER BY r.followup_date DESC`,
+  );
+
+  const tasks = await db.getAllAsync<{
+    id: string;
+    patient_name: string | null;
+    household_hhid: string | null;
+    task_type: string | null;
+    notes: string | null;
+    task_date: string | null;
+    priority: string | null;
+    status: string | null;
+  }>(
+    `SELECT t.id, b.full_name AS patient_name, h.hhid AS household_hhid,
+            t.task_type, t.notes, t.task_date, t.priority, t.status
+       FROM asha_tasks t
+       LEFT JOIN beneficiaries b ON b.id = t.beneficiary_id
+       LEFT JOIN households h ON h.id = t.household_id
+      WHERE COALESCE(t.status, '') IN ('completed', 'done')
+      ORDER BY t.completed_time DESC`,
+  );
+
+  return [
+    ...referrals.map((r) => ({
+      id: `referral:${r.id}`,
+      kind: 'referral' as const,
+      patient_name: r.patient_name,
+      household_hhid: r.household_hhid,
+      title: r.referral_type ?? '',
+      detail: r.reason,
+      due_date: r.followup_date,
+      urgency: r.urgency,
+      status: r.status,
+    })),
+    ...tasks.map((t) => ({
+      id: `task:${t.id}`,
+      kind: 'task' as const,
+      patient_name: t.patient_name,
+      household_hhid: t.household_hhid,
+      title: t.task_type ?? '',
+      detail: t.notes,
+      due_date: t.task_date,
+      urgency: t.priority,
+      status: t.status,
+    })),
+  ];
+}
+
+/**
+ * Flip one merged follow-up between done and pending.
+ *
+ * The row id is namespaced by source (`task:<id>` / `referral:<id>`) because
+ * listFollowUps merges two tables; the id after the colon is the real record.
+ * Both writes go to SQLite and the outbox together, exactly like setTaskStatus,
+ * so a completion recorded with no signal is not lost.
+ */
+export async function setFollowUpDone(row: FollowUp, done: boolean): Promise<void> {
+  const db = await getDatabase();
+  const id = row.id.slice(row.id.indexOf(':') + 1);
+
+  if (row.kind === 'task') {
+    const task = await db.getFirstAsync<AshaTask>('SELECT * FROM asha_tasks WHERE id = ?', id);
+    if (task) await setTaskStatus(task, done);
+    return;
+  }
+
+  const current = await db.getFirstAsync<Record<string, unknown>>('SELECT * FROM referrals WHERE id = ?', id);
+  if (!current) return;
+  const { version, ...fields } = current;
+  const status = done ? 'completed' : 'pending';
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`UPDATE referrals SET status = ? WHERE id = ?`, status, id);
+    await enqueue({
+      clientRequestId: `update-referral-${id}`,
+      entity: 'referrals',
+      operation: 'update',
+      recordId: id,
+      version: Number(version ?? 1),
+      data: { ...fields, status },
+    });
+  });
+}
+
+// --- Notification read state ------------------------------------------------
+
+/**
+ * Which notifications the worker has already opened.
+ *
+ * The rows themselves are derived from synced tables rather than stored, so
+ * there is no column to flip. The read set lives in `sync_metadata` instead -
+ * a key/value table that is part of the app's own plumbing rather than a synced
+ * entity, which is exactly the scope a UI-only flag wants.
+ */
+const READ_NOTIFICATIONS_KEY = 'read_notifications';
+
+async function readNotificationIds(): Promise<Set<string>> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ value: string | null }>(
+    'SELECT value FROM sync_metadata WHERE key = ?',
+    READ_NOTIFICATIONS_KEY,
+  );
+  if (!row?.value) return new Set();
+  try {
+    const parsed: unknown = JSON.parse(row.value);
+    return new Set(Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+async function writeNotificationIds(ids: Set<string>): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO sync_metadata (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    READ_NOTIFICATIONS_KEY,
+    JSON.stringify([...ids]),
+  );
+}
+
+export async function getReadNotificationIds(): Promise<Set<string>> {
+  return readNotificationIds();
+}
+
+export async function setNotificationRead(id: string, read: boolean): Promise<void> {
+  const ids = await readNotificationIds();
+  if (read) ids.add(id);
+  else ids.delete(id);
+  await writeNotificationIds(ids);
+}
+
+export async function setAllNotificationsRead(ids: readonly string[]): Promise<void> {
+  const read = await readNotificationIds();
+  for (const id of ids) read.add(id);
+  await writeNotificationIds(read);
+}
+
+// --- Household field flow --------------------------------------------------
+//
+// The assigned-households list, the household detail page and the visit survey
+// all read from local SQLite so they work with no signal at all. Everything a
+// card renders is derived here rather than stored: the server's `head_name` and
+// village name are not in the local `households` DDL (see src/db/tables.ts), so
+// the head is the oldest adult member and the location falls back to `address`.
+
+export type HouseholdCard = {
+  id: string;
+  hhid: string | null;
+  address: string | null;
+  village_id: string | null;
+  head_name: string | null;
+  members: number;
+  pregnant: number;
+  children_under5: number;
+  open_tasks: number;
+  completed_tasks: number;
+  next_task_date: string | null;
+  last_visit_date: string | null;
+};
+
+const OPEN_TASK = `(t.status IS NULL OR t.status NOT IN ('completed','done','cancelled'))`;
+const ACTIVE_PREGNANCY = `(p.status IS NULL OR p.status NOT IN ('delivered','aborted','closed'))`;
+
+const HOUSEHOLD_CARD_SQL = `
+  SELECT h.id, h.hhid, h.address, h.village_id,
+         (SELECT b.full_name FROM beneficiaries b
+           WHERE b.household_id = h.id
+           ORDER BY (b.age_years IS NULL), b.age_years DESC, b.full_name ASC
+           LIMIT 1) AS head_name,
+         (SELECT COUNT(*) FROM beneficiaries b
+           WHERE b.household_id = h.id) AS members,
+         (SELECT COUNT(DISTINCT b.id) FROM beneficiaries b
+           JOIN pregnancies p ON p.beneficiary_id = b.id
+          WHERE b.household_id = h.id AND ${ACTIVE_PREGNANCY}) AS pregnant,
+         (SELECT COUNT(*) FROM beneficiaries b
+          WHERE b.household_id = h.id
+            AND ((b.age_years IS NOT NULL AND b.age_years < 5)
+              OR (b.age_years IS NULL AND b.age_months IS NOT NULL AND b.age_months < 60))) AS children_under5,
+         (SELECT COUNT(*) FROM asha_tasks t
+          WHERE t.household_id = h.id AND ${OPEN_TASK}) AS open_tasks,
+         (SELECT COUNT(*) FROM asha_tasks t
+          WHERE t.household_id = h.id AND t.status IN ('completed','done')) AS completed_tasks,
+         (SELECT MIN(COALESCE(t.task_date, substr(COALESCE(t.completed_time, ''), 1, 10)))
+            FROM asha_tasks t
+           WHERE t.household_id = h.id AND ${OPEN_TASK}) AS next_task_date,
+         (SELECT MAX(COALESCE(t.task_date, substr(COALESCE(t.completed_time, ''), 1, 10)))
+            FROM asha_tasks t
+           WHERE t.household_id = h.id AND t.status IN ('completed','done')) AS last_visit_date
+    FROM households h
+`;
+
+/** MIN/MAX over an empty task set comes back as `''`, which would read as a date. */
+function toCard(row: Record<string, unknown>): HouseholdCard {
+  const date = (value: unknown) => (value === null || value === undefined || value === '' ? null : String(value));
+  return {
+    id: String(row.id),
+    hhid: row.hhid === null || row.hhid === undefined ? null : String(row.hhid),
+    address: row.address === null || row.address === undefined ? null : String(row.address),
+    village_id: row.village_id === null || row.village_id === undefined ? null : String(row.village_id),
+    head_name: row.head_name === null || row.head_name === undefined ? null : String(row.head_name),
+    members: Number(row.members ?? 0),
+    pregnant: Number(row.pregnant ?? 0),
+    children_under5: Number(row.children_under5 ?? 0),
+    open_tasks: Number(row.open_tasks ?? 0),
+    completed_tasks: Number(row.completed_tasks ?? 0),
+    next_task_date: date(row.next_task_date),
+    last_visit_date: date(row.last_visit_date),
+  };
+}
+
+export async function listHouseholdCards(): Promise<HouseholdCard[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<Record<string, unknown>>(`${HOUSEHOLD_CARD_SQL} ORDER BY h.hhid ASC`);
+  return rows.map(toCard);
+}
+
+export async function getHouseholdCard(id: string): Promise<HouseholdCard | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<Record<string, unknown>>(`${HOUSEHOLD_CARD_SQL} WHERE h.id = ?`, id);
+  return row ? toCard(row) : null;
+}
+
+export type HouseholdMemberCard = {
+  id: string;
+  full_name: string;
+  gender: string | null;
+  age_years: number | null;
+  age_months: number | null;
+  phone: string | null;
+  is_pregnant: number;
+  risk_level: string | null;
+  edd: string | null;
+};
+
+export async function listHouseholdMemberCards(householdId: string): Promise<HouseholdMemberCard[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT b.id, b.full_name, b.gender, b.age_years, b.age_months, b.phone,
+            (SELECT COUNT(*) FROM pregnancies p
+              WHERE p.beneficiary_id = b.id AND ${ACTIVE_PREGNANCY}) AS is_pregnant,
+            (SELECT p.risk_level FROM pregnancies p
+              WHERE p.beneficiary_id = b.id AND ${ACTIVE_PREGNANCY}
+              ORDER BY COALESCE(p.edd, '') DESC LIMIT 1) AS risk_level,
+            (SELECT p.edd FROM pregnancies p
+              WHERE p.beneficiary_id = b.id AND ${ACTIVE_PREGNANCY}
+              ORDER BY COALESCE(p.edd, '') DESC LIMIT 1) AS edd
+       FROM beneficiaries b
+      WHERE b.household_id = ?
+      ORDER BY (b.age_years IS NULL), b.age_years DESC, b.full_name ASC`,
+    householdId,
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    full_name: String(row.full_name ?? ''),
+    gender: row.gender === null || row.gender === undefined ? null : String(row.gender),
+    age_years: row.age_years === null || row.age_years === undefined ? null : Number(row.age_years),
+    age_months: row.age_months === null || row.age_months === undefined ? null : Number(row.age_months),
+    phone: row.phone === null || row.phone === undefined ? null : String(row.phone),
+    is_pregnant: Number(row.is_pregnant ?? 0),
+    risk_level: row.risk_level === null || row.risk_level === undefined ? null : String(row.risk_level),
+    edd: row.edd === null || row.edd === undefined ? null : String(row.edd),
+  }));
+}
+
+/** Outstanding tasks for one household - the rows a completed visit closes. */
+export async function listHouseholdVisitTasks(householdId: string): Promise<AshaTask[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<AshaTask>(
+    `SELECT t.* FROM asha_tasks t
+      WHERE t.household_id = ? AND ${OPEN_TASK}
+      ORDER BY COALESCE(t.task_date, '') ASC`,
+    householdId,
+  );
+}
+
+/**
+ * Close every open task on a household, mirroring what POST /households/{id}/survey
+ * does server-side.
+ *
+ * `queue: false` is the online path: the server has already completed them, so
+ * the local rows are only catching up and an outbox copy would arrive with a
+ * version the server has just passed. `queue: true` is the offline path, where
+ * the completion exists nowhere else and must be pushed later.
+ */
+export async function completeHouseholdTasks(householdId: string, queue: boolean): Promise<number> {
+  const tasks = await listHouseholdVisitTasks(householdId);
+  if (tasks.length === 0) return 0;
+
+  if (queue) {
+    for (const task of tasks) await setTaskStatus(task, true);
+    return tasks.length;
+  }
+
+  const db = await getDatabase();
+  const completedAt = new Date().toISOString();
+  await db.runAsync(
+    `UPDATE asha_tasks SET status = 'completed', completed_time = ?
+      WHERE household_id = ? AND ${OPEN_TASK}`,
+    completedAt,
+    householdId,
+  );
+  return tasks.length;
+}
+
+export type HouseholdVisitRecord = {
+  id: string;
+  visited_at: string | null;
+  status: string | null;
+  consent: boolean;
+  answers: Record<string, unknown>;
+};
+
+/**
+ * Visits recorded for a household.
+ *
+ * Surveys are captured into `village_forms` (the only survey-shaped table the
+ * sync feed carries), so the history is that table filtered down to the
+ * household in the JSON payload.
+ */
+export async function listHouseholdVisitRecords(householdId: string): Promise<HouseholdVisitRecord[]> {
+  const forms = await listVillageForms('household_visit');
+  return forms
+    .filter((form) => readFormData(form).household_id === householdId)
+    .map((form) => {
+      const answers = readFormData(form);
+      return {
+        id: form.id,
+        visited_at: form.form_date,
+        status: form.status,
+        consent: answers.consent_obtained === true,
+        answers,
+      };
+    });
+}
+
+/** Local commit for a household registered in the field (offline-first). */
+export async function insertLocalHousehold(input: {
+  id: string;
+  hhid: string;
+  villageId: string;
+  ashaId: string;
+  address: string | null;
+  consentGiven: boolean;
+}): Promise<void> {
+  const db = await getDatabase();
+  const updatedAt = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO households (id, hhid, village_id, asha_id, address, consent_given, version, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       hhid = excluded.hhid,
+       village_id = excluded.village_id,
+       asha_id = excluded.asha_id,
+       address = excluded.address,
+       consent_given = excluded.consent_given,
+       updated_at = excluded.updated_at`,
+    input.id,
+    input.hhid,
+    input.villageId,
+    input.ashaId,
+    input.address,
+    input.consentGiven ? 1 : 0,
+    updatedAt,
+  );
+}
+
+export type ChildOption = Child & { child_name: string | null; dose_count: number };
+
+const CHILD_OPTION_SELECT = `
+  SELECT c.*, b.full_name AS child_name,
+         (SELECT COUNT(*) FROM immunizations i WHERE i.child_id = c.id) AS dose_count
+    FROM children c
+    LEFT JOIN beneficiaries b ON b.id = c.beneficiary_id
+`;
+
+export async function listChildrenInHousehold(householdId: string): Promise<ChildOption[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<ChildOption>(
+    `${CHILD_OPTION_SELECT}
+       LEFT JOIN households h ON h.id = b.household_id
+      WHERE h.id = ?
+      ORDER BY c.created_at ASC`,
+    householdId,
+  );
+}
+
+export async function listChildrenForBeneficiary(beneficiaryId: string): Promise<ChildOption[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<ChildOption>(
+    `${CHILD_OPTION_SELECT}
+      WHERE c.beneficiary_id = ?
+      ORDER BY c.created_at ASC`,
+    beneficiaryId,
+  );
+}
+
+export type PatientVitals = {
+  height_cm: number | null;
+  weight_kg: number | null;
+  blood_group: string | null;
+  bp_systolic: number | null;
+  bp_diastolic: number | null;
+};
+
+/**
+ * Latest vitals for a beneficiary.
+ *
+ * Height, weight and blood group only exist on an antenatal visit, and blood
+ * pressure lives on both the ANC visit and the NCD screening. The screening
+ * wins for BP because it is the more recent reading when both exist; a patient
+ * with neither gets nulls and the screen prints "not recorded" rather than a
+ * fabricated number.
+ */
+export async function getPatientVitals(beneficiaryId: string): Promise<PatientVitals> {
+  const db = await getDatabase();
+
+  const anc = await db.getFirstAsync<PatientVitals>(
+    `SELECT av.height_cm, av.weight_kg, av.blood_group, av.bp_systolic, av.bp_diastolic
+       FROM anc_visits av
+       JOIN pregnancies p ON p.id = av.pregnancy_id
+      WHERE p.beneficiary_id = ?
+      ORDER BY COALESCE(av.visit_date, '') DESC
+      LIMIT 1`,
+    beneficiaryId,
+  );
+
+  const screening = await db.getFirstAsync<{ bp_systolic: number | null; bp_diastolic: number | null }>(
+    `SELECT bp_systolic, bp_diastolic
+       FROM ncd_screenings
+      WHERE beneficiary_id = ?
+      ORDER BY COALESCE(screening_date, created_at) DESC
+      LIMIT 1`,
+    beneficiaryId,
+  );
+
+  return {
+    height_cm: anc?.height_cm ?? null,
+    weight_kg: anc?.weight_kg ?? null,
+    blood_group: anc?.blood_group ?? null,
+    bp_systolic: screening?.bp_systolic ?? anc?.bp_systolic ?? null,
+    bp_diastolic: screening?.bp_diastolic ?? anc?.bp_diastolic ?? null,
+  };
 }

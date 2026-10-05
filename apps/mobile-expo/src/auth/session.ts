@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { authApi, syncApi } from './api';
 import { tokenStore } from './tokenStore';
 import { metadata } from '../db/database';
-import type { UserSummary } from '../types';
+import type { LoginResponse, UserSummary } from '../types';
 
 /**
  * A stable per-install id. The backend keys SyncDevice rows and sync logs on
@@ -39,7 +39,23 @@ export interface AuthState {
 export async function login(phone: string, password: string): Promise<UserSummary> {
   const deviceId = await getDeviceId();
   const response = await authApi.login(phone, password, deviceId);
+  return completeLogin(response, deviceId);
+}
 
+/** POST /auth/otp/send. Returns the server message (it carries the dev OTP). */
+export async function requestOtp(phone: string): Promise<string> {
+  const response = await authApi.otpSend(phone);
+  return response.message;
+}
+
+/** POST /auth/otp/verify, then persists the session exactly like password login. */
+export async function verifyOtp(phone: string, code: string): Promise<UserSummary> {
+  const deviceId = await getDeviceId();
+  const response = await authApi.otpVerify(phone, code, deviceId);
+  return completeLogin(response, deviceId);
+}
+
+async function completeLogin(response: LoginResponse, deviceId: string): Promise<UserSummary> {
   await tokenStore.save({
     accessToken: response.tokens.access_token,
     refreshToken: response.tokens.refresh_token,

@@ -53,9 +53,10 @@
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.js"
     ],
-    "testMatch": [
-      "<rootDir>/__tests__/**/*.test.{ts,tsx}"
-    ],
+  "testMatch": [
+    "<rootDir>/__tests__/**/*.test.{ts,tsx}",
+    "<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}"
+  ],
     "testTimeout": 30000,
     "moduleNameMapper": {
       "\\.css$": "<rootDir>/__tests__/helpers/style-stub.js"

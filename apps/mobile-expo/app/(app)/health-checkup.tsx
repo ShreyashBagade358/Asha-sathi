@@ -181,7 +181,7 @@ function CheckupCard({ row, onPress }: { row: HealthCheckup; onPress: () => void
           </View>
 
           <Text numberOfLines={1} className="font-caption text-caption text-on-surface-variant">
-            {[age, row.screening_date, row.household_hhid ? t('patient.hhid', { id: row.household_hhid }) : null]
+            {[age, row.screening_date, row.household_hhid ? t('asha.hhid', { id: row.household_hhid }) : null]
               .filter((part): part is string => Boolean(part))
               .join(' • ')}
           </Text>

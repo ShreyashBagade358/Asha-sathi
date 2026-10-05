@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 
 import { PageHeader, Pill } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FAB } from '@/components/ui/FAB';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { TextField } from '@/components/ui/Field';
 import { listPatients, type PatientRow, type RiskLevel } from '@/db/clinical';
@@ -119,7 +120,13 @@ export default function PatientsScreen() {
 
         <View className="mt-4">
           {filtered.length === 0 ? (
-            <EmptyState icon="users" title={t('common.noResults')} />
+            <EmptyState
+              icon="users"
+              title={all.length === 0 ? t('asha.noPatients') : t('common.noResults')}
+              description={all.length === 0 ? t('asha.noPatientsHint') : undefined}
+              actionLabel={all.length === 0 ? t('asha.registerPatient') : undefined}
+              onActionPress={all.length === 0 ? () => router.push('/register') : undefined}
+            />
           ) : (
             <View className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest" style={shadow.card}>
               {filtered.map((patient, index) => {
@@ -174,6 +181,16 @@ export default function PatientsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* The empty state carries its own CTA, so the FAB only appears once there
+          is a list to add to — two identical buttons stacked is noise. */}
+      {all.length > 0 ? (
+        <FAB
+          icon="plus"
+          accessibilityLabel={t('asha.registerPatient')}
+          onPress={() => router.push('/register')}
+        />
+      ) : null}
     </View>
   );
 }

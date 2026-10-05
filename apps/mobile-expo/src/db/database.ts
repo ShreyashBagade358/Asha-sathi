@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-import type { Beneficiary, Household, QueueItem, SyncState } from '../types';
+import type { Household, QueueItem, SyncState } from '../types';
 import { isTableName } from './tables';
 
 /**
@@ -566,11 +566,6 @@ export async function adoptPushedVersion(entity: string, recordId: string, versi
   await db.runAsync(`UPDATE ${entity} SET version = ? WHERE id = ?`, version, recordId);
 }
 
-export async function clearQueue(): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM sync_queue');
-}
-
 // --- Conflicts ------------------------------------------------------------
 
 export async function recordConflict(entry: {
@@ -664,92 +659,9 @@ function pickColumns(
   });
 }
 
-export async function upsertHouseholds(records: Array<Record<string, unknown>>): Promise<number> {
-  if (records.length === 0) return 0;
-  const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
-    for (const record of records) {
-      const values = pickColumns(record, HOUSEHOLD_COLUMNS);
-      await db.runAsync(
-        `INSERT INTO households (id, hhid, village_id, asha_id, address, consent_given, version, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
-           hhid = excluded.hhid,
-           village_id = excluded.village_id,
-           asha_id = excluded.asha_id,
-           address = excluded.address,
-           consent_given = excluded.consent_given,
-           version = excluded.version,
-           updated_at = excluded.updated_at`,
-        ...values,
-      );
-    }
-  });
-  return records.length;
-}
-
-export async function upsertBeneficiaries(records: Array<Record<string, unknown>>): Promise<number> {
-  if (records.length === 0) return 0;
-  const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
-    for (const record of records) {
-      const values = pickColumns(record, BENEFICIARY_COLUMNS);
-      await db.runAsync(
-        `INSERT INTO beneficiaries
-           (id, beneficiary_id, household_id, full_name, gender, date_of_birth,
-            age_years, age_months, phone, status, version, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
-           beneficiary_id = excluded.beneficiary_id,
-           household_id = excluded.household_id,
-           full_name = excluded.full_name,
-           gender = excluded.gender,
-           date_of_birth = excluded.date_of_birth,
-           age_years = excluded.age_years,
-           age_months = excluded.age_months,
-           phone = excluded.phone,
-           status = excluded.status,
-           version = excluded.version,
-           updated_at = excluded.updated_at`,
-        ...values,
-      );
-    }
-  });
-  return records.length;
-}
-
-export async function listBeneficiaries(search?: string): Promise<Beneficiary[]> {
-  const db = await getDatabase();
-  if (search && search.trim().length > 0) {
-    const term = `%${search.trim()}%`;
-    return db.getAllAsync<Beneficiary>(
-      `SELECT * FROM beneficiaries
-        WHERE full_name LIKE ? OR beneficiary_id LIKE ? OR phone LIKE ?
-        ORDER BY full_name ASC`,
-      term,
-      term,
-      term,
-    );
-  }
-  return db.getAllAsync<Beneficiary>('SELECT * FROM beneficiaries ORDER BY full_name ASC');
-}
-
-export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
-  const db = await getDatabase();
-  return db.getFirstAsync<Beneficiary>('SELECT * FROM beneficiaries WHERE id = ?', id);
-}
-
 export async function listHouseholds(): Promise<Household[]> {
   const db = await getDatabase();
   return db.getAllAsync<Household>('SELECT * FROM households ORDER BY hhid ASC');
-}
-
-export async function countBeneficiaries(): Promise<number> {
-  const db = await getDatabase();
-  const row = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM beneficiaries',
-  );
-  return Number(row?.count ?? 0);
 }
 
 export async function insertLocalBeneficiary(input: {
@@ -761,17 +673,20 @@ export async function insertLocalBeneficiary(input: {
   gender: string;
   dateOfBirth: string;
   phone: string;
+  /** Captured when the exact date of birth is unknown, as in a household visit. */
+  ageYears?: number | null;
 }): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO beneficiaries
-       (id, beneficiary_id, household_id, abha_id, full_name, gender, date_of_birth, phone, status, version, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?)
+       (id, beneficiary_id, household_id, abha_id, full_name, gender, date_of_birth, age_years, phone, status, version, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?)
      ON CONFLICT(id) DO UPDATE SET
        abha_id = excluded.abha_id,
        full_name = excluded.full_name,
        gender = excluded.gender,
        date_of_birth = excluded.date_of_birth,
+       age_years = excluded.age_years,
        phone = excluded.phone`,
     input.id,
     input.beneficiaryId,
@@ -780,6 +695,7 @@ export async function insertLocalBeneficiary(input: {
     input.fullName,
     input.gender,
     input.dateOfBirth,
+    input.ageYears ?? null,
     input.phone,
     new Date().toISOString(),
   );

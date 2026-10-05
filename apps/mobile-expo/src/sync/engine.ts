@@ -263,9 +263,3 @@ export async function getServerStatus(): Promise<SyncStatusResponse | null> {
 }
 
 /** Keep a conflict's server values, discarding the local edit. */
-export async function acceptServerVersion(clientRequestId: string): Promise<void> {
-  const [conflict] = await getConflicts();
-  if (!conflict) return;
-  void clientRequestId;
-  await clearConflict(clientRequestId);
-}

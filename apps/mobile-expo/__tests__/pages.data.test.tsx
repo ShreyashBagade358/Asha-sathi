@@ -93,6 +93,51 @@ describe('populated screens render real rows', () => {
     expect(names.filter((n) => body.includes(n)).length).toBeGreaterThan(0);
   });
 
+  it('patients screen never renders a literal "undefined" risk reason', async () => {
+    // Regression: `risk_reason` is a SQL alias rather than a beneficiaries
+    // column, so `row.risk_reason` was `undefined` for every row and
+    // String(undefined) shipped the text "undefined" into the reason chip.
+    const tree = await render('../app/(app)/(tabs)/patients');
+    const body = text(tree);
+    expect(body).toContain('Rekha Sharma');
+    expect(body).not.toContain('undefined');
+  });
+
+  it('register form reports each missing field under its input', async () => {
+    // The web validates per field; the single banner this screen used to show
+    // lost the reason behind each red border. Locale is pinned because the
+    // assertions are on the copy itself.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { i18n } = require('../src/i18n');
+    const previous = i18n.language;
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    try {
+      const tree = await render('../app/(app)/register');
+      const save = tree.root.findAll(
+        (node) => typeof node.props?.onPress === 'function' && subtreeText(node).includes('Save Patient'),
+      )[0];
+      if (!save) throw new Error('register screen did not render a save button');
+
+      await act(async () => {
+        save.props.onPress();
+      });
+
+      const body = text(tree);
+      expect(body).toContain('Full name is required');
+      expect(body).toContain('Enter a valid 10-digit mobile number');
+      expect(body).toContain('Date of birth is required');
+      expect(body).toContain('Select a gender');
+      expect(body).toContain('ABHA / Health ID must be at least 4 characters');
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage(previous);
+      });
+    }
+  });
+
   it('patients screen shows rows on first paint, then debounces searches', async () => {
     const tree = await render('../app/(app)/(tabs)/patients');
     let body = text(tree);
@@ -208,16 +253,22 @@ describe('populated screens render real rows', () => {
       '../app/(app)/child-health',
       '../app/(app)/connection-error',
       '../app/(app)/follow-ups',
+      '../app/(app)/household/[id]',
+      '../app/(app)/household/[id]/visit',
       '../app/(app)/health-checkup',
       '../app/(app)/health-survey',
       '../app/(app)/notifications',
       '../app/(app)/patient/[id]',
+      '../app/(app)/patient/[id]/immunization',
       '../app/(app)/pregnancy',
       '../app/(app)/profile',
       '../app/(app)/referrals',
       '../app/(app)/register',
       '../app/index',
       '../app/login',
+      '../app/redirecting',
+      '../app/verify-otp',
+      '../app/account-recovery',
     ];
     for (const page of pages) {
       const body = text(await render(page));
@@ -347,9 +398,9 @@ describe('populated screens render real rows', () => {
     expect(Number(queued?.n ?? 0)).toBeGreaterThan(0);
   });
   it('login posts phone and password to /auth/login and masks the field', async () => {
-    // Regression guard for the OTP -> password switch: the request must go to
-    // /auth/login (not /auth/otp/verify) with a password field, and the entry
-    // must not be echoed in clear text.
+    // Regression guard for the credential path: with the login mock's OTP view
+    // now the default, the password form must still go to /auth/login (never an
+    // /auth/otp endpoint) and the entry must not be echoed in clear text.
     const calls: { url: string; body: unknown }[] = [];
     const fetchMock = jest.fn(async (url: string, init: { body?: string }) => {
       calls.push({ url, body: init.body ? JSON.parse(init.body) : undefined });
@@ -384,12 +435,12 @@ describe('populated screens render real rows', () => {
     }
 
     const json = text(tree!);
-    // A password entry exists and is masked.
-    expect(json).toContain('secureTextEntry');
+    // The login mock's primary CTA is the OTP path; the credential form is the
+    // secondary swap-in and is not mounted (or echoed in clear text) yet.
+    expect(json).toContain('Send OTP');
+    expect(json).not.toContain('secureTextEntry');
     expect(json).not.toContain('sendOtp');
     expect(json).not.toContain('verifyOtp');
-    // No OTP step survives anywhere in the screen.
-    expect(/[Oo][Tt][Pp]/.test(json)).toBe(false);
 
     // Fill the two fields so the submit button enables. Selected by testID
     // because TextField renders each input more than once in the tree.
@@ -399,6 +450,26 @@ describe('populated screens render real rows', () => {
         { deep: true },
       )[0]!;
     expect(field('phone-input')).toBeDefined();
+
+    // Swap to the password form.
+    const swap = tree!.root
+      .findAll(
+        (node) => typeof node.type !== 'string' && typeof node.props?.onPress === 'function',
+        { deep: true },
+      )
+      .find((node) => subtreeText(node).includes('Login with password'));
+    expect(swap).toBeDefined();
+    await act(async () => {
+      swap!.props.onPress();
+    });
+    for (let i = 0; i < 10; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    // A password entry exists and is masked.
+    expect(text(tree!)).toContain('secureTextEntry');
     expect(field('password-input')).toBeDefined();
     await act(async () => {
       field('phone-input').props.onChangeText('9876543210');
@@ -415,10 +486,9 @@ describe('populated screens render real rows', () => {
 
     const signIn = tree!.root
       .findAll(
-        (node) => typeof node.type !== 'string' && typeof node.props?.onPress === 'function',
+        (node) => node.props?.testID === 'login' && typeof node.props?.onPress === 'function',
         { deep: true },
-      )
-      .find((node) => subtreeText(node).includes('Sign in'));
+      )[0];
     expect(signIn).toBeDefined();
     await act(async () => {
       signIn!.props.onPress();

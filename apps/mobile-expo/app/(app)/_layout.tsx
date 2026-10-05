@@ -47,6 +47,8 @@ export default function AppLayout() {
     >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="patient/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="patient/[id]/immunization" options={{ headerShown: false }} />
+        <Stack.Screen name="patient/[id]/profile" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="connection-error" options={{ headerShown: false }} />
         {/* More-menu modules. Real routes so the sheet never lands on an

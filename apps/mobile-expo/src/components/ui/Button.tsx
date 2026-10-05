@@ -104,18 +104,7 @@ export function IconButton({ name, onPress, size = 20, color = colors.onSurfaceV
   );
 }
 
-export type ActionLinkProps = { label: string; onPress: () => void };
-
 /** The web's "View All →" text affordance. */
-export function ActionLink({ label, onPress }: ActionLinkProps) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="flex-row items-center gap-1 py-1">
-      <Text className="font-label-md text-label-md text-primary">{label}</Text>
-      <Icon name="chevronRight" size={16} color={colors.primary} />
-    </Pressable>
-  );
-}
-
 export type RiskChipProps = {
   level: 'low' | 'medium' | 'high';
   label: string;

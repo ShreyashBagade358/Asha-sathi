@@ -32,24 +32,8 @@ export function Divider({ inset = 0 }: DividerProps) {
   return <View className="h-px bg-outline-variant/40" style={{ marginLeft: inset }} />;
 }
 
-export type SectionHeaderProps = {
-  title: string;
-  subtitle?: string;
-  action?: ReactNode;
-  className?: string;
-};
-
-export function SectionHeader({ title, subtitle, action, className }: SectionHeaderProps) {
-  return (
-    <View className={cx('mb-3 flex-row items-start justify-between gap-3', className)}>
-      <View className="flex-1">
-        <Text className="font-headline-md text-headline-md text-on-surface">{title}</Text>
-        {subtitle ? <Text className="mt-0.5 text-body-sm text-on-surface-variant">{subtitle}</Text> : null}
-      </View>
-      {action}
-    </View>
-  );
-}
+export type { SectionHeaderProps } from '@/components/ui/SectionHeader';
+export { SectionHeader } from '@/components/ui/SectionHeader';
 
 export type PageHeaderProps = {
   title: string;
