@@ -1,9 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile, useMyPatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { RiskPredictionCard } from '@/components/common/RiskPredictionCard'
+import { HealthProfileEditModal } from '@/components/patient/HealthProfileEditModal'
+import { aiService, type AIPrediction } from '@/services/ai.service'
+import type { MyPatientProfile } from '@/services/patient.service'
 
 interface Vital {
   label: string
@@ -12,12 +17,83 @@ interface Vital {
   tone: 'error' | 'default'
 }
 
+function inputValue(profile: MyPatientProfile | undefined, key: string): unknown {
+  return profile?.profileInputs?.[key]
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (value == null) return undefined
+  const parsed = Number(value)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+function asBool(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function asActivity(value: unknown): 'low' | 'moderate' | 'high' | undefined {
+  return value === 'low' || value === 'moderate' || value === 'high' ? value : undefined
+}
+
+/** Builds the ML feature payload from the patient's own stored inputs. */
+function buildAssessment(profile: MyPatientProfile | undefined): () => Promise<AIPrediction> {
+  return async () => {
+    const beneficiaryId = profile?.beneficiaryId
+    if (!profile || !beneficiaryId) throw new Error('No linked health record')
+    const vitals = profile.vitals
+    if (profile.isPregnant) {
+      return aiService.predictMaternalRisk({
+        beneficiaryId,
+        age: profile.ageYears ?? undefined,
+        gravida: asNumber(inputValue(profile, 'gravida')),
+        parity: asNumber(inputValue(profile, 'parity')),
+        gestationalWeeks: profile.pregnancy?.week ?? undefined,
+        ancVisitsAttended: profile.pregnancy?.ancVisits ?? undefined,
+        hemoglobin: vitals?.hemoglobin ?? undefined,
+        bpSystolic: vitals?.bpSystolic ?? undefined,
+        bpDiastolic: vitals?.bpDiastolic ?? undefined,
+        weightKg: vitals?.weightKg ?? undefined,
+        heightCm: vitals?.heightCm ?? undefined,
+        previousCsection: asBool(inputValue(profile, 'previous_csection')),
+        previousPph: asBool(inputValue(profile, 'previous_pph')),
+        previousPreterm: asBool(inputValue(profile, 'previous_preterm')),
+        previousStillbirth: asBool(inputValue(profile, 'previous_stillbirth')),
+        multiplePregnancy: asBool(inputValue(profile, 'multiple_pregnancy')),
+        hasRiskFactors: profile.pregnancy?.highRisk ?? false,
+      })
+    }
+    const heightCm = vitals?.heightCm ?? undefined
+    const weightKg = vitals?.weightKg ?? undefined
+    const bmi =
+      heightCm && weightKg ? Number((weightKg / Math.pow(heightCm / 100, 2)).toFixed(1)) : undefined
+    return aiService.predictNcdRisk({
+      beneficiaryId,
+      age: profile.ageYears ?? undefined,
+      sex: profile.gender ?? undefined,
+      heightCm,
+      weightKg,
+      bmi,
+      tobaccoUse: asBool(inputValue(profile, 'tobacco_use')),
+      alcoholUse: asBool(inputValue(profile, 'alcohol_use')),
+      waistCircumferenceCm: asNumber(inputValue(profile, 'waist_circumference_cm')),
+      physicalActivity: asActivity(inputValue(profile, 'physical_activity')),
+      familyHistoryDiabetes: asBool(inputValue(profile, 'family_history_diabetes')),
+      familyHistoryHypertension: asBool(inputValue(profile, 'family_history_hypertension')),
+      knownDiabetes: asBool(inputValue(profile, 'known_diabetes')),
+      knownHypertension: asBool(inputValue(profile, 'known_hypertension')),
+      bpSystolic: vitals?.bpSystolic ?? undefined,
+      bpDiastolic: vitals?.bpDiastolic ?? undefined,
+      bloodSugarRandom: asNumber(inputValue(profile, 'blood_sugar_random')),
+    })
+  }
+}
+
 export default function PatientHealthProfilePage() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
-  const patients = useAppStore((s) => s.patients)
-
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
+  const raw = useMyPatientProfile()
+  const [editing, setEditing] = useState(false)
 
   const VITALS: Vital[] = [
     { label: 'patient.height', value: profile.height, icon: 'activity', tone: 'default' },
@@ -51,11 +127,10 @@ export default function PatientHealthProfilePage() {
       <PageHeader
         title={t('patient.healthProfileTitle')}
         subtitle={t('patient.healthProfileSubtitle')}
-        breadcrumbs={[{ label: t('patient.healthProfileTitle') }]}
         actions={
           <button
             type="button"
-            onClick={() => addToast('info', t('patient.profileEditToast'))}
+            onClick={() => setEditing(true)}
             className="flex items-center gap-2 rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-container"
           >
             <Icon name="edit" size={18} />
@@ -119,6 +194,12 @@ export default function PatientHealthProfilePage() {
           </div>
         ))}
       </section>
+
+      <RiskPredictionCard
+        beneficiaryId={raw?.beneficiaryId ?? undefined}
+        mode={raw?.isPregnant ? 'maternal' : 'ncd'}
+        onRun={buildAssessment(raw)}
+      />
 
       {profile.pregnant ? (
         <section>
@@ -194,6 +275,8 @@ export default function PatientHealthProfilePage() {
           </div>
         </section>
       </div>
+
+      <HealthProfileEditModal open={editing} profile={raw} onClose={() => setEditing(false)} />
     </div>
   )
 }

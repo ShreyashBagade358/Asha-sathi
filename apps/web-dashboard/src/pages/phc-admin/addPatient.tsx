@@ -7,6 +7,8 @@ import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { beneficiaryService } from '@/services/beneficiary.service'
 import { householdService } from '@/services/household.service'
 import { getErrorMessage } from '@/components/common/ErrorState'
+import { PhotoUploadField } from '@/components/common/PhotoUploadField'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 
 type RiskLevel = 'low' | 'medium' | 'high'
 
@@ -39,6 +41,7 @@ export default function AddNewPatientPhcAdmin() {
     name: '', abhaId: '', mobile: '', dob: '', gender: '', householdId: '', risk: 'low', notes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [photo, setPhoto] = useState<File | null>(null)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -81,21 +84,31 @@ export default function AddNewPatientPhcAdmin() {
       addToast('error', 'Please choose a household (village is linked to the household)')
       return
     }
-    if (form.mobile.trim() && !/^[6-9]\d{9}$/.test(form.mobile.trim())) {
-      addToast('error', 'Mobile must be a valid 10-digit number starting with 6-9')
+    if (form.mobile.trim() && !/^\d{10}$/.test(form.mobile.trim())) {
+      addToast('error', 'Mobile must be a valid 10-digit number')
       return
     }
 
     setSaving(true)
     try {
-      await beneficiaryService.createBeneficiary({
+      const created = await beneficiaryService.createBeneficiary({
         name: form.name.trim(),
         abhaId: form.abhaId.trim() || undefined,
         dob: form.dob,
         gender: form.gender as 'male' | 'female' | 'other',
         phone: form.mobile.trim() || undefined,
         householdId: form.householdId,
+        village: selectedHousehold?.village || undefined,
+        risk: form.risk,
+        notes: form.notes.trim() || undefined,
       })
+      if (photo) {
+        try {
+          await beneficiaryService.uploadPhoto(created.id, photo)
+        } catch {
+          addToast('error', 'Patient registered, but the photo could not be uploaded.')
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['beneficiaries'] })
       addToast('success', 'Patient registered successfully.')
       setTimeout(() => navigate('/phc/beneficiaries'), 600)
@@ -131,6 +144,16 @@ export default function AddNewPatientPhcAdmin() {
 
         <div className="flex-1 overflow-y-auto p-6">
           <form className="max-w-4xl mx-auto flex flex-col gap-5" onSubmit={savePatient}>
+            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex items-center gap-5">
+              <PhotoUploadField size="md" file={photo} onFileChange={setPhoto} onError={(msg) => addToast('error', msg)} />
+              <div>
+                <p className="text-label-md text-on-surface">Profile photo</p>
+                <p className="text-caption text-on-surface-variant">
+                  Held until the patient is created, then uploaded with the record.
+                </p>
+              </div>
+            </section>
+
             <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 border-b border-outline-variant px-5 py-4">
                 <span className="material-symbols-outlined text-primary text-[20px]">person</span>
@@ -180,22 +203,22 @@ export default function AddNewPatientPhcAdmin() {
               </div>
               <div className="grid grid-cols-1 gap-4 p-5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-label-md text-on-surface-variant" htmlFor="phc_household">Household *</label>
-                  <div className="relative">
-                    <select id="phc_household" className={`${inputCls} appearance-none`} value={form.householdId} onChange={(e) => set('householdId', e.target.value)}>
-                      <option value="" disabled>Select household</option>
-                      {households.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.householdId}{h.village ? ` · ${h.village}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-on-surface-variant pointer-events-none">
-                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                    </span>
-                  </div>
-                  {householdsLoading && <p className="text-caption text-on-surface-variant">Loading households…</p>}
-                  {householdsError && <p className="text-caption text-error">Failed to load households. {getErrorMessage(householdsErrorObj)}</p>}
+                  <SearchableSelect
+                    id="phc_household"
+                    label="Household *"
+                    required
+                    options={households.map((h) => ({
+                      id: h.id,
+                      name: `${h.householdId}${h.village ? ` · ${h.village}` : ''}`,
+                    }))}
+                    value={form.householdId}
+                    onChange={(id) => set('householdId', id)}
+                    placeholder="Select household"
+                    loading={householdsLoading}
+                    loadingLabel="Loading households…"
+                    emptyLabel="No households registered yet"
+                    error={householdsError ? `Failed to load households. ${getErrorMessage(householdsErrorObj)}` : undefined}
+                  />
                   {selectedHousehold && selectedHousehold.village && (
                     <p className="text-caption text-on-surface-variant">Village: <span className="font-semibold text-on-surface">{selectedHousehold.village}</span></p>
                   )}

@@ -1,25 +1,73 @@
 import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
-import { useAppStore } from '@/stores/app.store'
+import { useUIStore } from '@/stores/ui.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { notificationService } from '@/services/notification.service'
+import type { Notification } from '@/types'
 import type { PatientNotifType } from '@/pages/patient/mockData'
 
-const TYPE_META: Record<PatientNotifType, { label: string; className: string; icon: IconName }> = {
+type PageNotifType = PatientNotifType | 'alert' | 'sync' | 'incentive'
+
+const TYPE_META: Record<PageNotifType, { label: string; className: string; icon: IconName }> = {
   appointment: { label: 'patient.notifAppointments', className: 'bg-primary-container text-on-primary-container', icon: 'calendar' },
   referral: { label: 'patient.notifReferrals', className: 'bg-error-container text-on-error-container', icon: 'activity' },
   health: { label: 'patient.notifHealth', className: 'bg-secondary-container text-on-secondary-container', icon: 'heart' },
   system: { label: 'patient.notifSystem', className: 'bg-tertiary-container text-on-tertiary-container', icon: 'settings' },
+  alert: { label: 'patient.notifAlerts', className: 'bg-error-container text-on-error-container', icon: 'alert' },
+  sync: { label: 'patient.notifSync', className: 'bg-primary-container text-on-primary-container', icon: 'refresh' },
+  incentive: { label: 'patient.notifIncentive', className: 'bg-tertiary-container text-on-tertiary-container', icon: 'barChart' },
+}
+
+interface PageNotification {
+  id: string
+  type: PageNotifType
+  title: string
+  message: string
+  time: string
+  read: boolean
+}
+
+function toPageNotification(n: Notification): PageNotification {
+  let time = ''
+  if (n.createdAt) {
+    const parsed = new Date(n.createdAt)
+    time = Number.isNaN(parsed.getTime())
+      ? n.createdAt
+      : parsed.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+  return { id: n.id, type: n.type, title: n.title, message: n.message, time, read: n.read }
 }
 
 export default function PatientNotificationsPage() {
   const { t } = useLocalization()
-  const notifications = useAppStore((s) => s.patientNotifications)
-  const markNotificationRead = useAppStore((s) => s.markNotificationRead)
-  const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead)
+  const { addToast } = useUIStore()
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<'all' | 'unread' | PatientNotifType>('all')
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['notifications', 'patient'],
+    queryFn: () => notificationService.listNotifications({ pageSize: 50 }),
+  })
+
+  const notifications = (data?.items ?? []).map(toPageNotification)
+  const unread = notifications.filter((n) => !n.read)
+  const unreadCount = unread.length
+
+  const markMutation = useMutation({
+    mutationFn: (id: string) => notificationService.markRead(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
+  const markAllMutation = useMutation({
+    mutationFn: () => Promise.all(unread.map((n) => notificationService.markRead(n.id))),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
 
   const visible = notifications.filter((n) =>
     filter === 'all'
@@ -36,15 +84,18 @@ export default function PatientNotificationsPage() {
     { key: 'referral', label: t('patient.notifReferrals'), count: notifications.filter((n) => n.type === 'referral').length },
   ]
 
-  const markAllRead = () => markAllNotificationsRead('patient')
-  const toggleRead = (id: string) => markNotificationRead('patient', id)
+  const markAllRead = () => {
+    if (!markAllMutation.isPending && unreadCount > 0) markAllMutation.mutate()
+  }
+  const toggleRead = (id: string, read: boolean) => {
+    if (!read && !markMutation.isPending) markMutation.mutate(id)
+  }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader
         title={t('patient.notifTitle')}
         subtitle={t('patient.notifSubtitle')}
-        breadcrumbs={[{ label: t('patient.notifTitle') }]}
         actions={
           unreadCount > 0 ? (
             <button
@@ -84,19 +135,23 @@ export default function PatientNotificationsPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card">
-        {visible.length === 0 ? (
+        {isLoading ? (
+          <LoadingState />
+        ) : isError ? (
+          <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+        ) : visible.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-14 text-center">
             <Icon name="bell" size={40} className="text-outline" />
             <p className="font-body-md text-body-md text-on-surface-variant">{t('patient.notifEmpty')}</p>
           </div>
         ) : (
           visible.map((notification, index) => {
-            const meta = TYPE_META[notification.type]
+            const meta = TYPE_META[notification.type] ?? TYPE_META.system
             return (
               <button
                 key={notification.id}
                 type="button"
-                onClick={() => toggleRead(notification.id)}
+                onClick={() => toggleRead(notification.id, notification.read)}
                 className={`flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-surface-container ${
                   index < visible.length - 1 ? 'border-b border-outline-variant/40' : ''
                 } ${notification.read ? 'opacity-60' : 'bg-surface-container-low/40'}`}

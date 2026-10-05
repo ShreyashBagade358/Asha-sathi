@@ -76,7 +76,7 @@ export default function PhcAdminDashboard() {
   const highRiskPregnancies = pregItems.filter((p) => p.hrpLevel === 'high').length
   const mediumRiskPregnancies = pregItems.filter((p) => p.hrpLevel === 'medium').length
   const normalPregnancies = pregItems.filter((p) => p.hrpLevel === undefined && !p.highRisk).length
-  const activePregnancies = kpiData?.activePregnancies ?? pregItems.filter((p) => p.status === 'active').length
+  const activePregnancies = kpiData?.activePregnancies ?? pregItems.filter((p) => p.status === 'ongoing').length
 
   const pendingReferrals = refItems.filter((r) => r.status === 'pending').length
   const urgentReferrals = refItems.filter((r) => r.status === 'pending' && (r.urgency === 'urgent' || r.urgency === 'emergency')).length

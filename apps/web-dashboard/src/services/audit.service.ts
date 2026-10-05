@@ -8,6 +8,15 @@ export interface AuditLogListParams {
   action?: string
   entityType?: string
   entityId?: string
+  status?: string
+  q?: string
+}
+
+export interface AuditLogSummary {
+  total: number
+  success: number
+  denied: number
+  error: number
 }
 
 const ACTION_MAP: Record<string, AuditLogEntry['action']> = {
@@ -40,14 +49,26 @@ function normalizeAction(action: string): AuditLogEntry['action'] {
 interface RawLog {
   id: string
   user_id: string
+  actor_name?: string
   action: string
   entity_type?: string
   entity_id?: string
   old_values?: unknown
   new_values?: unknown
+  changed_fields?: string[]
   ip_address?: string | null
   status?: string
+  error_message?: string | null
   created_at?: string
+}
+
+function describe(log: RawLog): string {
+  const resource = log.entity_type ?? ''
+  const changed = Array.isArray(log.changed_fields) ? log.changed_fields.join(', ') : ''
+  if (changed) return `${resource} updated — ${changed}`
+  if (log.error_message) return log.error_message
+  if (log.entity_id) return `${resource} · ${log.entity_id}`
+  return resource
 }
 
 function mapLog(r: RawLog): AuditLogEntry {
@@ -55,12 +76,12 @@ function mapLog(r: RawLog): AuditLogEntry {
     id: r.id,
     timestamp: r.created_at ?? '',
     actorId: r.user_id,
-    actorName: '',
+    actorName: r.actor_name ?? '',
     actorRole: 'admin',
     action: normalizeAction(r.action),
     resource: r.entity_type ?? '',
     resourceId: r.entity_id ?? undefined,
-    details: '',
+    details: describe(r),
     ip: r.ip_address ?? undefined,
     status: r.status === 'denied' ? 'denied' : r.status === 'error' ? 'error' : 'success',
   }
@@ -84,10 +105,17 @@ export const auditService = {
         action: params.action,
         entity_type: params.entityType,
         entity_id: params.entityId,
+        status: params.status,
+        q: params.q,
         page: params.page ?? 1,
         page_size: params.pageSize ?? 20,
       },
     })
     return mapPaginated({ ...data, items: data.items.map(mapLog) })
+  },
+
+  async getSummary(): Promise<AuditLogSummary> {
+    const { data } = await api.get<AuditLogSummary>('/audit/summary')
+    return data
   },
 }

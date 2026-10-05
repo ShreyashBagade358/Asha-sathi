@@ -63,10 +63,6 @@ export const authService = {
     }
   },
 
-  async refresh(refreshToken: string): Promise<TokenPair> {
-    const { data } = await api.post<BackendTokenPair>('/auth/token/refresh', { refreshToken })
-    return { accessToken: data.access_token, refreshToken: data.refresh_token }
-  },
 
   async getMe(): Promise<User> {
     const { data } = await api.get<BackendUser>('/auth/me')

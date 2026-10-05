@@ -39,6 +39,8 @@ export interface CreateBeneficiaryPayload {
   bloodGroup?: string
   isPregnant?: boolean
   isLactating?: boolean
+  risk?: string
+  notes?: string
 }
 
 interface RawBeneficiary {
@@ -57,6 +59,9 @@ interface RawBeneficiary {
   village?: string | null
   village_id?: string | null
   asha_id?: string | null
+  risk?: string | null
+  notes?: string | null
+  photo_url?: string | null
 }
 
 interface TimelineEvent {
@@ -79,6 +84,9 @@ function mapBeneficiary(r: RawBeneficiary): Beneficiary {
     maritalStatus:
       r.marital_status === 'unmarried' ? 'unmarried' : r.marital_status === 'widowed' ? 'widowed' : r.marital_status === 'divorced' ? 'divorced' : r.marital_status ? 'married' : undefined,
     isPregnant: r.is_pregnant ?? false,
+    risk: r.risk ?? undefined,
+    notes: r.notes ?? undefined,
+    photoUrl: r.photo_url ?? undefined,
     createdAt: r.created_at ?? '',
   }
 }
@@ -94,7 +102,7 @@ function mapTimelinePregnancy(id: string, r: Record<string, unknown>): Pregnancy
     edd: String(r.edd ?? ''),
     gravida: num('gravida'),
     para: num('parity'),
-    status: r.status === 'delivered' ? 'delivered' : r.status === 'aborted' ? 'aborted' : 'active',
+    status: r.status === 'delivered' ? 'delivered' : r.status === 'aborted' ? 'aborted' : r.status === 'ltf' ? 'ltf' : 'ongoing',
     highRisk: level !== 'low' || Object.keys(factors).length > 0,
     hrpLevel: level === 'high' ? 'high' : level === 'medium' ? 'medium' : undefined,
     complications: Array.isArray(r.complications) ? (r.complications as string[]) : Object.keys(factors),
@@ -114,9 +122,9 @@ function mapTimelineANC(id: string, r: Record<string, unknown>): ANCVisit {
     weightKg: r.weight_kg != null ? Number(r.weight_kg) : undefined,
     bpSystolic: r.bp_systolic != null ? Number(r.bp_systolic) : undefined,
     bpDiastolic: r.bp_diastolic != null ? Number(r.bp_diastolic) : undefined,
-    haemoglobin: r.haemoglobin != null ? Number(r.haemoglobin) : undefined,
-    fundalHeight: r.fundal_height != null ? Number(r.fundal_height) : undefined,
-    foetalHeartRate: r.foetal_heart_rate != null ? Number(r.foetal_heart_rate) : r.fetal_heart_rate != null ? Number(r.fetal_heart_rate) : undefined,
+    haemoglobin: r.hemoglobin != null ? Number(r.hemoglobin) : undefined,
+    fundalHeight: r.fundal_height_cm != null ? Number(r.fundal_height_cm) : undefined,
+    foetalHeartRate: r.fetal_heart_rate != null ? Number(r.fetal_heart_rate) : undefined,
     hrpFlag: !!r.hrp_flag,
     attendedBy: r.attended_by ? String(r.attended_by) : undefined,
     facility: r.facility_id ? String(r.facility_id) : undefined,
@@ -214,24 +222,26 @@ export const beneficiaryService = {
       blood_group: payload.bloodGroup,
       is_pregnant: payload.isPregnant ?? false,
       is_lactating: payload.isLactating ?? false,
+      village: payload.village || undefined,
+      risk: payload.risk || undefined,
+      notes: payload.notes?.trim() || undefined,
     })
     return mapBeneficiary(data)
   },
 
-  async updateBeneficiary(id: string, payload: Partial<CreateBeneficiaryPayload>): Promise<Beneficiary> {
-    const { data } = await api.put<RawBeneficiary>(`/beneficiaries/${id}`, {
-      full_name: payload.name,
-      date_of_birth: payload.dob,
-      gender: payload.gender,
-      phone: payload.phone,
-      marital_status: payload.maritalStatus,
-      is_pregnant: payload.isPregnant,
-    })
-    return mapBeneficiary(data)
-  },
 
   async deleteBeneficiary(id: string): Promise<void> {
     await api.delete(`/beneficiaries/${id}`)
+  },
+
+  /** `POST /beneficiaries/{id}/photo` — multipart, returns the public photo URL. */
+  async uploadPhoto(beneficiaryId: string, file: File): Promise<string> {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await api.post<{ photo_url: string }>(`/beneficiaries/${beneficiaryId}/photo`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.photo_url
   },
 
   exportCSV(rows: Beneficiary[], filename = 'beneficiaries.csv'): void {

@@ -240,7 +240,7 @@ export default function AnalyticsDashboardPhcAdmin() {
                     .sort((a, b) => b.performanceScore - a.performanceScore)
                     .slice(0, 5)
                     .map((w) => (
-                      <Link key={w.id} to={`/phc/ashas/${w.id}`} className="flex items-center gap-3 hover:bg-surface-container transition-colors rounded-lg p-1">
+                      <Link key={w.id} to={`/phc/ashas/${w.ashaId}`} className="flex items-center gap-3 hover:bg-surface-container transition-colors rounded-lg p-1">
                         <span className="size-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[11px] font-bold shrink-0">
                           {w.name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)}
                         </span>

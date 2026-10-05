@@ -42,7 +42,7 @@ export default function PatientDashboardAshaSathi() {
       <PageHeader
         title={t('asha.patientsTitle')}
         subtitle={t('asha.patientsSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaPatients') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaPatients') }]}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

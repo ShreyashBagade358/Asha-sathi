@@ -1,9 +1,30 @@
 import { api } from '@/lib/api'
-import type { Paginated } from '@/types'
 
-export interface NCDListParams {
-  page?: number
-  pageSize?: number
+export interface CreateScreeningPayload {
+  beneficiaryId: string
+  screeningDate: string
+  ageAbove30?: boolean
+  tobaccoUse?: boolean
+  alcoholUse?: boolean
+  physicalActivity?: boolean
+  waistCircumferenceCm?: number
+  familyHistoryDiabetes?: boolean
+  familyHistoryHypertension?: boolean
+  familyHistoryCancer?: boolean
+  knownDiabetes?: boolean
+  knownHypertension?: boolean
+  knownCancer?: boolean
+  bpSystolic?: number
+  bpDiastolic?: number
+  bloodSugarRandom?: number
+  cbacScore?: number
+  diabetesRisk?: string
+  hypertensionRisk?: string
+  cardiovascularRisk?: string
+  cancerRisk?: string
+  referralMade?: boolean
+  referralType?: string
+  referralFacilityId?: string
 }
 
 export interface NCDScreening {
@@ -15,22 +36,13 @@ export interface NCDScreening {
   hypertensionRisk?: string
   cardiovascularRisk?: string
   cancerRisk?: string
-  referralMade?: boolean
+  referralMade: boolean
 }
 
-export interface CreateNCDScreeningPayload {
-  beneficiaryId: string
-  screeningDate: string
-  cbacFields?: Record<string, unknown>
-  bp?: string
-  bloodSugar?: string
-  referralMade?: boolean
-}
-
-interface RawNCD {
+interface RawNCDScreening {
   id: string
   beneficiary_id: string
-  screening_date?: string | null
+  screening_date: string
   cbac_score?: number | null
   diabetes_risk?: string | null
   hypertension_risk?: string | null
@@ -39,11 +51,11 @@ interface RawNCD {
   referral_made?: boolean
 }
 
-function mapNCD(r: RawNCD): NCDScreening {
+function mapScreening(r: RawNCDScreening): NCDScreening {
   return {
     id: r.id,
     beneficiaryId: r.beneficiary_id,
-    screeningDate: r.screening_date ?? '',
+    screeningDate: r.screening_date,
     cbacScore: r.cbac_score ?? undefined,
     diabetesRisk: r.diabetes_risk ?? undefined,
     hypertensionRisk: r.hypertension_risk ?? undefined,
@@ -53,31 +65,34 @@ function mapNCD(r: RawNCD): NCDScreening {
   }
 }
 
-function mapPaginated<T>(raw: { items: T[]; total: number; page: number; page_size: number; total_pages: number }): Paginated<T> {
-  return {
-    items: raw.items,
-    total: raw.total,
-    page: raw.page,
-    pageSize: raw.page_size,
-    totalPages: raw.total_pages,
-  }
-}
-
 export const ncdService = {
-  async listNCDScreenings(params: NCDListParams = {}): Promise<Paginated<NCDScreening>> {
-    const { data } = await api.get<{ items: RawNCD[]; total: number; page: number; page_size: number; total_pages: number }>('/ncd', {
-      params: { page: params.page ?? 1, page_size: params.pageSize ?? 10 },
-    })
-    return mapPaginated({ ...data, items: data.items.map(mapNCD) })
-  },
-
-  async createNCDScreening(payload: CreateNCDScreeningPayload): Promise<NCDScreening> {
-    const { data } = await api.post<RawNCD>('/ncd', {
+  async createScreening(payload: CreateScreeningPayload): Promise<NCDScreening> {
+    const { data } = await api.post<RawNCDScreening>('/ncd/screenings', {
       beneficiary_id: payload.beneficiaryId,
       screening_date: payload.screeningDate,
-      ...payload.cbacFields,
+      age_above_30: payload.ageAbove30,
+      tobacco_use: payload.tobaccoUse,
+      alcohol_use: payload.alcoholUse,
+      physical_activity: payload.physicalActivity,
+      waist_circumference_cm: payload.waistCircumferenceCm,
+      family_history_diabetes: payload.familyHistoryDiabetes,
+      family_history_hypertension: payload.familyHistoryHypertension,
+      family_history_cancer: payload.familyHistoryCancer,
+      known_diabetes: payload.knownDiabetes,
+      known_hypertension: payload.knownHypertension,
+      known_cancer: payload.knownCancer,
+      bp_systolic: payload.bpSystolic,
+      bp_diastolic: payload.bpDiastolic,
+      blood_sugar_random: payload.bloodSugarRandom,
+      cbac_score: payload.cbacScore,
+      diabetes_risk: payload.diabetesRisk,
+      hypertension_risk: payload.hypertensionRisk,
+      cardiovascular_risk: payload.cardiovascularRisk,
+      cancer_risk: payload.cancerRisk,
       referral_made: payload.referralMade,
+      referral_type: payload.referralType,
+      referral_facility_id: payload.referralFacilityId,
     })
-    return mapNCD(data)
+    return mapScreening(data)
   },
 }

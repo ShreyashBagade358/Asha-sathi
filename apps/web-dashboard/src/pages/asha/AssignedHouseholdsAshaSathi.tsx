@@ -1,88 +1,95 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
-import { Icon, type IconName } from '@/components/common/Icons'
+import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { MOCK_HOUSEHOLDS, type Household } from '@/pages/asha/mockData'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { householdService } from '@/services/household.service'
 
-const statusConfig: Record<Household['status'], { label: string; chip: string; icon: IconName; accent: string }> = {
-  'visit-due': { label: 'asha.visitDue', chip: 'bg-error-container text-on-error-container', icon: 'alert', accent: 'bg-error' },
-  'follow-up': { label: 'asha.followUp', chip: 'bg-secondary-container text-on-secondary-container', icon: 'checkCircle', accent: 'bg-secondary' },
-  scheduled: { label: 'asha.scheduled', chip: 'bg-surface-container text-on-surface-variant', icon: 'calendar', accent: 'bg-outline' },
-}
+const PAGE_SIZE = 50
 
 export default function AssignedHouseholdsAshaSathi() {
   const { t } = useLocalization()
 
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['households', 'asha-assigned', 1],
+    queryFn: () => householdService.listHouseholds({ page: 1, pageSize: PAGE_SIZE }),
+  })
+
+  const households = data?.items ?? []
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-outline bg-outline-variant/40 px-4 py-2">
-        <span className="flex items-center gap-2 font-label-md text-label-md text-on-surface-variant">
-          <Icon name="box" size={16} />
-          {t('asha.offlineMode')}
-        </span>
-      </div>
-
       <PageHeader
         title={t('asha.assignedHouseholds')}
         subtitle={t('asha.householdsSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHouseholds') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaHouseholds') }]}
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {MOCK_HOUSEHOLDS.map((household) => {
-          const status = statusConfig[household.status]
-          return (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+      ) : households.length === 0 ? (
+        <EmptyState
+          icon="home"
+          title={t('asha.noHouseholds')}
+          description="Households you register will appear here, ready for a visit."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {households.map((household) => (
             <article
               key={household.id}
-              className={`relative flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-card ${
-                household.status === 'scheduled' ? 'opacity-75 grayscale-[50%] lg:col-span-2' : ''
-              }`}
+              className="relative flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-card"
             >
-              <span className={`absolute bottom-0 left-0 top-0 w-2 ${status.accent}`} />
+              <span className="absolute bottom-0 left-0 top-0 w-2 bg-primary" />
               <div className="flex flex-col gap-2 p-5 pl-8">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">{household.headName}</h3>
+                    <h3 className="font-headline-md text-headline-md font-semibold text-on-surface">
+                      {household.headName || household.householdId}
+                    </h3>
                     <p className="flex items-center gap-1 font-body-md text-body-md text-on-surface-variant">
-                      <Icon name="users" size={16} />
-                      {t('asha.familySize', { count: household.familySize })}
+                      <Icon name="mapPin" size={16} />
+                      {household.village || '—'}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 font-caption text-caption font-bold ${status.chip}`}>
-                    <Icon name={status.icon} size={14} />
-                    {t(status.label)}
-                  </span>
+                  {household.pregnantWomen > 0 ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tertiary-container px-3 py-1 font-caption text-caption font-bold text-on-tertiary-container">
+                      <Icon name="heart" size={14} />
+                      {household.pregnantWomen}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="mt-1 flex flex-col gap-0.5 font-body-md text-body-md text-on-surface-variant">
-                  <p>{t('asha.lastVisit', { days: household.lastVisitDays })}</p>
-                  {household.note ? <p>{t('asha.priorityNote', { note: household.note })}</p> : null}
-                  {household.nextVisit ? <p>{t('asha.nextVisit', { day: household.nextVisit })}</p> : null}
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 font-body-md text-body-md text-on-surface-variant">
+                  <span className="flex items-center gap-1">
+                    <Icon name="users" size={16} />
+                    {t('asha.familySize', { count: household.memberCount })}
+                  </span>
+                  {household.childrenUnder5 > 0 ? (
+                    <span className="flex items-center gap-1">
+                      <Icon name="users" size={16} />
+                      {t('asha.childrenUnder5', { count: household.childrenUnder5 })}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <div className="p-5 pt-0 pl-8">
-                {household.status === 'scheduled' ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-surface-container font-label-md text-label-md font-semibold text-on-surface-variant"
-                  >
-                    <Icon name="calendar" size={18} />
-                    {t('asha.planned')}
-                  </button>
-                ) : (
-                  <Link
-                    to={`/asha/households/${household.id}/visit`}
-                    className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
-                  >
-                    <Icon name="activity" size={18} />
-                    {t('asha.startVisit')}
-                  </Link>
-                )}
+                <Link
+                  to={`/asha/households/${household.id}/visit`}
+                  className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
+                >
+                  <Icon name="activity" size={18} />
+                  {t('asha.startVisit')}
+                </Link>
               </div>
             </article>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       <button
         type="button"

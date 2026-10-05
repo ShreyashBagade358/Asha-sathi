@@ -1,35 +1,127 @@
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
-export default function RiskAnalysisPhcAdmin() {
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { pregnancyService } from '@/services/pregnancy.service'
+import type { Pregnancy } from '@/types'
+
+const PAGE_SIZE = 50
+
+type RiskFilter = 'all' | 'high' | 'medium' | 'low'
+
+const RISK_STYLE: Record<'high' | 'medium' | 'low', string> = {
+  high: 'bg-error-container text-on-error-container',
+  medium: 'bg-tertiary-container text-on-tertiary-container',
+  low: 'bg-secondary-container text-on-secondary-container',
+}
+
+function riskOf(p: Pregnancy): 'high' | 'medium' | 'low' {
+  if (p.hrpLevel) return p.hrpLevel
+  return p.highRisk ? 'high' : 'low'
+}
+
+export default function RiskAnalysis() {
+  const [filter, setFilter] = useState<RiskFilter>('all')
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['pregnancies', 'risk', 1],
+    queryFn: () => pregnancyService.listPregnancies({ page: 1, pageSize: PAGE_SIZE }),
+  })
+
+  const all = data?.items ?? []
+  const pregnancies = filter === 'all' ? all : all.filter((p) => riskOf(p) === filter)
+
+  const counts = {
+    all: all.length,
+    high: all.filter((p) => riskOf(p) === 'high').length,
+    medium: all.filter((p) => riskOf(p) === 'medium').length,
+    low: all.filter((p) => riskOf(p) === 'low').length,
+  }
+
+  const tabs: { key: RiskFilter; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: counts.all },
+    { key: 'high', label: 'High', count: counts.high },
+    { key: 'medium', label: 'Medium', count: counts.medium },
+    { key: 'low', label: 'Low', count: counts.low },
+  ]
+
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-<PhcSidebar />
-<main className="flex-1 md:ml-64 flex flex-col min-h-screen overflow-y-auto pb-24 md:pb-0">
-<header className="w-full top-0 sticky bg-surface-container-lowest shadow-sm z-40 flex justify-between items-center px-lg py-sm h-16 border-b border-outline-variant/20 hidden md:flex"><div className="flex items-center gap-md">
-<div className="relative hidden lg:block"><span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span><input className="pl-xl pr-md py-sm rounded-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary text-body-md font-body-md w-64 h-10" placeholder="Search beneficiaries..." type="text" /></div></div><div className="flex items-center gap-md text-primary"><button aria-label="Sync" className="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center transition-colors text-on-surface-variant"><span className="material-symbols-outlined" data-icon="sync">sync</span></button><button aria-label="Notifications" className="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center transition-colors text-on-surface-variant relative"><span className="material-symbols-outlined" data-icon="notifications">notifications</span><span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span></button><button aria-label="Help" className="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center transition-colors text-on-surface-variant"><span className="material-symbols-outlined" data-icon="help">help</span></button><div className="w-8 h-8 rounded-full bg-primary-container text-on-primary overflow-hidden ml-sm"><img alt="Administrator Profile" className="w-full h-full object-cover" data-alt="A small, professional headshot of an administrative healthcare worker. The lighting is bright and clean, characteristic of a modern office environment. The color palette is neutral with soft white tones, reflecting a high-quality, reliable medical administrative profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCQ3kSxFqeCuvvrMJR-WJqXx-J2sOPPX_f5nRsgSJBEKLUn8PocFeLa8TJ4nsiYTLja213S63vviYVx5MGL5lLbOAtNI3x4m5nEmxLa5UMG2DlPvldqHbq9tBiZq-Rdx7tsZgyTysHqme--qxwSif-aITKvzg1mWYg_LDVOVNUT7fIBCKIXy59bvybVeG-0SoNbRTAG46B2guhtQRaD5EurNGBzjs9ruiHBb4FlQUC8AzWBvq4jq78Bw" /></div></div></header>
-<div className="flex-1 p-lg bg-surface">
-<div className="mb-lg"><div className="flex items-center gap-xs text-on-surface-variant font-caption text-caption mb-sm"><span>Beneficiaries</span><span className="material-symbols-outlined text-[16px]">chevron_right</span><span className="text-primary font-semibold">Sunita Devi</span></div><div className="flex items-center justify-between"><div><h1 className="font-display-lg text-display-lg text-on-surface flex items-center gap-md">
-                            Sunita Devi
-                            <span className="inline-flex items-center gap-xs px-sm py-xs rounded-full bg-error-container text-on-error-container font-label-md text-label-md border border-error/20"><span className="material-symbols-outlined text-[18px]">warning</span>
-                                Risk Indicator: High
-                            </span></h1><p className="font-body-md text-body-md text-on-surface-variant mt-xs">ID: PHC-9942-B • Age 36 • 32 Weeks Pregnant</p></div><div className="flex gap-md"><button className="px-md py-sm border border-primary text-primary rounded-lg font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors min-h-[48px]">
-                            View Full Record
-                        </button><button className="px-md py-sm bg-error text-on-error rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity shadow-sm flex items-center gap-sm min-h-[48px]"><span className="material-symbols-outlined icon-fill">ambulance</span>
-                            Initiate Referral
-                        </button></div></div></div>
-<div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
-<div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border-l-4 border-l-error border-y border-r border-outline-variant/30 shadow-[0px_2px_4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col"><div className="p-md border-b border-outline-variant/20 bg-error-container/30 flex items-center justify-between"><h2 className="font-headline-md text-headline-md text-on-error-container flex items-center gap-sm"><span className="material-symbols-outlined icon-fill">analytics</span>
-                            AI-Assisted Assessment
-                        </h2><span className="font-caption text-caption text-on-surface-variant flex items-center gap-xs"><span className="material-symbols-outlined text-[14px]">update</span>
-                            Updated 10 mins ago
-                        </span></div><div className="p-lg flex-1 flex flex-col gap-lg">
-<div><h3 className="font-label-md text-label-md text-on-surface-variant mb-md uppercase tracking-wider">Important Factors</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-md"><div className="p-md rounded-lg bg-error-container/20 border border-error/10 flex flex-col items-start"><span className="material-symbols-outlined text-error mb-sm">favorite</span><span className="font-body-md text-body-md text-on-surface-variant mb-xs">Blood Pressure</span><span className="font-headline-lg text-headline-lg text-error font-bold">160/100</span></div><div className="p-md rounded-lg bg-surface-container border border-outline-variant/30 flex flex-col items-start"><span className="material-symbols-outlined text-primary mb-sm">history</span><span className="font-body-md text-body-md text-on-surface-variant mb-xs">History</span><span className="font-headline-md text-headline-md text-on-surface">Prev. Complications</span></div><div className="p-md rounded-lg bg-surface-container border border-outline-variant/30 flex flex-col items-start"><span className="material-symbols-outlined text-primary mb-sm">calendar_month</span><span className="font-body-md text-body-md text-on-surface-variant mb-xs">Age Factor</span><span className="font-headline-md text-headline-md text-on-surface">36 Years</span></div></div></div>
-<div className="mt-auto p-md rounded-lg bg-surface-dim border border-outline-variant/50"><h3 className="font-label-md text-label-md text-on-surface-variant mb-sm">Recommended Action</h3><div className="flex items-start gap-md"><span className="material-symbols-outlined text-error icon-fill mt-xs">gavel</span><div><p className="font-headline-md text-headline-md text-on-surface font-bold">Immediate Referral to District Hospital</p><p className="font-body-md text-body-md text-on-surface-variant mt-xs">High risk of pre-eclampsia detected. ASHA worker on ground has been notified to prepare for transport.</p></div></div></div></div></div>
-<div className="lg:col-span-4 flex flex-col gap-lg">
-<div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-[0px_2px_4px_rgba(0,0,0,0.05)] p-lg"><div className="flex items-center gap-sm mb-md"><span className="material-symbols-outlined text-error icon-fill">assignment_late</span><h2 className="font-headline-md text-headline-md text-on-surface">Follow-up Priority</h2></div><div className="w-full py-md text-center rounded-lg bg-error text-on-error font-headline-lg text-headline-lg uppercase tracking-wide mb-md">
-                            Critical
-                        </div><ul className="space-y-sm"><li className="flex items-center justify-between border-b border-outline-variant/20 pb-sm"><span className="font-body-md text-body-md text-on-surface-variant">Assigned Worker</span><span className="font-label-md text-label-md text-on-surface">Kavita (ASHA)</span></li><li className="flex items-center justify-between pt-xs"><span className="font-body-md text-body-md text-on-surface-variant">Last Contact</span><span className="font-label-md text-label-md text-on-surface">Today, 09:30 AM</span></li></ul></div>
-<div className="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-[0px_2px_4px_rgba(0,0,0,0.05)] p-lg relative overflow-hidden group">
-<div className="absolute -right-10 -bottom-10 opacity-5 group-hover:opacity-10 transition-opacity duration-500"><span className="material-symbols-outlined text-[180px]">monitor_heart</span></div><h2 className="font-headline-md text-headline-md text-on-surface mb-md">Vitals Snapshot</h2><div className="space-y-md relative z-10"><div className="flex justify-between items-center"><span className="font-body-md text-body-md text-on-surface-variant">Weight</span><span className="font-label-md text-label-md text-on-surface">68 kg <span className="text-error ml-xs material-symbols-outlined text-[16px] align-middle">trending_up</span></span></div><div className="flex justify-between items-center"><span className="font-body-md text-body-md text-on-surface-variant">Hemoglobin</span><span className="font-label-md text-label-md text-on-surface">10.5 g/dL</span></div><div className="flex justify-between items-center"><span className="font-body-md text-body-md text-on-surface-variant">Fundal Height</span><span className="font-label-md text-label-md text-on-surface">30 cm</span></div></div></div></div></div></div></main>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Risk Analysis" subtitle="Pregnancies flagged as high risk pregnancy by the backend." />
+
+      <div className="flex flex-wrap gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setFilter(tab.key)}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-label-md font-semibold transition-colors ${
+              filter === tab.key
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+            }`}
+          >
+            {tab.label}
+            <span
+              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+                filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
+              }`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+      ) : pregnancies.length === 0 ? (
+        <EmptyState
+          icon="monitorHeart"
+          title="No pregnancies to analyse"
+          description="Risk levels appear here once pregnancies are registered."
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest shadow-card">
+          <table className="w-full min-w-[640px] text-left">
+            <thead>
+              <tr className="border-b border-outline-variant">
+                <th className="px-5 py-3 text-label-md uppercase tracking-wide text-on-surface-variant">Pregnancy</th>
+                <th className="px-5 py-3 text-label-md uppercase tracking-wide text-on-surface-variant">EDD</th>
+                <th className="px-5 py-3 text-label-md uppercase tracking-wide text-on-surface-variant">Gravida / Para</th>
+                <th className="px-5 py-3 text-label-md uppercase tracking-wide text-on-surface-variant">Complications</th>
+                <th className="px-5 py-3 text-label-md uppercase tracking-wide text-on-surface-variant">Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pregnancies.map((p) => {
+                const risk = riskOf(p)
+                return (
+                  <tr key={p.id} className="border-b border-outline-variant/50 last:border-0">
+                    <td className="px-5 py-3 text-body-md font-medium text-on-surface">{p.id.slice(0, 8)}</td>
+                    <td className="px-5 py-3 text-body-md text-on-surface-variant">{p.edd}</td>
+                    <td className="px-5 py-3 text-center text-body-md text-on-surface">
+                      {p.gravida} / {p.para}
+                    </td>
+                    <td className="px-5 py-3 text-body-md text-on-surface-variant">
+                      {p.complications.length > 0 ? p.complications.join(', ') : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-caption font-semibold ${RISK_STYLE[risk]}`}>
+                        {risk}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

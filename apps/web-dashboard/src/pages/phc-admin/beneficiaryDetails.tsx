@@ -122,10 +122,14 @@ export default function BeneficiariesPhcAdmin2() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center text-center">
               <div className="relative mb-4">
-                <span className={`flex h-24 w-24 items-center justify-center rounded-full text-headline-lg font-headline-lg ${
+                <span className={`flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-headline-lg font-headline-lg ${
                   rb.label === 'High Risk' ? 'bg-error-container text-on-error-container' : patient.isPregnant ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-primary-container text-on-primary-container'
                 }`}>
-                  {initials(patient.name)}
+                  {patient.photoUrl ? (
+                    <img src={patient.photoUrl} alt={patient.name} className="h-full w-full object-cover" />
+                  ) : (
+                    initials(patient.name)
+                  )}
                 </span>
                 {rb.label === 'High Risk' && (
                   <span className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-error text-on-error">

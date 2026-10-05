@@ -23,6 +23,15 @@ export interface CreateImmunizationPayload {
   givenDate?: string
   dueDate?: string
   status?: 'given' | 'due'
+  batchNumber?: string
+}
+
+export interface UpdateImmunizationPayload {
+  status?: 'due' | 'given' | 'overdue' | 'skipped'
+  givenDate?: string
+  givenBy?: string
+  batchNumber?: string
+  facilityId?: string
 }
 
 export interface CreateGrowthRecordPayload {
@@ -172,6 +181,18 @@ export const childService = {
       given_date: payload.givenDate,
       due_date: payload.dueDate,
       status: payload.status,
+      batch_number: payload.batchNumber || undefined,
+    })
+    return mapImmunization(data)
+  },
+
+  async updateImmunization(immunizationId: string, payload: UpdateImmunizationPayload): Promise<Immunization> {
+    const { data } = await api.put<RawImmunization>(`/immunizations/${immunizationId}`, {
+      status: payload.status,
+      given_date: payload.givenDate,
+      given_by: payload.givenBy,
+      batch_number: payload.batchNumber,
+      facility_id: payload.facilityId,
     })
     return mapImmunization(data)
   },

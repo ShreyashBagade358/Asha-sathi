@@ -17,7 +17,27 @@ const mapEntry = (r: { id: string; code?: string; name: string }): GeoEntry => (
   name: r.name,
 })
 
+export interface AppConfigEntry {
+  key: string
+  value: unknown
+  scope: string
+  isPublic: boolean
+  version: number
+}
+
 export const configService = {
+  async getFullAppConfig(): Promise<AppConfigEntry[]> {
+    const { data } = await api.get<{ items: Array<{ config_key: string; config_value: unknown; scope: string; is_public: boolean; version: number }> }>('/config/app/full')
+    return data.items.map((i) => ({ key: i.config_key, value: i.config_value, scope: i.scope, isPublic: i.is_public, version: i.version }))
+  },
+
+  async putAppConfig(configs: Array<{ key: string; value: unknown; description?: string; isPublic?: boolean }>): Promise<{ updated: number }> {
+    const { data } = await api.put<{ updated: number }>('/config/app', {
+      configs: configs.map((c) => ({ config_key: c.key, config_value: c.value, description: c.description, is_public: c.isPublic })),
+    })
+    return data
+  },
+
   async getStates(): Promise<GeoEntry[]> {
     const { data } = await api.get<Array<{ id: string; code: string; name: string }>>('/config/states')
     return data.map(mapEntry)

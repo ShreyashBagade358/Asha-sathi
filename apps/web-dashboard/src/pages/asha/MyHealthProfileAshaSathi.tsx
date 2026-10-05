@@ -3,7 +3,6 @@ import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { useASHAStore } from '@/stores/asha.store'
 import { Icon } from '@/components/common/Icons'
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import type { RiskLevel } from '@/pages/asha/mockData'
 
 const riskStyles: Record<RiskLevel, string> = {
@@ -58,9 +57,6 @@ export default function MyHealthProfileAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <Breadcrumbs
-        items={[{ label: t('nav.ashaPatients'), to: '/asha/patients' }, { label: t('nav.healthProfile') }]}
-      />
 
       <section className="relative flex flex-col gap-4 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-card md:flex-row md:items-center">
         <span className={`absolute bottom-0 left-0 top-0 w-2 ${riskStyles[patient.risk].split(' ')[0]}`} />

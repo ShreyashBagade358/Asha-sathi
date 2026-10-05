@@ -1,46 +1,63 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ASHAButton, ASHACard, StatusChip, type StatusChipVariant } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
-import { useUIStore } from '@/stores/ui.store'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Icon } from '@/components/common/Icons'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { systemService, type SystemStatus } from '@/services/system.service'
 
-interface ServiceStatus {
+type Health = 'healthy' | 'degraded' | 'down'
+
+interface ServiceRow {
   id: string
   name: string
   version: string
-  health: 'healthy' | 'degraded' | 'down'
+  health: Health
   uptime: string
-  lastDeployed: string
-  replicas: number
+  detail: string
 }
 
-const SERVICES: ServiceStatus[] = [
-  { id: 's1', name: 'asha-sathi-api', version: '1.4.2', health: 'healthy', uptime: '12d 04h', lastDeployed: '2 days ago', replicas: 3 },
-  { id: 's2', name: 'asha-sathi-worker', version: '1.4.2', health: 'degraded', uptime: '12d 04h', lastDeployed: '2 days ago', replicas: 2 },
-  { id: 's3', name: 'asha-sathi-web', version: '1.4.2', health: 'healthy', uptime: '5d 11h', lastDeployed: '5 days ago', replicas: 2 },
-  { id: 's4', name: 'asha-sathi-ml', version: '0.9.0', health: 'down', uptime: '—', lastDeployed: '18 days ago', replicas: 0 },
-  { id: 's5', name: 'postgres-primary', version: '15.7', health: 'healthy', uptime: '40d 02h', lastDeployed: '40 days ago', replicas: 1 },
-  { id: 's6', name: 'supabase-realtime', version: '2.45', health: 'healthy', uptime: '40d 02h', lastDeployed: '40 days ago', replicas: 2 },
-]
-
-const HEALTH_STATUS: Record<ServiceStatus['health'], StatusChipVariant> = {
+const HEALTH_STATUS: Record<Health, StatusChipVariant> = {
   healthy: 'success',
   degraded: 'warning',
   down: 'danger',
 }
 
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400)
+  const h = Math.floor((seconds % 86400) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (d > 0) return `${d}d ${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
+}
+
+function buildRows(status: SystemStatus): ServiceRow[] {
+  const uptime = formatUptime(status.api.uptime_seconds)
+  const apiHealth: Health = status.api.status === 'ok' ? 'healthy' : 'down'
+  const dbHealth: Health = status.database.status === 'ok' ? 'healthy' : 'down'
+  const modelsHealth: Health =
+    status.models.total === 0 ? 'down' : status.models.available === status.models.total ? 'healthy' : status.models.available > 0 ? 'degraded' : 'down'
+  return [
+    { id: 'api', name: 'asha-sathi-api', version: status.api.version, health: apiHealth, uptime, detail: `started ${new Date(status.api.started_at).toLocaleDateString()}` },
+    { id: 'db', name: 'postgresql', version: '—', health: dbHealth, uptime: '—', detail: status.database.latency_ms != null ? `${status.database.latency_ms} ms` : '—' },
+    { id: 'ml', name: 'asha-sathi-ml', version: '—', health: modelsHealth, uptime: '—', detail: `${status.models.available}/${status.models.total} models` },
+  ]
+}
+
 export default function DeploymentPage() {
   const { t } = useLocalization()
-  const { addToast } = useUIStore()
-  const [services, setServices] = useState<ServiceStatus[]>(SERVICES)
 
-  const healthyCount = useMemo(() => services.filter((s) => s.health === 'healthy').length, [services])
+  const statusQuery = useQuery({
+    queryKey: ['system-status'],
+    queryFn: () => systemService.getStatus(),
+    refetchInterval: 30_000,
+  })
 
-  const restart = (id: string) => {
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, health: 'healthy' as const, uptime: '0m' } : s)))
-    addToast('success', `${id} ${t('super.restartService')}`)
-  }
+  const rows = useMemo(() => (statusQuery.data ? buildRows(statusQuery.data) : []), [statusQuery.data])
+  const healthyCount = useMemo(() => rows.filter((s) => s.health === 'healthy').length, [rows])
+  const counts = statusQuery.data?.counts
 
   return (
     <div className="space-y-6">
@@ -49,49 +66,71 @@ export default function DeploymentPage() {
         subtitle={t('super.deploymentSubtitle')}
         breadcrumbs={[{ label: t('nav.dashboard'), to: '/super/users' }, { label: t('nav.deployment') }]}
         actions={
-          <ASHAButton variant="outline" fullWidth={false} icon={<Icon name="refresh" size={16} />} onClick={() => addToast('success', t('common.syncNow'))} label={t('common.syncNow')} />
+          <ASHAButton
+            variant="outline"
+            fullWidth={false}
+            icon={<Icon name="refresh" size={16} />}
+            onClick={() => statusQuery.refetch()}
+            label={t('common.syncNow')}
+          />
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 tablet:grid-cols-3">
-        <StatTile label={t('super.health')} value={`${healthyCount}/${services.length}`} tone={healthyCount === services.length ? 'success' : 'warning'} />
-        <StatTile label={t('super.version')} value="1.4.2" tone="info" />
-        <StatTile label={t('super.lastDeployed')} value="2 days ago" tone="neutral" />
-      </div>
+      {statusQuery.isPending ? (
+        <ASHACard title={t('nav.deployment')}>
+          <p className="text-body-md text-on-surface-variant">{t('common.loading')}</p>
+        </ASHACard>
+      ) : statusQuery.isError ? (
+        <ASHACard title={t('nav.deployment')}>
+          <p className="text-body-md text-error">{getErrorMessage(statusQuery.error)}</p>
+        </ASHACard>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 tablet:grid-cols-3">
+            <StatTile label={t('super.health')} value={`${healthyCount}/${rows.length}`} tone={healthyCount === rows.length ? 'success' : 'warning'} />
+            <StatTile label={t('super.version')} value={statusQuery.data.api.version} tone="info" />
+            <StatTile label={t('super.uptime')} value={formatUptime(statusQuery.data.api.uptime_seconds)} tone="neutral" />
+          </div>
 
-      <ASHACard title={t('nav.deployment')}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="bg-surface-container-low">
-                {[t('super.serviceName'), t('super.version'), t('super.health'), t('super.uptime'), t('super.lastDeployed'), t('super.replicas'), t('common.actions')].map((h, i) => (
-                  <th key={h + i} className={`px-4 py-3 text-label-md uppercase tracking-wide text-on-surface-variant ${i > 0 ? 'text-right' : 'text-left'}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {services.map((s) => (
-                <tr key={s.id} className="hover:bg-surface-container-low">
-                  <td className="px-4 py-3">
-                    <span className="font-mono text-body-md font-medium text-on-surface">{s.name}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-label-md">{s.version}</td>
-                  <td className="px-4 py-3 text-right"><StatusChip status={HEALTH_STATUS[s.health]} label={s.health} /></td>
-                  <td className="px-4 py-3 text-right text-label-md">{s.uptime}</td>
-                  <td className="px-4 py-3 text-right text-label-md">{s.lastDeployed}</td>
-                  <td className="px-4 py-3 text-right text-label-md">{s.replicas}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <ASHAButton variant="outline" fullWidth={false} icon={<Icon name="refresh" size={15} />} onClick={() => restart(s.id)} label={t('super.restartService')} />
-                      <ASHAButton variant="outline" fullWidth={false} icon={<Icon name="fileText" size={15} />} onClick={() => addToast('info', `${s.name} logs`)} label={t('super.viewLogs')} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </ASHACard>
+          <ASHACard title={t('nav.deployment')}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-surface-container-low">
+                    {[t('super.serviceName'), t('super.version'), t('super.health'), t('super.uptime'), t('common.details')].map((h, i) => (
+                      <th key={h + i} className={`px-4 py-3 text-label-md uppercase tracking-wide text-on-surface-variant ${i > 0 ? 'text-right' : 'text-left'}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
+                  {rows.map((s) => (
+                    <tr key={s.id} className="hover:bg-surface-container-low">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-body-md font-medium text-on-surface">{s.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-label-md">{s.version}</td>
+                      <td className="px-4 py-3 text-right"><StatusChip status={HEALTH_STATUS[s.health]} label={t(`super.${s.health}`)} /></td>
+                      <td className="px-4 py-3 text-right text-label-md">{s.uptime}</td>
+                      <td className="px-4 py-3 text-right text-label-md">{s.detail}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ASHACard>
+
+          {counts ? (
+            <ASHACard title={t('nav.deployment')}>
+              <div className="grid grid-cols-2 gap-4 tablet:grid-cols-4">
+                <CountTile label={t('super.userCount')} value={counts.users} />
+                <CountTile label={t('kpis.ashas')} value={counts.asha_workers} />
+                <CountTile label={t('kpis.beneficiaries')} value={counts.beneficiaries} />
+                <CountTile label={t('kpis.pregnancies')} value={counts.pregnancies} />
+              </div>
+            </ASHACard>
+          ) : null}
+        </>
+      )}
     </div>
   )
 }
@@ -102,5 +141,14 @@ function StatTile({ label, value, tone }: { label: string; value: string; tone: 
     <ASHACard title={label}>
       <p className={`text-[28px] font-bold ${color}`}>{value}</p>
     </ASHACard>
+  )
+}
+
+function CountTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-outline-variant px-3 py-2.5">
+      <p className="text-label-md text-on-surface-variant">{label}</p>
+      <p className="text-[22px] font-bold text-on-surface">{value}</p>
+    </div>
   )
 }

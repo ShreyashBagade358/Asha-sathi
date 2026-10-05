@@ -1,7 +1,5 @@
 export type Role = 'asha' | 'admin' | 'patient'
 
-export type OrgLevel = 'state' | 'district' | 'block' | 'phc' | 'village'
-
 export interface User {
   id: string
   role: Role
@@ -43,12 +41,15 @@ export interface Beneficiary {
   bpl?: boolean
   isPregnant?: boolean
   hasChild?: boolean
+  risk?: string
+  notes?: string
+  photoUrl?: string
   createdBy?: string
   createdAt: string
   updatedAt?: string
 }
 
-export type PregnancyStatus = 'active' | 'delivered' | 'aborted' | 'ltf'
+export type PregnancyStatus = 'ongoing' | 'delivered' | 'aborted' | 'ltf'
 
 export interface Pregnancy {
   id: string
@@ -153,6 +154,10 @@ export interface Household {
   eligibleWomen: number
   childrenUnder5: number
   pregnantWomen: number
+  address?: string
+  familySize?: number
+  contactPhone?: string
+  notes?: string
   lat?: number
   long?: number
   lastVisitedAt?: string
@@ -187,19 +192,6 @@ export interface Notification {
 
 export type IncentiveStatus = 'pending' | 'approved' | 'rejected' | 'paid'
 
-export interface IncentiveClaim {
-  id: string
-  ashaId: string
-  serviceType: string
-  serviceDate: string
-  beneficiaryId: string
-  amount: number
-  status: IncentiveStatus
-  claimedAt: string
-  approvedBy?: string
-  approvedAt?: string
-}
-
 export interface DashboardKPIs {
   period: string
   totalPregnancies: number
@@ -231,21 +223,7 @@ export interface PHCComparisonRow {
   values: Record<string, number>
 }
 
-export type AlertSeverity = 'critical' | 'high' | 'medium' | 'low'
 export type AlertStatus = 'open' | 'acknowledged' | 'resolved'
-
-export type AlertType = 'hrp' | 'stockout' | 'sync' | 'outbreak'
-
-export interface AlertItem {
-  id: string
-  type: AlertType
-  severity: AlertSeverity
-  title: string
-  message: string
-  location?: string
-  createdAt: string
-  status: AlertStatus
-}
 
 export interface HRPAlert {
   id: string

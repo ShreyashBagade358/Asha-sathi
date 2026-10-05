@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
-import { Icon } from '@/components/common/Icons'
+import { Icon, type IconName } from '@/components/common/Icons'
+import { beneficiaryService } from '@/services/beneficiary.service'
+import { householdService } from '@/services/household.service'
 
 interface SearchEntry {
   id: string
@@ -10,28 +13,23 @@ interface SearchEntry {
   to: string
 }
 
-const SEARCH_DATA: { patients: SearchEntry[]; households: SearchEntry[]; villages: SearchEntry[] } = {
-  patients: [
-    { id: 'p1', name: 'Sita Devi', meta: 'BHF-2023-8942 • High Risk', to: '/asha/patients/1' },
-    { id: 'p2', name: 'Ramesh Kumar', meta: 'BHF-2023-8890', to: '/asha/patients/2' },
-    { id: 'p3', name: 'Anjali Devi', meta: 'BHF-2023-8876 • 3rd Trimester', to: '/asha/patients/3' },
-    { id: 'p4', name: 'Sunita Patel', meta: 'BHF-2023-8841', to: '/asha/patients/4' },
-  ],
-  households: [
-    { id: 'h1', name: 'HH-2023-8942', meta: 'Ramesh Kumar • Ward 3', to: '/asha/households' },
-    { id: 'h2', name: 'HH-2023-8931', meta: 'Sunita Devi • Ward 1', to: '/asha/households' },
-  ],
-  villages: [
-    { id: 'v1', name: 'Rampur', meta: 'Ward 1', to: '/asha/households' },
-    { id: 'v2', name: 'Sitapur', meta: 'Ward 2', to: '/asha/households' },
-    { id: 'v3', name: 'Lakshmanpur', meta: 'Ward 3', to: '/asha/households' },
-  ],
+const DEBOUNCE_MS = 300
+const PAGE_SIZE = 5
+
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(id)
+  }, [value, delay])
+  return debounced
 }
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useLocalization()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const debounced = useDebounced(query.trim(), DEBOUNCE_MS)
 
   useEffect(() => {
     if (open) setQuery('')
@@ -46,21 +44,37 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return null
-    const matches = (entries: SearchEntry[]) =>
-      entries.filter(
-        (e) => e.name.toLowerCase().includes(q) || e.meta.toLowerCase().includes(q),
-      )
-    return {
-      patients: matches(SEARCH_DATA.patients),
-      households: matches(SEARCH_DATA.households),
-      villages: matches(SEARCH_DATA.villages),
-    }
-  }, [query])
+  const enabled = open && debounced.length > 0
 
-  const total = results ? results.patients.length + results.households.length + results.villages.length : 0
+  const patients = useQuery({
+    queryKey: ['search', 'beneficiaries', debounced],
+    queryFn: () => beneficiaryService.listBeneficiaries({ search: debounced, page: 1, pageSize: PAGE_SIZE }),
+    enabled,
+  })
+
+  const households = useQuery({
+    queryKey: ['search', 'households', debounced],
+    queryFn: () => householdService.listHouseholds({ search: debounced, page: 1, pageSize: PAGE_SIZE }),
+    enabled,
+  })
+
+  const patientEntries: SearchEntry[] = (patients.data?.items ?? []).map((b) => ({
+    id: b.id,
+    name: b.name,
+    meta: [b.village, b.isPregnant ? 'Pregnant' : null, b.gender].filter(Boolean).join(' • '),
+    to: `/asha/patients/${b.id}`,
+  }))
+
+  const householdEntries: SearchEntry[] = (households.data?.items ?? []).map((h) => ({
+    id: h.id,
+    name: h.headName || h.householdId,
+    meta: [h.householdId, h.village].filter(Boolean).join(' • '),
+    to: `/asha/households/${h.id}/visit`,
+  }))
+
+  const isSearching = patients.isFetching || households.isFetching
+  const total = patientEntries.length + householdEntries.length
+  const showResults = debounced.length > 0
 
   const go = (to: string) => {
     onClose()
@@ -95,9 +109,13 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div className="max-h-80 overflow-y-auto p-2">
-          {!results ? (
+          {!showResults ? (
             <p className="px-3 py-6 text-center font-body-md text-body-md text-on-surface-variant">
               {t('nav.searchHint')}
+            </p>
+          ) : isSearching && total === 0 ? (
+            <p className="px-3 py-6 text-center font-body-md text-body-md text-on-surface-variant">
+              {t('asha.syncing')}
             </p>
           ) : total === 0 ? (
             <p className="px-3 py-6 text-center font-body-md text-body-md text-on-surface-variant">
@@ -106,9 +124,8 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
           ) : (
             <div className="flex flex-col gap-2">
               {[
-                { key: 'patients', entries: results.patients, title: t('nav.searchPatients'), icon: 'users' as const },
-                { key: 'households', entries: results.households, title: t('nav.searchHouseholds'), icon: 'box' as const },
-                { key: 'villages', entries: results.villages, title: t('nav.searchVillages'), icon: 'mapPin' as const },
+                { key: 'patients', entries: patientEntries, title: t('nav.searchPatients'), icon: 'users' as IconName },
+                { key: 'households', entries: householdEntries, title: t('nav.searchHouseholds'), icon: 'box' as IconName },
               ]
                 .filter((group) => group.entries.length > 0)
                 .map((group) => (

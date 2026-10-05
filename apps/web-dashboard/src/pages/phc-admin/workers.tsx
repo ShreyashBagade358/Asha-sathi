@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { ashaService, type ASHAStatus } from '@/services/asha.service'
+import { configService } from '@/services/config.service'
+import { useAuth } from '@/hooks/useAuth'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -52,6 +55,14 @@ export default function AshaWorkerDirectoryPhcAdmin() {
   const [search, setSearch] = useState('')
   const [village, setVillage] = useState('')
   const [status, setStatus] = useState<'all' | ASHAStatus>('all')
+
+  const { user } = useAuth()
+  const phcId = user?.phcId
+  const villagesQuery = useQuery({
+    queryKey: ['villages', phcId],
+    queryFn: () => configService.getVillages(phcId!),
+    enabled: Boolean(phcId),
+  })
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['ashas', page, search, village, status],
@@ -175,13 +186,16 @@ export default function AshaWorkerDirectoryPhcAdmin() {
                     onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                   />
                 </div>
-                <select
-                  className="h-9 px-3 bg-surface-container rounded-lg border-none text-body-md text-on-surface focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                <SearchableSelect
+                  compact
+                  options={(villagesQuery.data ?? []).map((v) => ({ id: v.id, name: v.name }))}
                   value={village}
-                  onChange={(e) => { setVillage(e.target.value); setPage(1) }}
-                >
-                  <option value="">All Villages</option>
-                </select>
+                  onChange={(id) => { setVillage(id); setPage(1) }}
+                  placeholder="All Villages"
+                  loading={villagesQuery.isLoading}
+                  loadingLabel="Loading…"
+                  emptyLabel="No villages configured"
+                />
                 <select
                   className="h-9 px-3 bg-surface-container rounded-lg border-none text-body-md text-on-surface focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
                   value={status}
@@ -235,7 +249,7 @@ export default function AshaWorkerDirectoryPhcAdmin() {
                       {workers.map((w, idx) => (
                         <tr key={w.id} className={`hover:bg-surface-container-low transition-colors h-14 ${idx % 2 === 0 ? 'bg-surface' : 'bg-surface-container-low'}`}>
                           <td className="p-3 px-4 sticky left-0 z-10" style={{ backgroundColor: idx % 2 === 0 ? undefined : 'var(--sys-color-surface-container-low, #F3EDF7)' }}>
-                            <Link to={`/phc/ashas/${w.id}`} className="flex items-center gap-3 group">
+                            <Link to={`/phc/ashas/${w.ashaId}`} className="flex items-center gap-3 group">
                               <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-label-md font-bold shrink-0">
                                 {initials(w.name)}
                               </div>
@@ -255,7 +269,7 @@ export default function AshaWorkerDirectoryPhcAdmin() {
                           </td>
                           <td className="p-3 text-center">{statusChip(w.status)}</td>
                           <td className="px-4 py-3 text-right">
-                            <Link to={`/phc/ashas/${w.id}`} className="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface-container transition-colors inline-flex">
+                            <Link to={`/phc/ashas/${w.ashaId}`} className="p-1.5 text-on-surface-variant hover:text-primary rounded-lg hover:bg-surface-container transition-colors inline-flex">
                               <span className="material-symbols-outlined text-[20px]">visibility</span>
                             </Link>
                           </td>

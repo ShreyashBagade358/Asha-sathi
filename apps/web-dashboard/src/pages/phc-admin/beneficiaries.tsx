@@ -243,10 +243,29 @@ export default function BeneficiaryDirectoryPhcAdmin() {
                             <td className="px-4 py-3.5 text-body-md text-on-surface whitespace-nowrap">{age > 0 ? `${age} / ` : ''}{p.gender?.charAt(0)?.toUpperCase() ?? '—'}</td>
                             <td className="px-5 py-3.5 text-body-md text-on-surface-variant">{p.village || '—'}</td>
                             <td className="px-5 py-3.5">
-                              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-semibold bg-surface-container-high text-on-surface-variant">
-                                <span className="w-1.5 h-1.5 rounded-full bg-outline"></span>
-                                —
-                              </span>
+                              {p.risk ? (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-semibold ${
+                                    p.risk === 'high'
+                                      ? 'bg-error-container text-on-error-container'
+                                      : p.risk === 'medium'
+                                        ? 'bg-tertiary-container text-on-tertiary-container'
+                                        : 'bg-secondary-container text-on-secondary-container'
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      p.risk === 'high' ? 'bg-error' : p.risk === 'medium' ? 'bg-tertiary' : 'bg-secondary'
+                                    }`}
+                                  ></span>
+                                  {p.risk.charAt(0).toUpperCase() + p.risk.slice(1)}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-semibold bg-surface-container-high text-on-surface-variant">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                                  —
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3.5 text-body-md text-on-surface-variant whitespace-nowrap">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                             <td className="px-5 py-3.5 text-right">

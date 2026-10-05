@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { householdService } from '@/services/household.service'
+import { configService } from '@/services/config.service'
+import { useAuth } from '@/hooks/useAuth'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -17,6 +20,14 @@ export default function HouseholdDirectoryPhcAdmin() {
 
   const qc = useQueryClient()
   const { addToast } = useUIStore()
+
+  const { user } = useAuth()
+  const phcId = user?.phcId
+  const villagesQuery = useQuery({
+    queryKey: ['villages', phcId],
+    queryFn: () => configService.getVillages(phcId!),
+    enabled: Boolean(phcId),
+  })
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['households', page, search, villageFilter],
@@ -146,13 +157,16 @@ export default function HouseholdDirectoryPhcAdmin() {
                     onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                   />
                 </div>
-                <select
-                  className="h-9 px-3 bg-surface-container rounded-lg border-none text-body-md text-on-surface focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                <SearchableSelect
+                  compact
+                  options={(villagesQuery.data ?? []).map((v) => ({ id: v.id, name: v.name }))}
                   value={villageFilter}
-                  onChange={(e) => { setVillageFilter(e.target.value); setPage(1) }}
-                >
-                  <option value="">All Villages</option>
-                </select>
+                  onChange={(id) => { setVillageFilter(id); setPage(1) }}
+                  placeholder="All Villages"
+                  loading={villagesQuery.isLoading}
+                  loadingLabel="Loading…"
+                  emptyLabel="No villages configured"
+                />
                 {(search || villageFilter) && (
                   <button onClick={resetFilters} className="h-9 px-3 rounded-lg border border-outline-variant text-on-surface-variant text-body-md hover:bg-surface-container transition-colors flex items-center gap-1">
                     <span className="material-symbols-outlined text-[16px]">close</span>

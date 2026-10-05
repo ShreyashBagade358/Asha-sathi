@@ -3,6 +3,7 @@ import type { ANCVisit, Paginated, Pregnancy } from '@/types'
 
 export interface PregnancyListParams {
   status?: 'ongoing' | 'delivered' | 'aborted' | 'ltf' | 'all'
+  beneficiaryId?: string
   page?: number
   pageSize?: number
 }
@@ -70,7 +71,7 @@ export function mapPregnancy(r: RawPregnancy): Pregnancy {
     edd: r.edd ?? '',
     gravida: r.gravida ?? 0,
     para: r.parity ?? 0,
-    status: r.status === 'delivered' ? 'delivered' : r.status === 'aborted' ? 'aborted' : r.status === 'ltf' ? 'ltf' : 'active',
+    status: r.status === 'delivered' ? 'delivered' : r.status === 'aborted' ? 'aborted' : r.status === 'ltf' ? 'ltf' : 'ongoing',
     highRisk: risk !== 'low' || Object.keys(r.risk_factors ?? {}).length > 0,
     hrpLevel: risk === 'high' ? 'high' : risk === 'medium' ? 'medium' : undefined,
     complications: Array.isArray(r.risk_factors) ? r.risk_factors : Object.keys(r.risk_factors ?? {}),
@@ -110,7 +111,8 @@ export const pregnancyService = {
   async listPregnancies(params: PregnancyListParams = {}): Promise<Paginated<Pregnancy>> {
     const { data } = await api.get<{ items: RawPregnancy[]; total: number; page: number; page_size: number; total_pages: number }>('/pregnancies', {
       params: {
-        status: params.status === 'all' ? undefined : params.status,
+        status: params.status,
+        beneficiary_id: params.beneficiaryId,
         page: params.page ?? 1,
         page_size: params.pageSize ?? 10,
       },
@@ -126,8 +128,8 @@ export const pregnancyService = {
   async createPregnancy(payload: CreatePregnancyPayload): Promise<Pregnancy> {
     const { data } = await api.post<RawPregnancy>('/pregnancies', {
       beneficiary_id: payload.beneficiaryId,
-      lmp: payload.lmp,
-      edd: payload.edd,
+      lmp: payload.lmp || undefined,
+      edd: payload.edd || undefined,
       gravida: payload.gravida,
       parity: payload.parity,
       risk_level: payload.riskLevel,
@@ -135,6 +137,7 @@ export const pregnancyService = {
     })
     return mapPregnancy(data)
   },
+
 
   async addANCVisit(pregnancyId: string, payload: CreateANCVisitPayload): Promise<ANCVisit> {
     const { data } = await api.post<RawANC>(`/pregnancies/${pregnancyId}/anc`, {

@@ -1,10 +1,20 @@
 import { useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { ASHAButton, ASHACard } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
-import { useASHAStore, newPatientId } from '@/stores/asha.store'
+import { useASHAStore } from '@/stores/asha.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { apiErrorMessage, patientService, type RegisteredPatient } from '@/services/patient.service'
+import { beneficiaryService } from '@/services/beneficiary.service'
+import { PhotoUploadField } from '@/components/common/PhotoUploadField'
+import { ashaService } from '@/services/asha.service'
+import { configService } from '@/services/config.service'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
+import { useAuth } from '@/hooks/useAuth'
+import { NOT_RECORDED } from '@/hooks/usePatientProfile'
 import type { RiskLevel } from '@/pages/asha/mockData'
 
 interface FormState {
@@ -15,6 +25,7 @@ interface FormState {
   gender: string
   village: string
   householdId: string
+  bloodGroup: string
   ashaWorker: string
   risk: RiskLevel
   notes: string
@@ -46,11 +57,35 @@ const inputCls =
 const selectWrap =
   'absolute inset-y-0 right-0 flex items-center pr-4 text-on-surface-variant pointer-events-none'
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return (
+    <p className="font-caption text-caption text-error" role="alert">
+      {message}
+    </p>
+  )
+}
+
 export default function AddNewPatientAshaSathi() {
   const { t } = useLocalization()
   const navigate = useNavigate()
   const { addToast } = useUIStore()
   const { addPatient } = useASHAStore()
+  const { user } = useAuth()
+  const phcId = user?.phcId
+
+  const { data: ashaData } = useQuery({
+    queryKey: ['ashas', 'select', 1],
+    queryFn: () => ashaService.listASHAs({ page: 1, pageSize: 50 }),
+  })
+  const ashaWorkers = ashaData?.items ?? []
+
+  const { data: villageData, isLoading: villagesLoading } = useQuery({
+    queryKey: ['villages', phcId],
+    queryFn: () => configService.getVillages(phcId!),
+    enabled: Boolean(phcId),
+  })
+  const villages = villageData ?? []
 
   const [form, setForm] = useState<FormState>({
     name: '',
@@ -60,17 +95,26 @@ export default function AddNewPatientAshaSathi() {
     gender: '',
     village: '',
     householdId: '',
+    bloodGroup: '',
     ashaWorker: '',
     risk: 'low',
     notes: '',
   })
   const [saved, setSaved] = useState(false)
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [creds, setCreds] = useState<RegisteredPatient | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [photo, setPhoto] = useState<File | null>(null)
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
-
-  const villageName: Record<string, string> = { v1: 'Rampur', v2: 'Sitapur', v3: 'Lakshmanpur' }
-  const wardName: Record<string, string> = { v1: 'Ward 1', v2: 'Ward 2', v3: 'Ward 3' }
+    setErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   const ageFromDob = (dob: string): number => {
     if (!dob) return 0
@@ -82,48 +126,118 @@ export default function AddNewPatientAshaSathi() {
     return Math.max(age, 0)
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const validate = (): Partial<Record<keyof FormState, string>> => {
+    const next: Partial<Record<keyof FormState, string>> = {}
+    if (!form.name.trim()) next.name = t('asha.errNameRequired')
+    // Exactly 10 digits, digits only — the input itself strips anything else.
+    if (!/^\d{10}$/.test(form.mobile)) next.mobile = t('asha.errPhoneRequired')
+    if (!form.dob) next.dob = t('asha.errDobRequired')
+    if (!form.gender) next.gender = t('asha.errGenderRequired')
+    if (form.abhaId.trim().length < 4) next.abhaId = t('asha.errAbhaRequired')
+    if (!form.village) next.village = t('asha.errVillageRequired')
+    if (!form.ashaWorker) next.ashaWorker = t('asha.errWorkerRequired')
+    return next
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (saved) return
+
+    const found = validate()
+    setErrors(found)
+    if (Object.values(found).some(Boolean)) return
+
     setSaved(true)
+    const village = villages.find((v) => v.id === form.village)?.name ?? ''
+    const ashaWorkerName = ashaWorkers.find((w) => w.id === form.ashaWorker)?.name ?? ''
+    try {
+      const registered = await patientService.register({
+        fullName: form.name.trim(),
+        phone: form.mobile,
+        dateOfBirth: form.dob,
+        gender: form.gender as 'male' | 'female' | 'other',
+        abhaId: form.abhaId.trim(),
+        village,
+        householdId: form.householdId.trim() || undefined,
+        bloodGroup: form.bloodGroup || undefined,
+        ashaWorker: ashaWorkerName || undefined,
+        risk: form.risk,
+        notes: form.notes.trim() || undefined,
+      })
 
-    const village = villageName[form.village] ?? ''
-    addPatient({
-      id: newPatientId(),
-      name: form.name.trim(),
-      abhaId: form.abhaId.trim() || `BHF-${Date.now().toString().slice(-6)}`,
-      age: ageFromDob(form.dob),
-      gender: form.gender ? form.gender.charAt(0).toUpperCase() + form.gender.slice(1) : '—',
-      bloodGroup: '—',
-      phone: form.mobile ? `+91 ${form.mobile}` : '—',
-      address: form.householdId ? `Household ${form.householdId}, ${village}` : village,
-      village,
-      ward: wardName[form.village] ?? '—',
-      risk: form.risk,
-      riskReason: form.risk === 'high' || form.risk === 'medium' ? (form.notes.trim() || 'Under monitoring') : undefined,
-      registeredAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      activeConditions: form.notes.trim() ? [form.notes.trim()] : [],
-    })
+      addPatient({
+        // The backend user id doubles as the local record id, so the two stay
+        // linkable when the patient later logs in.
+        id: registered.userId,
+        beneficiaryId: registered.beneficiaryId,
+        name: registered.fullName,
+        abhaId: form.abhaId.trim(),
+        age: ageFromDob(form.dob),
+        gender: form.gender.charAt(0).toUpperCase() + form.gender.slice(1),
+        bloodGroup: form.bloodGroup || '—',
+        phone: `+91 ${form.mobile}`,
+        address: form.householdId ? `Household ${form.householdId}, ${village}` : village,
+        village,
+        ward: NOT_RECORDED,
+        householdId: form.householdId.trim() || undefined,
+        risk: form.risk,
+        riskReason: form.risk === 'high' || form.risk === 'medium' ? (form.notes.trim() || 'Under monitoring') : undefined,
+        registeredAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        activeConditions: form.notes.trim() ? [form.notes.trim()] : [],
+      })
 
-    addToast('success', t('asha.patientSavedToast'))
-    setTimeout(() => navigate('/asha/patients'), 600)
+      addToast('success', t('asha.patientSavedToast'))
+      if (photo) {
+        try {
+          await beneficiaryService.uploadPhoto(registered.beneficiaryId, photo)
+        } catch {
+          addToast('error', t('photo.saveFailed'))
+        }
+      }
+      setCreds(registered)
+      setCopied(false)
+    } catch (err) {
+      addToast('error', apiErrorMessage(err, t('asha.errRegistration')))
+      setSaved(false)
+    }
+  }
+
+  const closeCredentials = () => {
+    setCreds(null)
+    navigate('/asha/patients')
+  }
+
+  const copyPassword = async () => {
+    if (!creds) return
+    try {
+      await navigator.clipboard.writeText(creds.password)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard blocked (insecure context) — the password is still on screen.
+    }
   }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.newPatientTitle')}
-        subtitle={t('asha.newPatientSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaPatients'), to: '/asha/patients' }, { label: t('nav.newPatient') }]}
-      />
+      <PageHeader title={t('asha.newPatientTitle')} subtitle={t('asha.newPatientSubtitle')} />
 
-      <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-6" onSubmit={handleSubmit} noValidate>
         <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-sm">
           <div className="flex items-center gap-2 border-b border-outline-variant bg-surface-container-lowest px-5 py-4">
             <Icon name="users" size={20} className="text-primary" />
             <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.personalInfo')}</h2>
           </div>
           <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+            <div className="flex items-center gap-4 md:col-span-2 rounded-lg border border-outline-variant bg-surface-container-low p-4">
+              <PhotoUploadField size="md" file={photo} onFileChange={setPhoto} onError={(msg) => addToast('error', msg)} />
+              <div>
+                <p className="font-label-md text-label-md text-on-surface">{t('photo.upload')}</p>
+                <p className="font-caption text-caption text-on-surface-variant">
+                  {t('photo.hint')} · {t('asha.photoAfterSave')}
+                </p>
+              </div>
+            </div>
             <div className="flex flex-col gap-1 md:col-span-2">
               <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="patient_name">
                 {t('asha.fullName')} *
@@ -135,21 +249,32 @@ export default function AddNewPatientAshaSathi() {
                 required
                 type="text"
                 value={form.name}
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? 'patient_name-error' : undefined}
                 onChange={(e) => set('name', e.target.value)}
               />
+              <div id="patient_name-error">
+                <FieldError message={errors.name} />
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="uid">
-                {t('asha.abhaId')}
+                {t('asha.abhaId')} *
               </label>
               <input
                 id="uid"
                 className={inputCls}
                 placeholder={t('asha.abhaPlaceholder')}
+                required
                 type="text"
                 value={form.abhaId}
+                aria-invalid={!!errors.abhaId}
+                aria-describedby={errors.abhaId ? 'uid-error' : undefined}
                 onChange={(e) => set('abhaId', e.target.value)}
               />
+              <div id="uid-error">
+                <FieldError message={errors.abhaId} />
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="mobile">
@@ -162,13 +287,20 @@ export default function AddNewPatientAshaSathi() {
                 <input
                   id="mobile"
                   className={`${inputCls} pl-12`}
-                  pattern="[0-9]{10}"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="\d{10}"
                   placeholder={t('asha.mobilePlaceholder')}
                   required
                   type="tel"
                   value={form.mobile}
-                  onChange={(e) => set('mobile', e.target.value)}
+                  aria-invalid={!!errors.mobile}
+                  aria-describedby={errors.mobile ? 'mobile-error' : undefined}
+                  onChange={(e) => set('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
                 />
+              </div>
+              <div id="mobile-error">
+                <FieldError message={errors.mobile} />
               </div>
             </div>
             <div className="flex flex-col gap-1">
@@ -181,8 +313,13 @@ export default function AddNewPatientAshaSathi() {
                 required
                 type="date"
                 value={form.dob}
+                aria-invalid={!!errors.dob}
+                aria-describedby={errors.dob ? 'dob-error' : undefined}
                 onChange={(e) => set('dob', e.target.value)}
               />
+              <div id="dob-error">
+                <FieldError message={errors.dob} />
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="gender">
@@ -207,6 +344,9 @@ export default function AddNewPatientAshaSathi() {
                   <Icon name="chevronDown" size={20} />
                 </span>
               </div>
+              <div id="gender-error">
+                <FieldError message={errors.gender} />
+              </div>
             </div>
           </div>
         </section>
@@ -218,27 +358,21 @@ export default function AddNewPatientAshaSathi() {
           </div>
           <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="village">
-                {t('asha.villageLocality')} *
-              </label>
-              <div className="relative">
-                <select
-                  id="village"
-                  className={`${inputCls} appearance-none`}
-                  required
-                  value={form.village}
-                  onChange={(e) => set('village', e.target.value)}
-                >
-                  <option value="" disabled>
-                    {t('asha.selectVillage')}
-                  </option>
-                  <option value="v1">Rampur</option>
-                  <option value="v2">Sitapur</option>
-                  <option value="v3">Lakshmanpur</option>
-                </select>
-                <span className={selectWrap}>
-                  <Icon name="chevronDown" size={20} />
-                </span>
+              <SearchableSelect
+                id="village"
+                label={`${t('asha.villageLocality')} *`}
+                required
+                options={villages.map((v) => ({ id: v.id, name: v.name, code: v.code }))}
+                showCode
+                value={form.village}
+                onChange={(id) => set('village', id)}
+                placeholder={t('asha.selectVillage')}
+                loading={villagesLoading}
+                loadingLabel={t('asha.loadingVillages')}
+                emptyLabel={t('asha.selectVillage')}
+              />
+              <div id="village-error">
+                <FieldError message={errors.village} />
               </div>
             </div>
             <div className="flex flex-col gap-1">
@@ -254,6 +388,32 @@ export default function AddNewPatientAshaSathi() {
                 onChange={(e) => set('householdId', e.target.value)}
               />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="blood_group">
+                {t('asha.bloodGroupOptional')}
+              </label>
+              <div className="relative">
+                <select
+                  id="blood_group"
+                  className={`${inputCls} appearance-none`}
+                  value={form.bloodGroup}
+                  onChange={(e) => set('bloodGroup', e.target.value)}
+                >
+                  <option value="">{t('asha.selectBloodGroup')}</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+                <span className={selectWrap}>
+                  <Icon name="chevronDown" size={20} />
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -265,26 +425,18 @@ export default function AddNewPatientAshaSathi() {
           </div>
           <div className="grid grid-cols-1 gap-4 p-5 pl-8">
             <div className="flex flex-col gap-1 md:w-1/2">
-              <label className="font-label-md text-label-md text-on-surface-variant" htmlFor="asha_worker">
-                {t('asha.assignedAsha')} *
-              </label>
-              <div className="relative">
-                <select
-                  id="asha_worker"
-                  className={`${inputCls} appearance-none`}
-                  required
-                  value={form.ashaWorker}
-                  onChange={(e) => set('ashaWorker', e.target.value)}
-                >
-                  <option value="" disabled>
-                    {t('asha.selectWorker')}
-                  </option>
-                  <option value="w1">Sunita Devi (Rampur)</option>
-                  <option value="w2">Anita Kumari (Sitapur)</option>
-                </select>
-                <span className={selectWrap}>
-                  <Icon name="chevronDown" size={20} />
-                </span>
+              <SearchableSelect
+                id="asha_worker"
+                label={`${t('asha.assignedAsha')} *`}
+                required
+                options={ashaWorkers.map((w) => ({ id: w.id, name: `${w.name}${w.village ? ` (${w.village})` : ''}` }))}
+                value={form.ashaWorker}
+                onChange={(id) => set('ashaWorker', id)}
+                placeholder={t('asha.selectWorker')}
+                emptyLabel={t('asha.selectWorker')}
+              />
+              <div id="asha_worker-error">
+                <FieldError message={errors.ashaWorker} />
               </div>
             </div>
 
@@ -348,6 +500,66 @@ export default function AddNewPatientAshaSathi() {
           </button>
         </div>
       </form>
+
+      {creds && (
+        <div
+          className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="credentials-title"
+        >
+          <ASHACard className="w-full max-w-lg">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+                  <Icon name="checkCircle" size={22} />
+                </span>
+                <h2 id="credentials-title" className="font-headline-md text-headline-md font-semibold text-on-surface">
+                  {t('asha.credentialsTitle')}
+                </h2>
+              </div>
+
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                {t('asha.credentialsIntro', { name: creds.fullName })}
+              </p>
+
+              <div className="space-y-3 rounded-lg border border-outline-variant bg-surface-container-low p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-label-md text-label-md text-on-surface-variant">
+                    {t('asha.credentialsPhone')}
+                  </span>
+                  <span className="font-body-md text-body-md font-semibold text-on-surface">+91 {creds.phone}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-label-md text-label-md text-on-surface-variant">
+                    {t('asha.credentialsPassword')}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <code className="rounded bg-surface-container-highest px-2 py-1 font-mono text-body-md font-semibold text-on-surface">
+                      {creds.password}
+                    </code>
+                    <ASHAButton
+                      variant="outline"
+                      fullWidth={false}
+                      label={copied ? t('asha.credentialsCopied') : t('asha.credentialsCopy')}
+                      onClick={() => void copyPassword()}
+                    />
+                  </span>
+                </div>
+              </div>
+
+              <p className="font-caption text-caption text-error">{t('asha.credentialsOnce')}</p>
+
+              <ASHAButton
+                variant="primary"
+                fullWidth
+                label={t('asha.credentialsDone')}
+                onClick={closeCredentials}
+              />
+            </div>
+          </ASHACard>
+        </div>
+      )}
     </div>
   )
 }

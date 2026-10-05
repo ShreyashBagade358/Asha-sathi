@@ -44,6 +44,67 @@ export interface CreateASHPayload {
   date_of_joining?: string
 }
 
+export interface ASHATask {
+  id: string
+  ashaId: string
+  taskDate?: string
+  taskType: string
+  beneficiaryId?: string
+  householdId?: string
+  villageId?: string
+  priority: string
+  status: string
+  scheduledTime?: string
+  completedTime?: string
+  notes?: string
+  householdHhid?: string
+  villageName?: string
+  metadataJson?: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateASHATaskPayload {
+  taskType: string
+  taskDate?: string
+  beneficiaryId?: string
+  householdId?: string
+  villageId?: string
+  priority?: string
+  status?: string
+  scheduledTime?: string
+  notes?: string
+}
+
+export interface UpdateASHATaskPayload {
+  status?: string
+  taskDate?: string
+  priority?: string
+  scheduledTime?: string
+  completedTime?: string | null
+  notes?: string
+}
+
+interface RawASHATask {
+  id: string
+  asha_id: string
+  task_date?: string | null
+  task_type: string
+  beneficiary_id?: string | null
+  household_id?: string | null
+  village_id?: string | null
+  priority: string
+  status: string
+  scheduled_time?: string | null
+  completed_time?: string | null
+  notes?: string | null
+  household_hhid?: string | null
+  village_name?: string | null
+  metadata_json?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
 interface RawASHAUser {
   id: string
   asha_id: string
@@ -117,6 +178,28 @@ function mapASHAKPI(r: RawASHAKPI, name: string, village: string): ASHAKPI {
   }
 }
 
+function mapTask(r: RawASHATask): ASHATask {
+  return {
+    id: r.id,
+    ashaId: r.asha_id,
+    taskDate: r.task_date ?? undefined,
+    taskType: r.task_type,
+    beneficiaryId: r.beneficiary_id ?? undefined,
+    householdId: r.household_id ?? undefined,
+    villageId: r.village_id ?? undefined,
+    priority: r.priority,
+    status: r.status,
+    scheduledTime: r.scheduled_time ?? undefined,
+    completedTime: r.completed_time ?? undefined,
+    notes: r.notes ?? undefined,
+    householdHhid: r.household_hhid ?? undefined,
+    villageName: r.village_name ?? undefined,
+    metadataJson: r.metadata_json ?? undefined,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }
+}
+
 function mapPaginated<T>(raw: { items: T[]; total: number; page: number; page_size: number; total_pages: number }): Paginated<T> {
   return {
     items: raw.items,
@@ -152,24 +235,9 @@ export const ashaService = {
     }
   },
 
-  async getASHAKPIs(ashaId: string, name = 'ASHA', village = ''): Promise<ASHAKPI[]> {
-    const { data } = await api.get<RawASHAKPI[]>(`/ashas/${ashaId}/kpis`)
-    return data.map((k) => mapASHAKPI(k, name, village))
-  },
 
-  async updateASHA(ashaId: string, patch: Partial<ASHAUser>): Promise<ASHAUser> {
-    const { data } = await api.patch<RawASHAUser>(`/ashas/${ashaId}`, {
-      name: patch.name,
-      phone: patch.phone,
-      village: patch.village,
-      status: patch.status,
-      performance_score: patch.performanceScore,
-    })
-    return mapASHAUser(data)
-  },
-
-  async createASHA(payload: CreateASHPayload): Promise<ASHAUser> {
-    const { data } = await api.post<RawASHAUser>('/ashas', {
+  async createASHA(payload: CreateASHPayload): Promise<{ asha: ASHAUser; password: string }> {
+    const { data } = await api.post<RawASHAUser & { password: string }>('/ashas', {
       name: payload.name,
       phone: payload.phone,
       village: payload.village,
@@ -182,11 +250,53 @@ export const ashaService = {
       sub_center: payload.sub_center || undefined,
       date_of_joining: payload.date_of_joining || undefined,
     })
-    return mapASHAUser(data)
+    return { asha: mapASHAUser(data), password: data.password }
   },
 
   async assignVillages(ashaId: string, villages: string[]): Promise<ASHAUser> {
     const { data } = await api.post<RawASHAUser>(`/ashas/${ashaId}/villages`, { villages })
     return mapASHAUser(data)
+  },
+
+  /** `GET /ashas/me/profile` — the signed-in ASHA's own profile (catchment ids). */
+  async getMyProfile(): Promise<{ ashaId: string; catchmentVillages: string[] }> {
+    const { data } = await api.get<{ asha_id: string; catchment_villages: string[] | null }>(
+      '/ashas/me/profile',
+    )
+    return { ashaId: data.asha_id, catchmentVillages: data.catchment_villages ?? [] }
+  },
+
+  async listMyTasks(options: { status?: string; date?: string } = {}): Promise<ASHATask[]> {
+    const { data } = await api.get<RawASHATask[]>('/ashas/me/tasks', {
+      params: { status: options.status, date: options.date },
+    })
+    return data.map(mapTask)
+  },
+
+  async createTask(payload: CreateASHATaskPayload): Promise<ASHATask> {
+    const { data } = await api.post<RawASHATask>('/ashas/me/tasks', {
+      task_type: payload.taskType,
+      task_date: payload.taskDate,
+      beneficiary_id: payload.beneficiaryId,
+      household_id: payload.householdId,
+      village_id: payload.villageId,
+      priority: payload.priority,
+      status: payload.status,
+      scheduled_time: payload.scheduledTime,
+      notes: payload.notes,
+    })
+    return mapTask(data)
+  },
+
+  async updateTask(taskId: string, payload: UpdateASHATaskPayload): Promise<ASHATask> {
+    const { data } = await api.patch<RawASHATask>(`/ashas/me/tasks/${taskId}`, {
+      status: payload.status,
+      task_date: payload.taskDate,
+      priority: payload.priority,
+      scheduled_time: payload.scheduledTime,
+      completed_time: payload.completedTime,
+      notes: payload.notes,
+    })
+    return mapTask(data)
   },
 }

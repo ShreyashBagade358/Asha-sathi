@@ -1,6 +1,7 @@
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAppStore } from '@/stores/app.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { DoseStatus } from '@/pages/patient/mockData'
@@ -37,9 +38,8 @@ export default function PatientVaccinationPage() {
   const childVaccines = useAppStore((s) => s.childVaccines)
   const motherVaccines = useAppStore((s) => s.motherVaccines)
   const children = useAppStore((s) => s.children)
-  const patients = useAppStore((s) => s.patients)
 
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
   const child = children.find((c) => c.village === profile.village)
 
   const childDone = childVaccines.filter((d) => d.status === 'given').length
@@ -50,7 +50,6 @@ export default function PatientVaccinationPage() {
       <PageHeader
         title={t('patient.vaccinationTitle')}
         subtitle={t('patient.vaccinationSubtitle')}
-        breadcrumbs={[{ label: t('patient.vaccinationTitle') }]}
         actions={
           <button
             type="button"

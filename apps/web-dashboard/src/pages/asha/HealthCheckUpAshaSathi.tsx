@@ -1,10 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useAppStore } from '@/stores/app.store'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { pregnancyService } from '@/services/pregnancy.service'
+import { beneficiaryService } from '@/services/beneficiary.service'
+import { ncdService } from '@/services/ncd.service'
 import type { CheckUpRecord, RiskLevel } from '@/pages/asha/mockData'
 
 const RISK_TONE: Record<RiskLevel, string> = {
@@ -19,6 +24,10 @@ const RISK_KEY: Record<RiskLevel, string> = {
   low: 'asha.riskLowLabel',
 }
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export default function HealthCheckUpAshaSathi() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
@@ -27,7 +36,19 @@ export default function HealthCheckUpAshaSathi() {
   const [riskFilter, setRiskFilter] = useState<'all' | RiskLevel>('all')
   const [showForm, setShowForm] = useState(false)
 
+  const beneficiariesQuery = useQuery({
+    queryKey: ['beneficiaries', 'all'],
+    queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
+  })
+  const pregnanciesQuery = useQuery({
+    queryKey: ['pregnancies', 'ongoing'],
+    queryFn: () => pregnancyService.listPregnancies({ status: 'ongoing', pageSize: 1000 }),
+  })
+  const beneficiaryOptions = beneficiariesQuery.data?.items ?? []
+  const ongoingPregnancies = pregnanciesQuery.data?.items ?? []
+
   const [form, setForm] = useState({
+    beneficiaryId: '',
     patientName: '',
     age: '',
     gender: '',
@@ -44,29 +65,64 @@ export default function HealthCheckUpAshaSathi() {
 
   const setField = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
+  const num = (v: string): number | undefined => {
+    const n = Number(v)
+    return v !== '' && Number.isFinite(n) ? n : undefined
+  }
+
+  const submitMutation = useMutation({
+    mutationFn: async (snapshot: typeof form) => {
+      const pregnancy = ongoingPregnancies.find((p) => p.beneficiaryId === snapshot.beneficiaryId)
+      if (pregnancy) {
+        const visits = await pregnancyService.listANCVisits(pregnancy.id)
+        await pregnancyService.addANCVisit(pregnancy.id, {
+          visitNumber: visits.length + 1,
+          visitDate: todayISO(),
+          bpSystolic: num(snapshot.bpSystolic),
+          bpDiastolic: num(snapshot.bpDiastolic),
+          weightKg: num(snapshot.weightKg),
+          hemoglobin: num(snapshot.haemoglobin),
+        })
+        return
+      }
+      await ncdService.createScreening({
+        beneficiaryId: snapshot.beneficiaryId,
+        screeningDate: todayISO(),
+        ageAbove30: snapshot.age !== '' ? Number(snapshot.age) >= 30 : undefined,
+        bpSystolic: num(snapshot.bpSystolic),
+        bpDiastolic: num(snapshot.bpDiastolic),
+      })
+    },
+    onSuccess: (_data, snapshot) => {
+      const ben = beneficiaryOptions.find((b) => b.id === snapshot.beneficiaryId)
+      const record: CheckUpRecord = {
+        id: `chk-${Date.now()}`,
+        patientName: snapshot.patientName.trim() || ben?.name || '—',
+        age: Number(snapshot.age) || 0,
+        gender: snapshot.gender || '—',
+        village: snapshot.village || ben?.village || '—',
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        bpSystolic: Number(snapshot.bpSystolic) || 120,
+        bpDiastolic: Number(snapshot.bpDiastolic) || 80,
+        weightKg: Number(snapshot.weightKg) || 0,
+        haemoglobin: snapshot.haemoglobin ? Number(snapshot.haemoglobin) : undefined,
+        temperature: Number(snapshot.temperature) || 98.6,
+        pulseRate: Number(snapshot.pulseRate) || 80,
+        risk: snapshot.risk,
+        notes: snapshot.notes.trim() || undefined,
+      }
+      addCheckup(record)
+      addToast('success', t('asha.checkupSaved'))
+      setShowForm(false)
+      setForm({ beneficiaryId: '', patientName: '', age: '', gender: '', village: '', bpSystolic: '', bpDiastolic: '', weightKg: '', haemoglobin: '', temperature: '', pulseRate: '', notes: '', risk: 'low' })
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!form.patientName.trim()) return
-    const record: CheckUpRecord = {
-      id: `chk-${Date.now()}`,
-      patientName: form.patientName.trim(),
-      age: Number(form.age) || 0,
-      gender: form.gender || '—',
-      village: form.village || '—',
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      bpSystolic: Number(form.bpSystolic) || 120,
-      bpDiastolic: Number(form.bpDiastolic) || 80,
-      weightKg: Number(form.weightKg) || 0,
-      haemoglobin: form.haemoglobin ? Number(form.haemoglobin) : undefined,
-      temperature: Number(form.temperature) || 98.6,
-      pulseRate: Number(form.pulseRate) || 80,
-      risk: form.risk,
-      notes: form.notes.trim() || undefined,
-    }
-    addCheckup(record)
-    addToast('success', t('asha.checkupSaved'))
-    setShowForm(false)
-    setForm({ patientName: '', age: '', gender: '', village: '', bpSystolic: '', bpDiastolic: '', weightKg: '', haemoglobin: '', temperature: '', pulseRate: '', notes: '', risk: 'low' })
+    if (!form.beneficiaryId || submitMutation.isPending) return
+    submitMutation.mutate({ ...form })
   }
 
   const visible = checkups.filter((c) => (riskFilter === 'all' ? true : c.risk === riskFilter))
@@ -86,7 +142,7 @@ export default function HealthCheckUpAshaSathi() {
       <PageHeader
         title={t('asha.healthCheckupTitle')}
         subtitle={t('asha.healthCheckupSubtitle')}
-        breadcrumbs={[{ label: t('asha.healthCheckupTitle') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.healthCheckupTitle') }]}
         actions={
           <button
             type="button"
@@ -106,7 +162,18 @@ export default function HealthCheckUpAshaSathi() {
         >
           <h2 className="mb-3 font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.newCheckup')}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <input value={form.patientName} onChange={(e) => setField('patientName', e.target.value)} placeholder={t('asha.formPatientName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required />
+            <select value={form.beneficiaryId} onChange={(e) => setField('beneficiaryId', e.target.value)} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required>
+              <option value="" disabled>
+                {t('asha.selectPatient')}
+              </option>
+              {beneficiaryOptions.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                  {b.village ? ` · ${b.village}` : ''}
+                </option>
+              ))}
+            </select>
+            <input value={form.patientName} onChange={(e) => setField('patientName', e.target.value)} placeholder={t('asha.formPatientName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             <input value={form.age} onChange={(e) => setField('age', e.target.value)} placeholder={t('asha.formAge')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="number" />
             <input value={form.gender} onChange={(e) => setField('gender', e.target.value)} placeholder={t('asha.formGender')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             <input value={form.village} onChange={(e) => setField('village', e.target.value)} placeholder={t('asha.formVillage')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
@@ -127,7 +194,7 @@ export default function HealthCheckUpAshaSathi() {
             <button type="button" onClick={() => setShowForm(false)} className="h-touch-target rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-on-surface-variant hover:bg-surface-container">
               {t('asha.cancel')}
             </button>
-            <button type="submit" className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant">
+            <button type="submit" disabled={submitMutation.isPending} className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant disabled:opacity-60">
               {t('asha.saveCheckup')}
             </button>
           </div>

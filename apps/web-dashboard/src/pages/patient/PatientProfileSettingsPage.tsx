@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { profileService } from '@/services/profile.service'
+import { getErrorMessage } from '@/components/common/ErrorState'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 
@@ -31,10 +35,10 @@ function Toggle({ on }: { on: boolean }) {
 }
 
 export default function PatientProfileSettingsPage() {
-  const { t } = useLocalization()
+  const { t, setLocale } = useLocalization()
   const { user, logout } = useAuth()
   const { addToast } = useUIStore()
-  const patients = useAppStore((s) => s.patients)
+  const setUser = useAuthStore((s) => s.setUser)
   const [settings, setSettings] = useState<Record<string, boolean>>({
     pushNotifications: true,
     reminders: true,
@@ -42,7 +46,18 @@ export default function PatientProfileSettingsPage() {
   })
   const [language, setLanguage] = useState<'en' | 'hi'>(user?.language === 'hi' ? 'hi' : 'en')
 
-  const profile = patientPortalProfile(patients)
+  const updateLanguageMutation = useMutation({
+    mutationFn: (lang: 'en' | 'hi') => profileService.updateMe({ language: lang }),
+    onSuccess: (_updated, lang) => {
+      if (user) setUser({ ...user, language: lang })
+      setLocale(lang)
+      setLanguage(lang)
+      addToast('success', t('patient.settingUpdatedToast'))
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
+  const profile = usePatientProfile()
   const fullName = user?.fullName || profile.name
   const role = 'Patient'
 
@@ -61,9 +76,8 @@ export default function PatientProfileSettingsPage() {
   }
 
   const selectLanguage = (lang: 'en' | 'hi') => {
-    if (lang === language) return
-    setLanguage(lang)
-    addToast('success', t('patient.settingUpdatedToast'))
+    if (lang === language || updateLanguageMutation.isPending) return
+    updateLanguageMutation.mutate(lang)
   }
 
   return (
@@ -71,7 +85,6 @@ export default function PatientProfileSettingsPage() {
       <PageHeader
         title={t('patient.profileTitle')}
         subtitle={t('patient.profileSubtitle')}
-        breadcrumbs={[{ label: t('patient.profileTitle') }]}
       />
 
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-card">

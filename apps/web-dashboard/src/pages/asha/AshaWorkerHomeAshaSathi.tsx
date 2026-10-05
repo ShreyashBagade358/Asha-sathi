@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
+import { useTodayTasks } from '@/hooks/useTodayTasks'
 import { useAppStore } from '@/stores/app.store'
+import { notificationService } from '@/services/notification.service'
 import { Icon, type IconName } from '@/components/common/Icons'
 
 interface Stat {
@@ -53,13 +56,26 @@ const toneText: Record<Stat['tone'], string> = {
 export default function AshaWorkerHomeAshaSathi() {
   const { t } = useLocalization()
   const { user } = useAuth()
-  const tasks = useAppStore((s) => s.tasks)
-  const toggleTask = useAppStore((s) => s.toggleTask)
   const patients = useAppStore((s) => s.patients)
   const pregnancies = useAppStore((s) => s.pregnancies)
   const followUps = useAppStore((s) => s.followUps)
-  const ashaNotifications = useAppStore((s) => s.notifications)
-  const alerts = ashaNotifications.filter((n) => n.type === 'alert')
+
+  const { tasks, toggleTask } = useTodayTasks()
+
+  const notificationsQuery = useQuery({
+    queryKey: ['notifications', 'asha'],
+    queryFn: () => notificationService.listNotifications({ pageSize: 50 }),
+  })
+  const alerts = (notificationsQuery.data?.items ?? [])
+    .filter((n) => n.type === 'alert')
+    .map((n) => {
+      const parsed = n.createdAt ? new Date(n.createdAt) : null
+      const time =
+        parsed && !Number.isNaN(parsed.getTime())
+          ? parsed.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : (n.createdAt ?? '')
+      return { id: n.id, title: n.title, message: n.message, time }
+    })
 
   const pending = tasks.filter((x) => !x.done).length
   const highRisk = patients.filter((p) => p.risk === 'high').length + pregnancies.filter((p) => p.risk === 'high').length
@@ -253,7 +269,7 @@ export default function AshaWorkerHomeAshaSathi() {
               </div>
               <button
                 type="button"
-                onClick={() => toggleTask(task.id)}
+                onClick={() => toggleTask(task)}
                 aria-label={task.done ? t('asha.markPending') : t('asha.markDone')}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary transition-all hover:bg-surface-container active:scale-90"
               >

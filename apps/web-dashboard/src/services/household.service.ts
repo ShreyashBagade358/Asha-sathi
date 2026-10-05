@@ -31,9 +31,29 @@ export interface CreateHouseholdPayload {
   villageId?: string
   ashaId?: string
   address?: string
-  addressLocal?: string
+  addressLocal?: Record<string, string>
   amenities?: Record<string, unknown>
+  headName?: string
+  ward?: string
+  familySize?: number
+  contactPhone?: string
+  notes?: string
   consentGiven?: boolean
+}
+
+export interface HouseholdSurveyPayload {
+  answers: Record<string, unknown>
+  consentObtained?: boolean
+  visitedAt?: string
+}
+
+export interface HouseholdSurvey {
+  id: string
+  householdId: string
+  answers: Record<string, unknown>
+  consentObtained: boolean
+  visitedAt?: string
+  createdAt: string
 }
 
 interface RawHousehold {
@@ -43,9 +63,18 @@ interface RawHousehold {
   asha_id?: string | null
   village?: string | null
   address?: string | null
+  head_name?: string | null
+  ward?: string | null
+  family_size?: number | null
+  contact_phone?: string | null
+  notes?: string | null
   amenities?: Record<string, unknown> | null
   consent_given?: boolean
   created_at?: string
+  member_count?: number | null
+  eligible_women?: number | null
+  children_under5?: number | null
+  pregnant_women?: number | null
 }
 
 interface RawMember {
@@ -65,16 +94,41 @@ interface RawMember {
   village?: string | null
 }
 
+interface RawSurvey {
+  id: string
+  household_id: string
+  answers: Record<string, unknown>
+  consent_obtained?: boolean
+  visited_at?: string | null
+  created_at?: string
+}
+
+function mapSurvey(r: RawSurvey): HouseholdSurvey {
+  return {
+    id: r.id,
+    householdId: r.household_id,
+    answers: r.answers ?? {},
+    consentObtained: r.consent_obtained ?? false,
+    visitedAt: r.visited_at ?? undefined,
+    createdAt: r.created_at ?? '',
+  }
+}
+
 function mapHousehold(r: RawHousehold): Household {
   return {
     id: r.id,
     householdId: r.hhid,
     village: r.village ?? '',
-    headName: '',
-    memberCount: 0,
-    eligibleWomen: 0,
-    childrenUnder5: 0,
-    pregnantWomen: 0,
+    ward: r.ward ?? undefined,
+    headName: r.head_name ?? '',
+    memberCount: r.member_count ?? 0,
+    eligibleWomen: r.eligible_women ?? 0,
+    childrenUnder5: r.children_under5 ?? 0,
+    pregnantWomen: r.pregnant_women ?? 0,
+    address: r.address ?? undefined,
+    familySize: r.family_size ?? undefined,
+    contactPhone: r.contact_phone ?? undefined,
+    notes: r.notes ?? undefined,
   }
 }
 
@@ -137,18 +191,31 @@ export const householdService = {
     const { data } = await api.post<RawHousehold>('/households', {
       hhid: payload.hhid,
       village_id: payload.villageId,
-      asha_id: payload.ashaId,
       address: payload.address,
       address_local: payload.addressLocal,
       amenities: payload.amenities,
+      head_name: payload.headName,
+      ward: payload.ward,
+      family_size: payload.familySize,
+      contact_phone: payload.contactPhone,
+      notes: payload.notes,
       consent_given: payload.consentGiven,
     })
     return mapHousehold(data)
   },
 
-  async updateHousehold(id: string, patch: Partial<CreateHouseholdPayload>): Promise<Household> {
-    const { data } = await api.put<RawHousehold>(`/households/${id}`, patch)
-    return mapHousehold(data)
+  async submitSurvey(householdId: string, payload: HouseholdSurveyPayload): Promise<HouseholdSurvey> {
+    const { data } = await api.post<RawSurvey>(`/households/${householdId}/survey`, {
+      answers: payload.answers,
+      consent_obtained: payload.consentObtained,
+      visited_at: payload.visitedAt,
+    })
+    return mapSurvey(data)
+  },
+
+  async listSurveys(householdId: string): Promise<HouseholdSurvey[]> {
+    const { data } = await api.get<RawSurvey[]>(`/households/${householdId}/surveys`)
+    return data.map(mapSurvey)
   },
 
   async deleteHousehold(id: string): Promise<void> {

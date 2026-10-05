@@ -15,6 +15,12 @@ export interface CreateNotificationPayload {
   actionUrl?: string
 }
 
+export interface BroadcastPayload {
+  title: string
+  message: string
+  roles?: Array<'asha' | 'admin' | 'patient'>
+}
+
 interface RawNotification {
   id: string
   user_id: string
@@ -62,6 +68,14 @@ export const notificationService = {
   async createNotification(payload: CreateNotificationPayload): Promise<Notification> {
     const { data } = await api.post<RawNotification>('/notifications', payload)
     return mapNotification(data)
+  },
+
+  async broadcast(payload: BroadcastPayload): Promise<void> {
+    await api.post('/notifications/broadcast', {
+      title: payload.title,
+      message: payload.message,
+      roles: payload.roles,
+    })
   },
 
   async markRead(id: string): Promise<Notification> {

@@ -133,22 +133,6 @@ export const reportService = {
     return FORMATTERS[kind](data)
   },
 
-  getMaternalReport(params: ReportParams = {}) {
-    return this.getReport('maternal', params)
-  },
-  getChildReport(params: ReportParams = {}) {
-    return this.getReport('child', params)
-  },
-  getImmunizationReport(params: ReportParams = {}) {
-    return this.getReport('immunization', params)
-  },
-  getNCDReport(params: ReportParams = {}) {
-    return this.getReport('ncd', params)
-  },
-  getIncentiveReport(params: ReportParams = {}) {
-    return this.getReport('incentive', params)
-  },
-
   exportExcel(report: ReportData, filename?: string): void {
     const header = report.columns.join(',')
     const lines = report.rows.map((row) =>

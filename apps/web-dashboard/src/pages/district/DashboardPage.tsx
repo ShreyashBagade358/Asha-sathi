@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['district-dashboard', user?.districtId ?? 'default'],
-    queryFn: () => dashboardService.getDistrictDashboard(user?.districtId ?? 'dist-demo'),
+    queryFn: () => dashboardService.getDistrictDashboard(user?.districtId),
   })
 
   const kpis = useMemo(
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       { label: t('kpis.pregnancies'), value: data?.kpis.totalPregnancies ?? 0, change: 5.4, trend: 'up' as const, accent: 'primary' as const, icon: <Icon name="heart" size={22} /> },
       { label: t('kpis.anc4Coverage'), value: `${data?.kpis.anc4Coverage ?? 0}%`, change: 3.2, trend: 'up' as const, accent: 'primary' as const, icon: <Icon name="activity" size={22} /> },
       { label: t('kpis.institutionalDeliveries'), value: `${data?.kpis.institutionalDeliveryRate ?? 0}%`, change: 1.8, trend: 'up' as const, accent: 'tertiary' as const, icon: <Icon name="checkCircle" size={22} /> },
-      { label: t('kpis.ashaCount'), value: data?.kpis.ashaCount ?? 0, hint: `${data?.kpis.villageCount ?? 0} ${t('kpis.villages')}`, accent: 'primary' as const, icon: <Icon name="users" size={22} /> },
+      { label: t('kpis.ashas'), value: data?.kpis.ashaCount ?? 0, hint: `${data?.kpis.villageCount ?? 0} ${t('kpis.villages')}`, accent: 'primary' as const, icon: <Icon name="users" size={22} /> },
     ],
     [data, t],
   )

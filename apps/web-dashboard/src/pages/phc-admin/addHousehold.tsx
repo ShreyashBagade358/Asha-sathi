@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUIStore } from '@/stores/ui.store'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
+import { useAuth } from '@/hooks/useAuth'
+import { householdService } from '@/services/household.service'
+import { configService } from '@/services/config.service'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 
 const inputCls =
   'h-12 w-full rounded-lg border border-outline bg-surface px-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
@@ -12,7 +18,11 @@ const inputClsPad =
 export default function AddNewHouseholdPhcAdmin() {
   const navigate = useNavigate()
   const { addToast } = useUIStore()
+  const qc = useQueryClient()
+  const { user } = useAuth()
+  const phcId = user?.phcId
 
+  const [hhid, setHhid] = useState('')
   const [headName, setHeadName] = useState('')
   const [village, setVillage] = useState('')
   const [ward, setWard] = useState('')
@@ -21,15 +31,42 @@ export default function AddNewHouseholdPhcAdmin() {
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
 
+  const villages = useQuery({
+    queryKey: ['villages', phcId],
+    queryFn: () => configService.getVillages(phcId!),
+    enabled: Boolean(phcId),
+  })
+
+  const createHousehold = useMutation({
+    mutationFn: () =>
+      householdService.createHousehold({
+        hhid: hhid.trim(),
+        villageId: village,
+        headName: headName.trim(),
+        ward: ward.trim() || undefined,
+        familySize: familySize ? Number(familySize) : undefined,
+        contactPhone: phone ? `+91${phone}` : undefined,
+        address: address.trim() || undefined,
+        notes: notes.trim() || undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['households'] })
+      addToast('success', `Household for ${headName.trim()} registered successfully.`)
+      navigate('/phc/households')
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
   const submitForm = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!headName.trim() || !village) {
-      addToast('error', 'Please fill Head of Family and Village')
+    if (!hhid.trim() || !headName.trim() || !village) {
+      addToast('error', 'Please fill Household ID, Head of Family and Village')
       return
     }
-    addToast('success', `Household for ${headName.trim()} registered successfully.`)
-    navigate('/phc/households')
+    createHousehold.mutate()
   }
+
+  const villageOptions = villages.data ?? []
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -62,25 +99,31 @@ export default function AddNewHouseholdPhcAdmin() {
                 <h3 className="text-headline-md font-bold text-on-surface">Household Information</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
-                <div className="md:col-span-2 flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="hhid">Household ID *</label>
+                  <input className={inputClsPad} id="hhid" placeholder="e.g. HH-2024-0001" type="text" value={hhid} onChange={(e) => setHhid(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
                   <label className="text-label-md text-on-surface-variant" htmlFor="headName">Head of Family *</label>
                   <input className={inputClsPad} id="headName" placeholder="Enter full name" type="text" value={headName} onChange={(e) => setHeadName(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-label-md text-on-surface-variant" htmlFor="village">Village *</label>
-                  <div className="relative">
-                    <select className={`${inputCls} appearance-none pr-10 border-gray-300`} id="village" value={village} onChange={(e) => setVillage(e.target.value)}>
-                      <option value="" disabled>Select village</option>
-                      <option value="Rampur">Rampur</option>
-                      <option value="Sitapur">Sitapur</option>
-                      <option value="Govindpur">Govindpur</option>
-                      <option value="Kalyanpur">Kalyanpur</option>
-                      <option value="Bishanpur">Bishanpur</option>
-                    </select>
-                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant pointer-events-none">
-                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                    </span>
-                  </div>
+                  <SearchableSelect
+                    id="village"
+                    label="Village *"
+                    required
+                    options={villageOptions.map((v) => ({ id: v.id, name: v.name, code: v.code }))}
+                    showCode
+                    value={village}
+                    onChange={setVillage}
+                    placeholder="Select village"
+                    loading={villages.isLoading}
+                    loadingLabel="Loading villages…"
+                    disabled={!phcId}
+                    disabledHint="No PHC assigned"
+                    emptyLabel="No villages configured"
+                    error={villages.isError ? 'Could not load villages. Please retry.' : undefined}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-label-md text-on-surface-variant" htmlFor="ward">Ward</label>
@@ -138,11 +181,12 @@ export default function AddNewHouseholdPhcAdmin() {
                 Cancel
               </button>
               <button
-                className="flex items-center justify-center gap-2 rounded-full bg-green-600 hover:bg-green-700 px-6 py-2 font-label-md text-label-md font-semibold text-white shadow-sm transition-colors active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 rounded-full bg-green-600 hover:bg-green-700 px-6 py-2 font-label-md text-label-md font-semibold text-white shadow-sm transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                 type="submit"
+                disabled={createHousehold.isPending}
               >
-                <span className="material-symbols-outlined text-[18px]">save</span>
-                Save Household
+                <span className="material-symbols-outlined text-[18px]">{createHousehold.isPending ? 'progress_activity' : 'save'}</span>
+                {createHousehold.isPending ? 'Saving…' : 'Save Household'}
               </button>
             </div>
           </form>

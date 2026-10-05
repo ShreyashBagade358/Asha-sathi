@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAppStore } from '@/stores/app.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 
 interface QuickAction {
@@ -30,12 +31,11 @@ export default function PatientHomePage() {
   const { t } = useLocalization()
   const { user } = useAuth()
   const { addToast } = useUIStore()
-  const patients = useAppStore((s) => s.patients)
   const appointments = useAppStore((s) => s.appointments)
   const healthRecords = useAppStore((s) => s.healthRecords)
   const childVaccines = useAppStore((s) => s.childVaccines)
 
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
   const firstName = user?.fullName?.split(' ')[0] || profile.name.split(' ')[0]
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
 

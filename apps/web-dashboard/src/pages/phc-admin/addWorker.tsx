@@ -1,21 +1,30 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/app.store'
 import { useUIStore } from '@/stores/ui.store'
 import { ashaService } from '@/services/asha.service'
+import { configService } from '@/services/config.service'
 import { isAxiosError } from 'axios'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
+import { CredentialsModal, type CredentialsValue } from '@/components/common/CredentialsModal'
+import { PhotoUploadField } from '@/components/common/PhotoUploadField'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
+import { userService } from '@/services/user.service'
+import { useAuth } from '@/hooks/useAuth'
 
 const inputCls =
   'h-12 w-full rounded-lg border border-outline bg-surface px-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary'
 
-const PHONE_RE = /^[6-9]\d{9}$/
+const PHONE_RE = /^\d{10}$/
 
 export default function AddNewAshaWorkerPhcAdmin() {
   const addAshaWorker = useAppStore((s) => s.addAshaWorker)
   const { addToast } = useUIStore()
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
+  const [credentials, setCredentials] = useState<CredentialsValue | null>(null)
+  const [photo, setPhoto] = useState<File | null>(null)
 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -29,11 +38,34 @@ export default function AddNewAshaWorkerPhcAdmin() {
   const [subcenter, setSubcenter] = useState('')
   const [doj, setDoj] = useState('')
 
+  const { user } = useAuth()
+  const phcId = user?.phcId
+
+  const phcQuery = useQuery({
+    queryKey: ['config', 'phc', phcId],
+    queryFn: () => configService.getPHC(phcId!),
+    enabled: Boolean(phcId),
+  })
+  const villagesQuery = useQuery({
+    queryKey: ['villages', phcId],
+    queryFn: () => configService.getVillages(phcId!),
+    enabled: Boolean(phcId),
+  })
+
+  const subCenters = (phcQuery.data?.sub_centers as Array<{ id: string; name: string }> | undefined) ?? []
+  const villageOptions = (villagesQuery.data ?? []).map((v) => ({ id: v.id, name: v.name, code: v.code }))
+
   const saveForm = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return addToast('error', 'Full Name is required')
     if (!PHONE_RE.test(phone.replace(/\s/g, ''))) {
-      return addToast('error', 'Enter a valid 10-digit mobile number starting with 6-9')
+      return addToast('error', 'Enter a valid 10-digit mobile number')
+    }
+    if (phcId && subCenters.length > 0 && !subcenter) {
+      return addToast('error', 'Select the reporting sub-centre')
+    }
+    if (phcId && villageOptions.length > 0 && !village) {
+      return addToast('error', 'Select the assigned village')
     }
     if (dob) {
       const age = (Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000)
@@ -48,7 +80,7 @@ export default function AddNewAshaWorkerPhcAdmin() {
 
     setSaving(true)
     try {
-      const created = await ashaService.createASHA({
+      const { asha, password } = await ashaService.createASHA({
         name: name.trim(),
         phone: phone.replace(/\D/g, ''),
         village: village || undefined,
@@ -61,9 +93,15 @@ export default function AddNewAshaWorkerPhcAdmin() {
         sub_center: subcenter || undefined,
         date_of_joining: doj || undefined,
       })
-      addAshaWorker(created)
-      addToast('success', `${created.name} registered. ASHA ID: ${created.ashaId}. They can now sign in with ${created.phone} using their password.`)
-      navigate('/phc/ashas')
+      addAshaWorker(asha)
+      if (photo) {
+        try {
+          await userService.uploadAvatar(asha.id, photo)
+        } catch {
+          addToast('error', 'The worker was registered, but their photo could not be uploaded.')
+        }
+      }
+      setCredentials({ name: asha.name, phone: asha.phone, password })
     } catch (err: unknown) {
       if (isAxiosError(err)) {
         const status = err.response?.status
@@ -112,12 +150,8 @@ export default function AddNewAshaWorkerPhcAdmin() {
           <form onSubmit={saveForm} className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-4 flex flex-col gap-6">
               <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center text-center">
-                <div className="w-32 h-32 rounded-full bg-surface-container border-2 border-dashed border-gray-300 flex flex-col items-center justify-center mb-4 cursor-pointer hover:bg-surface-container-high transition-colors group">
-                  <span className="material-symbols-outlined text-[32px] text-on-surface-variant group-hover:text-primary transition-colors">add_a_photo</span>
-                  <span className="text-caption text-on-surface-variant group-hover:text-primary transition-colors">Upload Photo</span>
-                </div>
-                <h3 className="text-headline-md text-on-surface">Profile Picture</h3>
-                <p className="text-caption text-on-surface-variant mt-1 mb-4">JPG or PNG. Max size 5MB.</p>
+                <PhotoUploadField file={photo} onFileChange={setPhoto} onError={(msg) => addToast('error', msg)} />
+                <h3 className="text-headline-md text-on-surface mt-2">Profile Picture</h3>
                 <span className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full mb-4">ASHA Worker</span>
                 <div className="w-full bg-surface-container-low rounded-lg p-3 border border-outline-variant flex items-center gap-3 mt-auto">
                   <span className="material-symbols-outlined text-secondary text-[20px]">verified_user</span>
@@ -133,16 +167,14 @@ export default function AddNewAshaWorkerPhcAdmin() {
                   <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
                   Credentials
                 </h3>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="username">Assigned Username / ID</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">person</span>
-                      </span>
-                      <input className={`${inputCls} pl-11`} id="username" placeholder="e.g. ASHA-1042" type="text" />
-                    </div>
-                    <p className="text-caption text-on-surface-variant">Auto-generated based on district code if left blank.</p>
+                <div className="flex items-start gap-3 rounded-lg bg-surface-container-low p-3 border border-outline-variant">
+                  <span className="material-symbols-outlined text-secondary text-[20px]">password</span>
+                  <div className="text-left">
+                    <span className="block text-label-md text-on-surface font-medium">Generated at save time</span>
+                    <span className="block text-caption text-on-surface-variant">
+                      Sign-in is the mobile number above plus a generated password. It is shown once when the worker is
+                      created — share it with them before leaving this page.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -237,38 +269,41 @@ export default function AddNewAshaWorkerPhcAdmin() {
                 <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
                   <span className="text-lg font-bold text-blue-600">3</span>
                   <h3 className="text-headline-md font-semibold text-on-surface">Work Assignment</h3>
+                  {user?.phcName && (
+                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-caption font-semibold text-primary">
+                      <span className="material-symbols-outlined text-[14px]">local_hospital</span>
+                      {user.phcName}
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-                  <div className="md:col-span-2 flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="subcenter">Reporting Sub-center *</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">local_hospital</span>
-                      </span>
-                      <select className={`${inputCls} pl-11 appearance-none pr-10`} id="subcenter" value={subcenter} onChange={(e) => setSubcenter(e.target.value)}>
-                        <option value="" disabled>Select Sub-center</option>
-                        <option value="Sub Center Khasra">Sub Center Khasra</option>
-                      </select>
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant pointer-events-none">
-                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="village">Assigned Village *</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">location_on</span>
-                      </span>
-                      <select className={`${inputCls} pl-11 appearance-none pr-10`} id="village" value={village} onChange={(e) => setVillage(e.target.value)}>
-                        <option value="" disabled>Select Village</option>
-                        <option value="Khasra">Khasra</option>
-                      </select>
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant pointer-events-none">
-                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                      </span>
-                    </div>
-                  </div>
+                  <SearchableSelect
+                    id="subcenter"
+                    label="Reporting Sub-center *"
+                    options={subCenters.map((s) => ({ id: s.id, name: s.name }))}
+                    value={subcenter}
+                    onChange={setSubcenter}
+                    placeholder="Select sub-centre"
+                    loading={phcQuery.isLoading}
+                    loadingLabel="Loading sub-centres…"
+                    disabled={!phcId}
+                    disabledHint="No PHC assigned"
+                    emptyLabel="This PHC has no sub-centres yet"
+                  />
+                  <SearchableSelect
+                    id="village"
+                    label="Assigned Village *"
+                    options={villageOptions}
+                    showCode
+                    value={village}
+                    onChange={setVillage}
+                    placeholder="Select village"
+                    loading={villagesQuery.isLoading}
+                    loadingLabel="Loading villages…"
+                    disabled={!phcId}
+                    disabledHint="No PHC assigned"
+                    emptyLabel="No villages configured — add one in Village Management"
+                  />
                   <div className="flex flex-col gap-1">
                     <label className="text-label-md text-on-surface-variant" htmlFor="doj">Date of Joining *</label>
                     <div className="relative">
@@ -311,6 +346,13 @@ export default function AddNewAshaWorkerPhcAdmin() {
           </form>
         </div>
       </main>
+      <CredentialsModal
+        value={credentials}
+        onClose={() => {
+          setCredentials(null)
+          navigate('/phc/ashas')
+        }}
+      />
     </div>
   )
 }

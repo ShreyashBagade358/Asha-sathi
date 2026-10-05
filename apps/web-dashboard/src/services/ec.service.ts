@@ -74,15 +74,6 @@ export const ecService = {
     return mapPaginated({ ...data, items: data.items.map(mapEC) })
   },
 
-  async createEligibleCouple(payload: CreateEligibleCouplePayload): Promise<EligibleCouple> {
-    const { data } = await api.post<RawEC>('/eligible-couples', {
-      husband_id: payload.husbandId,
-      wife_id: payload.wifeId,
-      current_method: payload.currentMethod,
-      registration_date: payload.registrationDate,
-    })
-    return mapEC(data)
-  },
 
   async deleteEligibleCouple(id: string): Promise<void> {
     await api.delete(`/eligible-couples/${id}`)

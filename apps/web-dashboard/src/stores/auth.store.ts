@@ -2,7 +2,22 @@ import { create } from 'zustand'
 import { isAxiosError } from 'axios'
 import { clearSession, readTokens, writeTokens } from '@/lib/api'
 import { authService } from '@/services/auth.service'
+import { profileService } from '@/services/profile.service'
 import type { User } from '@/types'
+
+/**
+ * The login response is a summary with no geo scope, so pages that need
+ * `user.phcId` (village/household/patient forms) would otherwise never get one.
+ * Best-effort: a failed refresh must not block the sign-in itself.
+ */
+async function withGeoScope(user: User): Promise<User> {
+  if (user.phcId) return user
+  try {
+    return await profileService.getMe()
+  } catch {
+    return user
+  }
+}
 
 function authErrorMessage(err: unknown, fallback: string): string {
   if (isAxiosError(err)) {
@@ -37,8 +52,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const res = await authService.login(phone, password)
       writeTokens(res.tokens.accessToken, res.tokens.refreshToken)
-      set({ user: res.user, token: res.tokens.accessToken, isAuthenticated: true })
-      return res.user
+      const user = await withGeoScope(res.user)
+      set({ user, token: res.tokens.accessToken, isAuthenticated: true })
+      return user
     } catch (err) {
       // The API returns one message for both an unknown phone and a wrong
       // password, so this copy must not imply which one it was.
@@ -60,7 +76,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ isHydrating: true })
     try {
-      const user = await authService.getMe()
+      const user = await profileService.getMe()
       set({ user, token, isAuthenticated: true })
     } catch {
       clearSession()
@@ -72,8 +88,3 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setUser: (user) => set({ user, isAuthenticated: true }),
 }))
-
-export function useAuthHydrate(): void {
-  const hydrate = useAuthStore((s) => s.hydrate)
-  hydrate()
-}

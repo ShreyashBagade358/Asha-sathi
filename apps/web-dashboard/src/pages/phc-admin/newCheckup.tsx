@@ -57,7 +57,7 @@ export default function NewHealthCheckUpPhcAdmin() {
   const pregItems = pregnancies.data?.items ?? []
   const benMap = new Map((beneficiaries.data?.items ?? []).map((b) => [b.id, b]))
 
-  const activePregnancies = pregItems.filter((p) => p.status === 'active')
+  const activePregnancies = pregItems.filter((p) => p.status === 'ongoing')
   const selected = pregItems.find((p) => p.id === pregnancyId)
   const selectedBen = selected ? benMap.get(selected.beneficiaryId) : undefined
 

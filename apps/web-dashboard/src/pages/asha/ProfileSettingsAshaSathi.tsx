@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useUIStore } from '@/stores/ui.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { profileService } from '@/services/profile.service'
+import { ashaService } from '@/services/asha.service'
+import { configService } from '@/services/config.service'
+import { getErrorMessage } from '@/components/common/ErrorState'
 
 interface SettingRow {
   key: string
@@ -37,9 +43,10 @@ function Toggle({ on }: { on: boolean }) {
 }
 
 export default function ProfileSettingsAshaSathi() {
-  const { t } = useLocalization()
+  const { t, setLocale } = useLocalization()
   const { user, logout } = useAuth()
   const { addToast } = useUIStore()
+  const setUser = useAuthStore((s) => s.setUser)
 
   const [settings, setSettings] = useState<Record<string, boolean>>({
     offlineMode: true,
@@ -49,19 +56,73 @@ export default function ProfileSettingsAshaSathi() {
     dataSaver: false,
   })
 
+  const updateLanguageMutation = useMutation({
+    mutationFn: (lang: 'en' | 'hi') => profileService.updateMe({ language: lang }),
+    onSuccess: (_updated, lang) => {
+      if (user) setUser({ ...user, language: lang })
+      setLocale(lang)
+      addToast('success', 'Setting updated')
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
   const fullName = user?.fullName ?? 'ASHA Worker'
   const role = user?.role.replace('_', ' ') ?? 'asha'
+
+  // Resolve catchment ids / block id to names (UserResponse carries ids only).
+  const myProfileQuery = useQuery({
+    queryKey: ['asha-me-profile'],
+    queryFn: () => ashaService.getMyProfile(),
+    enabled: user?.role === 'asha',
+  })
+  const phcVillagesQuery = useQuery({
+    queryKey: ['villages', user?.phcId],
+    queryFn: () => configService.getVillages(user!.phcId!),
+    enabled: user?.role === 'asha' && !!user?.phcId,
+  })
+  const blocksQuery = useQuery({
+    queryKey: ['config', 'blocks', user?.districtId],
+    queryFn: () => configService.getBlocks(user!.districtId!),
+    enabled: !!user?.districtId,
+  })
+
+  const catchmentIds = myProfileQuery.data?.catchmentVillages ?? []
+  const villageNames = catchmentIds
+    .map((id) => phcVillagesQuery.data?.find((v) => v.id === id)?.name)
+    .filter((n): n is string => Boolean(n))
+  const blockName = user?.blockId
+    ? blocksQuery.data?.find((b) => b.id === user.blockId)?.name
+    : undefined
 
   const rows = [
     { label: t('common.phone'), value: user?.phone ?? '—' },
     { label: t('asha.primaryLanguage'), value: user?.language === 'hi' ? t('asha.hindi') : 'English' },
     { label: t('common.state'), value: user?.stateName ?? user?.stateId ?? '—' },
     { label: t('common.district'), value: user?.districtName ?? user?.districtId ?? '—' },
+    {
+      label: t('common.block'),
+      value: blockName ?? (user?.blockId && blocksQuery.isLoading ? '…' : '—'),
+    },
     { label: t('common.phc'), value: user?.phcName ?? user?.phcId ?? '—' },
-    { label: t('nav.villages'), value: user?.villages?.length ? user.villages.join(', ') : '—' },
+    {
+      label: t('nav.villages'),
+      value: villageNames.length
+        ? villageNames.join(', ')
+        : myProfileQuery.isLoading || phcVillagesQuery.isLoading
+          ? '…'
+          : '—',
+    },
   ]
 
   const toggleSetting = (key: string) => {
+    if (key === 'language') {
+      if (updateLanguageMutation.isPending) return
+      const next = !settings.language
+      updateLanguageMutation.mutate(next ? 'hi' : 'en', {
+        onSuccess: () => setSettings((prev) => ({ ...prev, language: next })),
+      })
+      return
+    }
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }))
     addToast('success', 'Setting updated')
   }
@@ -71,7 +132,7 @@ export default function ProfileSettingsAshaSathi() {
       <PageHeader
         title={t('asha.profileTitle')}
         subtitle={t('asha.profileSubtitle')}
-        breadcrumbs={[{ label: t('asha.profileTitle') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.profileTitle') }]}
       />
 
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-card">

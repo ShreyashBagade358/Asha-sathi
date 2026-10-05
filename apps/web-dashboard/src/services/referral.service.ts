@@ -4,6 +4,7 @@ import type { Paginated, Referral } from '@/types'
 export interface ReferralListParams {
   status?: string
   referralType?: string
+  beneficiaryId?: string
   page?: number
   pageSize?: number
 }
@@ -64,6 +65,7 @@ export const referralService = {
       params: {
         status: params.status,
         referral_type: params.referralType,
+        beneficiary_id: params.beneficiaryId,
         page: params.page ?? 1,
         page_size: params.pageSize ?? 10,
       },
@@ -89,10 +91,6 @@ export const referralService = {
     return mapReferral(data)
   },
 
-  async updateReferral(id: string, patch: Partial<CreateReferralPayload>): Promise<Referral> {
-    const { data } = await api.put<RawReferral>(`/referrals/${id}`, patch)
-    return mapReferral(data)
-  },
 
   async acceptReferral(id: string): Promise<Referral> {
     const { data } = await api.post<RawReferral>(`/referrals/${id}/accept`)

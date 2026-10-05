@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { StatusChip } from 'asha-design-system'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
@@ -7,6 +8,7 @@ import { useUIStore, type Toast } from '@/stores/ui.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { SearchModal } from '@/components/layout/SearchModal'
 import { ProfilePanel } from '@/components/layout/ProfilePanel'
+import { notificationService } from '@/services/notification.service'
 import type { Role } from '@/types'
 
 const HEADER_ICON_BUTTON =
@@ -125,12 +127,6 @@ const ROLE_SECTIONS: Record<Role, string[]> = {
   admin: ['admin'],
   patient: ['patient'],
 }
-
-const SAMPLE_NOTIFICATIONS = [
-  { id: 'n1', tone: 'danger' as const, title: 'HRP escalation', message: 'Sunita Devi (Rampur) BP 160/100' },
-  { id: 'n2', tone: 'warning' as const, title: 'Stockout alert', message: 'Inj. Oxytocin below threshold at PHC' },
-  { id: 'n3', tone: 'info' as const, title: 'Sync failure', message: 'ASHA Saroj Yadav failed to sync' },
-]
 
 interface BreadcrumbDef {
   labelKey: string
@@ -542,6 +538,13 @@ function TopAppBar({
   const bellRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  const { data: notificationData } = useQuery({
+    queryKey: ['notifications', 'header'],
+    queryFn: () => notificationService.listNotifications({ page: 1, pageSize: 8 }),
+  })
+  const notifications = notificationData?.items ?? []
+  const unreadCount = notifications.filter((n) => !n.read).length
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false)
@@ -568,9 +571,9 @@ function TopAppBar({
 
       <div className="min-w-0 flex-1">
         <h2 className="truncate font-headline-md text-headline-md leading-tight text-on-surface">{title}</h2>
-        {breadcrumbs && breadcrumbs.length > 0 ? (
+        {breadcrumbs && breadcrumbs.length > 1 ? (
           <nav className="mt-0.5 hidden min-w-0 items-center gap-1 text-label-md text-on-surface-variant sm:flex" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, i) => (
+            {breadcrumbs.slice(0, -1).map((crumb, i) => (
               <span key={i} className="flex min-w-0 items-center gap-1">
                 {i > 0 ? <Icon name="chevronRight" size={14} className="shrink-0" /> : null}
                 {crumb.to ? (
@@ -638,25 +641,31 @@ function TopAppBar({
           >
             <Icon name="bell" size={22} />
             <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-4 text-on-error ring-2 ring-surface-container-lowest">
-              {SAMPLE_NOTIFICATIONS.length}
+              {unreadCount}
             </span>
           </button>
           {bellOpen ? (
             <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-lg bg-surface-container-lowest shadow-modal">
               <p className="border-b border-outline-variant px-4 py-3 text-label-lg text-on-surface">{t('nav.alerts')}</p>
               <ul className="max-h-72 divide-y divide-outline-variant overflow-y-auto">
-                {SAMPLE_NOTIFICATIONS.map((n) => (
-                  <li key={n.id} className="flex items-start gap-3 px-4 py-3">
-                    <StatusChip
-                      status={n.tone === 'danger' ? 'danger' : n.tone === 'warning' ? 'warning' : 'info'}
-                      label={n.tone}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-body-md font-semibold text-on-surface">{n.title}</p>
-                      <p className="text-body-md text-on-surface-variant">{n.message}</p>
-                    </div>
+                {notifications.length === 0 ? (
+                  <li className="px-4 py-6 text-center text-body-md text-on-surface-variant">
+                    {t('common.noResults')}
                   </li>
-                ))}
+                ) : (
+                  notifications.map((n) => (
+                    <li key={n.id} className="flex items-start gap-3 px-4 py-3">
+                      <StatusChip
+                        status={n.type === 'alert' ? 'danger' : n.type === 'incentive' ? 'warning' : 'info'}
+                        label={n.type}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-body-md font-semibold text-on-surface">{n.title}</p>
+                        <p className="text-body-md text-on-surface-variant">{n.message}</p>
+                      </div>
+                    </li>
+                  ))
+                )}
               </ul>
               {user?.role === 'asha' || user?.role === 'patient' ? (
                 <Link

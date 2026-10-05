@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ASHAButton, ASHACard, StatusChip } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Icon } from '@/components/common/Icons'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { configService } from '@/services/config.service'
+
+const CONFIG_KEY = 'policy_config'
 
 const DEFAULT_CONFIG = {
-  state: 'Bihar',
+  state: 'Uttar Pradesh',
   policy: {
     hrpReferralThresholdBp: '>=140/90',
     hrpReferralThresholdHb: '<7.0',
@@ -43,11 +48,26 @@ type ConfigShape = typeof DEFAULT_CONFIG
 export default function PolicyConfigPage() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
-  const [json, setJson] = useState(() => JSON.stringify(DEFAULT_CONFIG, null, 2))
+  const queryClient = useQueryClient()
+  const [json, setJson] = useState<string | null>(null)
   const [config, setConfig] = useState<ConfigShape>(DEFAULT_CONFIG)
   const [valid, setValid] = useState(true)
 
+  const configQuery = useQuery({
+    queryKey: ['app-config'],
+    queryFn: () => configService.getFullAppConfig(),
+  })
+
   useEffect(() => {
+    if (json !== null || !configQuery.data) return
+    const row = configQuery.data.find((entry) => entry.key === CONFIG_KEY)
+    const value = (row?.value as ConfigShape | undefined) ?? DEFAULT_CONFIG
+    setConfig(value)
+    setJson(JSON.stringify(value, null, 2))
+  }, [configQuery.data, json])
+
+  useEffect(() => {
+    if (json === null) return
     try {
       const parsed = JSON.parse(json) as ConfigShape
       setValid(true)
@@ -56,6 +76,15 @@ export default function PolicyConfigPage() {
       setValid(false)
     }
   }, [json])
+
+  const saveMutation = useMutation({
+    mutationFn: () => configService.putAppConfig([{ key: CONFIG_KEY, value: config }]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-config'] })
+      addToast('success', t('state.configSaved'))
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
 
   const toggleFlag = (key: string) => {
     const next = { ...config, features: { ...config.features, [key]: !config.features[key as keyof ConfigShape['features']] } }
@@ -68,7 +97,7 @@ export default function PolicyConfigPage() {
       addToast('error', t('state.configInvalid'))
       return
     }
-    addToast('success', t('state.configSaved'))
+    saveMutation.mutate()
   }
 
   return (
@@ -78,28 +107,46 @@ export default function PolicyConfigPage() {
         subtitle={t('state.policyConfigSubtitle')}
         breadcrumbs={[{ label: t('nav.dashboard'), to: '/state/dashboard' }, { label: t('nav.policyConfig') }]}
         actions={
-          <ASHAButton fullWidth={false} icon={<Icon name="save" size={16} />} onClick={handleSave} disabled={!valid} label={t('state.saveConfig')} />
+          <ASHAButton
+            fullWidth={false}
+            icon={<Icon name="save" size={16} />}
+            onClick={handleSave}
+            disabled={!valid || saveMutation.isPending}
+            label={saveMutation.isPending ? t('common.loading') : t('state.saveConfig')}
+          />
         }
       />
 
       <div className="grid grid-cols-1 gap-6 desktop:grid-cols-2">
         <ASHACard title={t('state.configJson')}>
-          <textarea
-            value={json}
-            onChange={(e) => setJson(e.target.value)}
-            spellCheck={false}
-            className={`h-[420px] w-full rounded-md border bg-surface-container-lowest p-3 font-mono text-body-md text-on-surface outline-none focus:border-primary ${valid ? 'border-outline' : 'border-error'}`}
-          />
-          <div className="mt-3 flex items-center gap-3">
-            <StatusChip status={valid ? 'success' : 'danger'} label={valid ? 'Valid JSON' : t('state.configInvalid')} />
-            <ASHAButton variant="outline" fullWidth={false} icon={<Icon name="refresh" size={16} />} onClick={() => setJson(JSON.stringify(DEFAULT_CONFIG, null, 2))} label={t('state.validateConfig')} />
-          </div>
+          {configQuery.isPending && json === null ? (
+            <p className="text-body-md text-on-surface-variant">{t('common.loading')}</p>
+          ) : (
+            <>
+              <textarea
+                value={json ?? ''}
+                onChange={(e) => setJson(e.target.value)}
+                spellCheck={false}
+                className={`h-[420px] w-full rounded-md border bg-surface-container-lowest p-3 font-mono text-body-md text-on-surface outline-none focus:border-primary ${valid ? 'border-outline' : 'border-error'}`}
+              />
+              <div className="mt-3 flex items-center gap-3">
+                <StatusChip status={valid ? 'success' : 'danger'} label={valid ? 'Valid JSON' : t('state.configInvalid')} />
+                <ASHAButton
+                  variant="outline"
+                  fullWidth={false}
+                  icon={<Icon name="refresh" size={16} />}
+                  onClick={() => setJson(JSON.stringify(DEFAULT_CONFIG, null, 2))}
+                  label={t('state.validateConfig')}
+                />
+              </div>
+            </>
+          )}
         </ASHACard>
 
         <ASHACard title={t('state.featureFlags')}>
           <div className="space-y-3">
             {FEATURE_FLAGS.map((flag) => {
-              const enabled = config.features[flag.key as keyof ConfigShape['features']]
+              const enabled = Boolean(config.features?.[flag.key as keyof ConfigShape['features']])
               return (
                 <div key={flag.key} className="flex items-center justify-between rounded-md border border-outline-variant px-3 py-2.5">
                   <div>
@@ -125,19 +172,19 @@ export default function PolicyConfigPage() {
             <div className="grid grid-cols-2 gap-3 text-label-md text-on-surface-variant">
               <div>
                 <p>HRP referral BP</p>
-                <p className="font-mono text-on-surface">{config.policy.hrpReferralThresholdBp}</p>
+                <p className="font-mono text-on-surface">{config.policy?.hrpReferralThresholdBp ?? '—'}</p>
               </div>
               <div>
                 <p>HRP referral Hb</p>
-                <p className="font-mono text-on-surface">{config.policy.hrpReferralThresholdHb}</p>
+                <p className="font-mono text-on-surface">{config.policy?.hrpReferralThresholdHb ?? '—'}</p>
               </div>
               <div>
                 <p>Institutional delivery ₹</p>
-                <p className="font-mono text-on-surface">{config.policy.cashIncentive.institutionalDelivery}</p>
+                <p className="font-mono text-on-surface">{config.policy?.cashIncentive?.institutionalDelivery ?? '—'}</p>
               </div>
               <div>
                 <p>ANC4 completion ₹</p>
-                <p className="font-mono text-on-surface">{config.policy.cashIncentive.anc4Completion}</p>
+                <p className="font-mono text-on-surface">{config.policy?.cashIncentive?.anc4Completion ?? '—'}</p>
               </div>
             </div>
           </div>

@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
+import { useAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/stores/ui.store'
 import { useASHAStore } from '@/stores/asha.store'
+import { householdService } from '@/services/household.service'
+import { referralService } from '@/services/referral.service'
+import { pregnancyService } from '@/services/pregnancy.service'
+import { diseaseService } from '@/services/disease.service'
 import { Icon } from '@/components/common/Icons'
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
+import { EmptyState } from '@/components/common/EmptyState'
 import type { RiskLevel } from '@/pages/asha/mockData'
 
 type Tab = 'summary' | 'history' | 'maternal' | 'vaccination' | 'referrals'
@@ -15,24 +21,57 @@ const riskStyles: Record<RiskLevel, string> = {
   high: 'bg-error-container text-on-error-container',
 }
 
-const householdMembers = [
-  { id: 'h1', initials: 'RK', name: 'Ram Kumar', meta: 'asha.husband', icon: 'users' as const },
-  { id: 'h2', initials: 'AK', name: 'Aarav Kumar', meta: 'asha.son', icon: 'users' as const, highlighted: true },
-]
-
-const referralLog = [
-  { id: 'r1', title: 'Referred to District Hospital', date: '15 Oct 2023', note: 'Severe anemia — Gynaecology OPD' },
-  { id: 'r2', title: 'ANM Visit Scheduled', date: '12 Oct 2023', note: 'Routine home visit' },
-]
+function formatReferralDate(value: string | undefined): string {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function PatientDetailsAshaSathi() {
   const { t } = useLocalization()
+  const { user } = useAuth()
   const { addToast } = useUIStore()
   const patients = useASHAStore((s) => s.patients)
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState<Tab>('summary')
 
   const patient = patients.find((p) => p.id === id) ?? patients[0]
+
+  const { data: memberData, isLoading: membersLoading } = useQuery({
+    queryKey: ['household-members', patient?.householdId],
+    queryFn: () => householdService.listHouseholdMembers(patient!.householdId!, { pageSize: 50 }),
+    enabled: Boolean(patient?.householdId),
+  })
+  const householdMembers = memberData?.items ?? []
+
+  const { data: referralData, isLoading: referralsLoading } = useQuery({
+    queryKey: ['patient-referrals', patient?.beneficiaryId],
+    queryFn: () => referralService.listReferrals({ beneficiaryId: patient!.beneficiaryId!, pageSize: 50 }),
+    enabled: Boolean(patient?.beneficiaryId),
+  })
+  const referralLog = referralData?.items ?? []
+
+  const { data: pregnancyData, isLoading: pregnancyLoading } = useQuery({
+    queryKey: ['patient-pregnancy', patient?.beneficiaryId],
+    queryFn: () => pregnancyService.listPregnancies({ status: 'all', beneficiaryId: patient!.beneficiaryId!, pageSize: 10 }),
+    enabled: Boolean(patient?.beneficiaryId),
+  })
+  const activePregnancy = (pregnancyData?.items ?? []).find((p) => p.status === 'ongoing') ?? null
+
+  const { data: ancVisits } = useQuery({
+    queryKey: ['patient-anc', activePregnancy?.id],
+    queryFn: () => pregnancyService.listANCVisits(activePregnancy!.id),
+    enabled: Boolean(activePregnancy?.id),
+  })
+  const ancCount = ancVisits?.length ?? 0
+
+  const { data: diseaseData, isLoading: diseasesLoading } = useQuery({
+    queryKey: ['patient-disease-cases', patient?.beneficiaryId],
+    queryFn: () => diseaseService.listDiseaseCases({ beneficiaryId: patient!.beneficiaryId!, pageSize: 50 }),
+    enabled: Boolean(patient?.beneficiaryId),
+  })
+  const diseaseCases = diseaseData?.items ?? []
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'summary', label: t('asha.tabSummary') },
@@ -44,10 +83,6 @@ export default function PatientDetailsAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <Breadcrumbs
-        items={[{ label: t('nav.ashaPatients'), to: '/asha/patients' }, { label: t('nav.patientDetails') }]}
-      />
-
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex flex-wrap items-center gap-3 font-headline-lg text-headline-lg font-bold text-on-surface">
@@ -177,26 +212,42 @@ export default function PatientDetailsAshaSathi() {
                 </button>
               </div>
               <div className="flex flex-col gap-2">
-                {householdMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="relative flex items-center gap-2 overflow-hidden rounded-lg border border-outline-variant p-3 transition-colors hover:bg-surface-container-lowest"
-                  >
-                    {member.highlighted ? <span className="absolute bottom-0 left-0 top-0 w-1 bg-secondary" /> : null}
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container font-label-md font-bold text-primary">
-                      {member.initials}
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-label-md text-label-md text-on-surface">{member.name}</p>
-                      <p className="font-caption text-caption text-on-surface-variant">{t(member.meta)}</p>
+                {!patient?.householdId ? (
+                  <p className="rounded-lg border border-outline-variant/50 bg-surface-container p-3 font-caption text-caption text-on-surface-variant">
+                    {t('asha.patientNoHousehold')}
+                  </p>
+                ) : membersLoading ? (
+                  <p className="p-3 font-caption text-caption text-on-surface-variant">{t('asha.loadingMembers')}</p>
+                ) : householdMembers.length === 0 ? (
+                  <p className="rounded-lg border border-outline-variant/50 bg-surface-container p-3 font-caption text-caption text-on-surface-variant">
+                    {t('asha.noMembersRecorded')}
+                  </p>
+                ) : (
+                  householdMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="relative flex items-center gap-2 overflow-hidden rounded-lg border border-outline-variant p-3 transition-colors hover:bg-surface-container-lowest"
+                    >
+                      {member.isPregnant ? <span className="absolute bottom-0 left-0 top-0 w-1 bg-secondary" /> : null}
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container font-label-md font-bold text-primary">
+                        {(member.fullName.charAt(0) || '?').toUpperCase()}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-label-md text-label-md text-on-surface">{member.fullName}</p>
+                        <p className="font-caption text-caption text-on-surface-variant">
+                          {[member.gender, member.ageYears ? `${member.ageYears} yrs` : null, member.isPregnant ? t('asha.pregnantLabel') : null]
+                            .filter(Boolean)
+                            .join(' · ') || t('common.notRecorded')}
+                        </p>
+                      </div>
+                      {member.isPregnant ? (
+                        <Icon name="checkCircle" size={18} className="text-secondary" />
+                      ) : (
+                        <Icon name="chevronRight" size={18} className="text-on-surface-variant" />
+                      )}
                     </div>
-                    {member.highlighted ? (
-                      <Icon name="checkCircle" size={18} className="text-secondary" />
-                    ) : (
-                      <Icon name="chevronRight" size={18} className="text-on-surface-variant" />
-                    )}
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -204,11 +255,13 @@ export default function PatientDetailsAshaSathi() {
               <p className="mb-2 font-caption text-caption text-on-surface-variant">{t('asha.assignedWorker')}</p>
               <div className="flex items-center gap-2">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary font-label-lg font-bold text-on-primary">
-                  M
+                  {(user?.fullName.charAt(0) || '?').toUpperCase()}
                 </span>
                 <div>
-                  <p className="font-label-md text-label-md text-on-surface">{t('asha.workerName')}</p>
-                  <p className="font-caption text-caption text-on-surface-variant">{t('asha.workerWard')}</p>
+                  <p className="font-label-md text-label-md text-on-surface">{user?.fullName ?? t('common.notRecorded')}</p>
+                  <p className="font-caption text-caption text-on-surface-variant">
+                    {[user?.phcName, user?.districtName].filter(Boolean).join(', ') || t('common.notRecorded')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -223,18 +276,23 @@ export default function PatientDetailsAshaSathi() {
             {t('asha.medicalHistory')}
           </h3>
           <div className="flex flex-col gap-3">
-            {patient.activeConditions.map((condition, i) => (
-              <div key={condition} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${i === 0 ? 'bg-error' : 'bg-secondary'}`} />
-                <div>
-                  <p className="font-body-md text-body-md font-semibold text-on-surface">{condition}</p>
-                  <p className="font-caption text-caption text-on-surface-variant">{t('asha.diagnosed')}</p>
-                </div>
-              </div>
-            ))}
-            {patient.activeConditions.length === 0 ? (
+            {diseasesLoading ? (
+              <p className="font-caption text-caption text-on-surface-variant">{t('asha.loadingHistory')}</p>
+            ) : diseaseCases.length === 0 ? (
               <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.noConditions')}</p>
-            ) : null}
+            ) : (
+              diseaseCases.map((condition, i) => (
+                <div key={condition.id} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${i === 0 ? 'bg-error' : 'bg-secondary'}`} />
+                  <div>
+                    <p className="font-body-md text-body-md font-semibold text-on-surface">{condition.diseaseType}</p>
+                    <p className="font-caption text-caption text-on-surface-variant">
+                      {condition.diagnosisDate ? t('asha.diagnosedOn', { date: formatReferralDate(condition.diagnosisDate) }) : t('common.notRecorded')}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       ) : null}
@@ -245,12 +303,17 @@ export default function PatientDetailsAshaSathi() {
             <Icon name="heart" size={20} className="text-primary" />
             {t('asha.maternalHealth')}
           </h3>
-          {patient.pregnant ? (
+          {pregnancyLoading ? (
+            <p className="font-body-md text-body-md text-on-surface-variant">{t('asha.loadingMaternal')}</p>
+          ) : activePregnancy ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { label: t('asha.trimester'), value: patient.trimester ?? '—' },
-                { label: t('asha.ancVisits'), value: '4 / 8' },
-                { label: t('asha.edd'), value: '10 Jan 2024' },
+                { label: t('asha.lmp'), value: formatReferralDate(activePregnancy.lmp) },
+                { label: t('asha.edd'), value: formatReferralDate(activePregnancy.edd) },
+                { label: t('asha.ancVisits'), value: `${ancCount} / 8` },
+                { label: t('asha.gravidaPara'), value: `G${activePregnancy.gravida} P${activePregnancy.para}` },
+                { label: t('asha.pregnancyStatus'), value: activePregnancy.status },
+                { label: t('asha.riskLevel'), value: activePregnancy.hrpLevel ?? (activePregnancy.highRisk ? t('asha.high') : t('asha.low')) },
               ].map((row) => (
                 <div key={row.label} className="rounded-lg border border-outline-variant/50 bg-surface-container p-4">
                   <p className="font-caption text-caption text-on-surface-variant">{row.label}</p>
@@ -288,18 +351,32 @@ export default function PatientDetailsAshaSathi() {
             {t('asha.referrals')}
           </h3>
           <div className="flex flex-col gap-3">
-            {referralLog.map((entry) => (
-              <div key={entry.id} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
-                <Icon name="chevronRight" size={18} className="mt-1 text-primary" />
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-body-md text-body-md font-semibold text-on-surface">{entry.title}</p>
-                    <span className="whitespace-nowrap font-caption text-caption text-on-surface-variant">{entry.date}</span>
+            {referralsLoading ? (
+              <p className="font-caption text-caption text-on-surface-variant">{t('asha.loadingReferrals')}</p>
+            ) : referralLog.length === 0 ? (
+              <EmptyState
+                title={t('asha.noReferralsForPatient')}
+                description={t('asha.noReferralsForPatientDesc')}
+                icon="referral"
+              />
+            ) : (
+              referralLog.map((entry) => (
+                <div key={entry.id} className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+                  <Icon name="chevronRight" size={18} className="mt-1 text-primary" />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-body-md text-body-md font-semibold text-on-surface">
+                        {entry.toFacility || t('asha.refToUnspecified')}
+                      </p>
+                      <span className="whitespace-nowrap font-caption text-caption text-on-surface-variant">
+                        {formatReferralDate(entry.referredAt)}
+                      </span>
+                    </div>
+                    <p className="font-body-md text-body-md text-on-surface-variant">{entry.reason || t('common.notRecorded')}</p>
                   </div>
-                  <p className="font-body-md text-body-md text-on-surface-variant">{entry.note}</p>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       ) : null}

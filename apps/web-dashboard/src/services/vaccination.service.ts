@@ -53,8 +53,9 @@ export const vaccinationService = {
   },
 
   async getDueVaccinations(): Promise<VaccinationDose[]> {
-    const { data } = await api.get<RawDueItem[]>('/vaccination/due')
-    return data.map((d) => ({
+    // The endpoint returns an envelope, not a bare array.
+    const { data } = await api.get<{ count: number; due: RawDueItem[] }>('/vaccination/due')
+    return (data.due ?? []).map((d) => ({
       id: `${d.child_id}-${d.vaccine_code}`,
       childId: d.child_id ?? '',
       childName: d.child_name,

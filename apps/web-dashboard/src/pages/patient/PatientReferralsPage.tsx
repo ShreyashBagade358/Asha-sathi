@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAppStore } from '@/stores/app.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { PatientReferralStatus, PatientReferralUrgency } from '@/pages/patient/mockData'
@@ -23,10 +24,9 @@ export default function PatientReferralsPage() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
   const referrals = useAppStore((s) => s.referrals)
-  const patients = useAppStore((s) => s.patients)
   const [filter, setFilter] = useState<'all' | PatientReferralStatus>('all')
 
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
   const myReferrals = referrals.filter((r) => r.patientName === profile.name)
 
   const visible = myReferrals.filter((r) => (filter === 'all' ? true : r.status === filter))
@@ -43,7 +43,6 @@ export default function PatientReferralsPage() {
       <PageHeader
         title={t('patient.referralsTitle')}
         subtitle={t('patient.referralsSubtitle')}
-        breadcrumbs={[{ label: t('patient.referralsTitle') }]}
         actions={
           <button
             type="button"

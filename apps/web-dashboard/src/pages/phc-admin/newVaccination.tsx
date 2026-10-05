@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { vaccinationService } from '@/services/vaccination.service'
 import { childService } from '@/services/child.service'
+import { useUIStore } from '@/stores/ui.store'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -19,6 +20,7 @@ function formatDate(iso?: string): string {
 
 export default function NewVaccinationPhcAdmin() {
   const qc = useQueryClient()
+  const { addToast } = useUIStore()
   const [selectedId, setSelectedId] = useState('')
   const [note, setNote] = useState('')
 
@@ -36,6 +38,7 @@ export default function NewVaccinationPhcAdmin() {
         doseNumber: selected!.doseNumber,
         status: 'given',
         givenDate: new Date().toISOString(),
+        batchNumber: note.trim() || undefined,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vaccination'] })
@@ -43,6 +46,7 @@ export default function NewVaccinationPhcAdmin() {
       setNote('')
       setSelectedId('')
     },
+    onError: (err) => addToast('error', getErrorMessage(err)),
   })
 
   if (due.isLoading) {
@@ -136,7 +140,7 @@ export default function NewVaccinationPhcAdmin() {
                       <textarea
                         rows={2}
                         className="w-full rounded-lg border border-outline bg-surface px-4 py-3 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-outline resize-none"
-                        placeholder="Batch number, remarks (optional)…"
+                        placeholder="Vaccine batch number (optional)…"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                       />

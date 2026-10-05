@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAppStore } from '@/stores/app.store'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { HealthRecordCategory } from '@/pages/patient/mockData'
@@ -20,10 +21,9 @@ export default function PatientHealthRecordsPage() {
   const healthRecords = useAppStore((s) => s.healthRecords)
   const pregnancies = useAppStore((s) => s.pregnancies)
   const children = useAppStore((s) => s.children)
-  const patients = useAppStore((s) => s.patients)
   const [filter, setFilter] = useState<TabKey>('all')
 
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
   const pregnancy = pregnancies.find((p) => p.patientName === profile.name)
   const childRecords = children.filter((c) => c.village === profile.village)
 
@@ -41,7 +41,6 @@ export default function PatientHealthRecordsPage() {
       <PageHeader
         title={t('patient.recordsTitle')}
         subtitle={t('patient.recordsSubtitle')}
-        breadcrumbs={[{ label: t('patient.recordsTitle') }]}
       />
 
       {pregnancy || childRecords.length > 0 ? (

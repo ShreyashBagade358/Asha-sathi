@@ -17,12 +17,19 @@ export default function AddVillagePhcAdmin() {
   const phcId = user?.phcId
 
   const [form, setForm] = useState({ name: '', code: '', households: '', population: '' })
+  const [search, setSearch] = useState('')
 
   const villages = useQuery({
     queryKey: ['villages', phcId],
     queryFn: () => configService.getVillages(phcId!),
     enabled: Boolean(phcId),
   })
+
+  const allVillages = villages.data ?? []
+  const query = search.trim().toLowerCase()
+  const filteredVillages = query
+    ? allVillages.filter((v) => v.name.toLowerCase().includes(query) || (v.code ?? '').toLowerCase().includes(query))
+    : allVillages
 
   const create = useMutation({
     mutationFn: () =>
@@ -142,15 +149,28 @@ export default function AddVillagePhcAdmin() {
           </div>
 
           <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-outline-variant flex justify-between items-center">
-              <h3 className="text-headline-md text-on-surface">Villages ({villages.data?.length ?? 0})</h3>
+            <div className="px-5 py-3 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-headline-md text-on-surface">Villages ({allVillages.length})</h3>
+              <div className="relative w-full sm:w-72">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
+                  <span className="material-symbols-outlined text-[20px]">search</span>
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-outline bg-surface pl-10 pr-3 text-label-sm text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Search village or code…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
             {villages.isLoading ? (
               <div className="p-6"><LoadingState label="Loading villages…" /></div>
             ) : villages.isError ? (
               <div className="p-6"><ErrorState message={getErrorMessage(villages.error)} onRetry={() => villages.refetch()} /></div>
-            ) : (villages.data ?? []).length === 0 ? (
+            ) : allVillages.length === 0 ? (
               <div className="p-6"><EmptyState title="No villages yet" description="Add your first village above." icon="location_on" /></div>
+            ) : filteredVillages.length === 0 ? (
+              <div className="p-6"><EmptyState title="No matches" description={`No village matches “${search.trim()}”.`} icon="search_off" /></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -163,10 +183,10 @@ export default function AddVillagePhcAdmin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {villages.data!.map((v, i) => (
+                    {filteredVillages.map((v, i) => (
                       <tr
                         key={v.id}
-                        className={`transition-colors hover:bg-surface-container/40 ${i < (villages.data?.length ?? 0) - 1 ? 'border-b border-outline-variant/40' : ''}`}
+                        className={`transition-colors hover:bg-surface-container/40 ${i < filteredVillages.length - 1 ? 'border-b border-outline-variant/40' : ''}`}
                       >
                         <td className="px-5 py-3 text-label-sm font-semibold text-on-surface">{v.name}</td>
                         <td className="px-5 py-3 text-label-sm text-on-surface-variant">{v.code ?? '—'}</td>

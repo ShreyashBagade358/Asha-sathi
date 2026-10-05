@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLocalization } from '@/hooks/useLocalization'
+import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore, patientPortalProfile } from '@/stores/app.store'
+import { useAppStore } from '@/stores/app.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { AppointmentStatus } from '@/pages/patient/mockData'
@@ -14,11 +15,10 @@ export default function PatientAppointmentsPage() {
   const appointments = useAppStore((s) => s.appointments)
   const followUps = useAppStore((s) => s.followUps)
   const markFollowUpDone = useAppStore((s) => s.markFollowUpDone)
-  const patients = useAppStore((s) => s.patients)
   const [filter, setFilter] = useState<TabKey>('upcoming')
   const [attended, setAttended] = useState<Record<string, boolean>>({})
 
-  const profile = patientPortalProfile(patients)
+  const profile = usePatientProfile()
   const myFollowUps = followUps.filter((f) => f.patientName === profile.name && f.status === 'scheduled')
 
   const upcomingCount = appointments.filter((a) => a.status === 'upcoming').length
@@ -37,7 +37,6 @@ export default function PatientAppointmentsPage() {
       <PageHeader
         title={t('patient.appointmentsTitle')}
         subtitle={t('patient.appointmentsSubtitle')}
-        breadcrumbs={[{ label: t('patient.appointmentsTitle') }]}
         actions={
           <button
             type="button"

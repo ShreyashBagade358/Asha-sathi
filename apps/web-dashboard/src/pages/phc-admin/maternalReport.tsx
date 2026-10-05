@@ -50,7 +50,7 @@ export default function MaternalHealthReportPhcAdmin() {
   )
   const ashaItems = ashas.data?.items ?? []
 
-  const ongoing = pregItems.filter((p) => p.status === 'active').length
+  const ongoing = pregItems.filter((p) => p.status === 'ongoing').length
   const highRisk = pregItems.filter((p) => p.hrpLevel === 'high' || (p.highRisk && p.hrpLevel !== 'medium')).length
   const ancCoverage = kpis.data?.anc4Coverage ?? 0
 

@@ -1,9 +1,14 @@
 import { useState, type FormEvent } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
+import { useAuth } from '@/hooks/useAuth'
 import { useAppStore } from '@/stores/app.store'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { referralService } from '@/services/referral.service'
+import { beneficiaryService } from '@/services/beneficiary.service'
 import type { ReferralRecord, ReferralStatus, ReferralUrgency } from '@/pages/asha/mockData'
 
 const STATUS_META: Record<ReferralStatus, { label: string; className: string }> = {
@@ -21,13 +26,21 @@ const URGENCY_TONE: Record<ReferralUrgency, { label: string; className: string }
 
 export default function ReferralAshaSathi() {
   const { t } = useLocalization()
+  const { user } = useAuth()
   const { addToast } = useUIStore()
   const referrals = useAppStore((s) => s.referrals)
   const addReferral = useAppStore((s) => s.addReferral)
   const [filter, setFilter] = useState<'all' | ReferralStatus>('all')
   const [showForm, setShowForm] = useState(false)
 
+  const beneficiariesQuery = useQuery({
+    queryKey: ['beneficiaries', 'all'],
+    queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
+  })
+  const beneficiaryOptions = beneficiariesQuery.data?.items ?? []
+
   const [form, setForm] = useState({
+    beneficiaryId: '',
     patientName: '',
     age: '',
     fromFacility: '',
@@ -38,25 +51,42 @@ export default function ReferralAshaSathi() {
 
   const setField = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
+  const submitMutation = useMutation({
+    mutationFn: (snapshot: typeof form) =>
+      referralService.createReferral({
+        beneficiaryId: snapshot.beneficiaryId,
+        referralType: 'general',
+        urgency: snapshot.urgency,
+        reason: snapshot.reason.trim() || undefined,
+        referredTo: snapshot.toFacility.trim(),
+        referredFrom: snapshot.fromFacility.trim() || user?.phcName || undefined,
+      }),
+    onSuccess: (created, snapshot) => {
+      const ben = beneficiaryOptions.find((b) => b.id === snapshot.beneficiaryId)
+      const record: ReferralRecord = {
+        id: created.id,
+        patientName: snapshot.patientName.trim() || ben?.name || '—',
+        age: Number(snapshot.age) || 0,
+        fromFacility: snapshot.fromFacility.trim() || user?.phcName || t('asha.refFromUnspecified'),
+        toFacility: snapshot.toFacility.trim(),
+        reason: snapshot.reason.trim() || t('asha.refReasonUnspecified'),
+        urgency: snapshot.urgency,
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        status: 'pending',
+        referredBy: user ? `${user.fullName} (ASHA)` : t('asha.refReferredByUnknown'),
+      }
+      addReferral(record)
+      addToast('success', t('asha.referralCreated'))
+      setShowForm(false)
+      setForm({ beneficiaryId: '', patientName: '', age: '', fromFacility: '', toFacility: '', reason: '', urgency: 'routine' })
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!form.patientName.trim() || !form.toFacility.trim()) return
-    const record: ReferralRecord = {
-      id: `ref-${Date.now()}`,
-      patientName: form.patientName.trim(),
-      age: Number(form.age) || 0,
-      fromFacility: form.fromFacility.trim() || 'Rampur Sub-centre',
-      toFacility: form.toFacility.trim(),
-      reason: form.reason.trim() || 'Referral for specialist review',
-      urgency: form.urgency,
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      status: 'pending',
-      referredBy: 'Meena Sharma (ASHA)',
-    }
-    addReferral(record)
-    addToast('success', t('asha.referralCreated'))
-    setShowForm(false)
-    setForm({ patientName: '', age: '', fromFacility: '', toFacility: '', reason: '', urgency: 'routine' })
+    if (!form.beneficiaryId || !form.toFacility.trim() || submitMutation.isPending) return
+    submitMutation.mutate({ ...form })
   }
 
   const visible = referrals.filter((r) => (filter === 'all' ? true : r.status === filter))
@@ -73,7 +103,7 @@ export default function ReferralAshaSathi() {
       <PageHeader
         title={t('asha.referralTitle')}
         subtitle={t('asha.referralSubtitle')}
-        breadcrumbs={[{ label: t('asha.referralTitle') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.referralTitle') }]}
         actions={
           <button
             type="button"
@@ -93,7 +123,18 @@ export default function ReferralAshaSathi() {
         >
           <h2 className="mb-3 font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.newReferral')}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <input value={form.patientName} onChange={(e) => setField('patientName', e.target.value)} placeholder={t('asha.formPatientName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required />
+            <select value={form.beneficiaryId} onChange={(e) => setField('beneficiaryId', e.target.value)} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required>
+              <option value="" disabled>
+                {t('asha.selectPatient')}
+              </option>
+              {beneficiaryOptions.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                  {b.village ? ` · ${b.village}` : ''}
+                </option>
+              ))}
+            </select>
+            <input value={form.patientName} onChange={(e) => setField('patientName', e.target.value)} placeholder={t('asha.formPatientName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             <input value={form.age} onChange={(e) => setField('age', e.target.value)} placeholder={t('asha.formAge')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="number" />
             <input value={form.fromFacility} onChange={(e) => setField('fromFacility', e.target.value)} placeholder={t('asha.formFromFacility')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             <input value={form.toFacility} onChange={(e) => setField('toFacility', e.target.value)} placeholder={t('asha.formToFacility')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required />
@@ -108,7 +149,7 @@ export default function ReferralAshaSathi() {
             <button type="button" onClick={() => setShowForm(false)} className="h-touch-target rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-on-surface-variant hover:bg-surface-container">
               {t('asha.cancel')}
             </button>
-            <button type="submit" className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant">
+            <button type="submit" disabled={submitMutation.isPending} className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant disabled:opacity-60">
               {t('asha.createReferral')}
             </button>
           </div>

@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useAppStore } from '@/stores/app.store'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { getErrorMessage } from '@/components/common/ErrorState'
+import { childService } from '@/services/child.service'
+import { beneficiaryService } from '@/services/beneficiary.service'
 import type { ChildHealthStatus, ChildRecord } from '@/pages/asha/mockData'
 
 const STATUS_META: Record<ChildHealthStatus, { label: string; className: string }> = {
@@ -21,7 +25,14 @@ export default function ChildHealthAshaSathi() {
   const [filter, setFilter] = useState<'all' | ChildHealthStatus>('all')
   const [showForm, setShowForm] = useState(false)
 
+  const beneficiariesQuery = useQuery({
+    queryKey: ['beneficiaries', 'all'],
+    queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
+  })
+  const beneficiaryOptions = beneficiariesQuery.data?.items ?? []
+
   const [form, setForm] = useState({
+    beneficiaryId: '',
     name: '',
     parentName: '',
     gender: '',
@@ -36,27 +47,41 @@ export default function ChildHealthAshaSathi() {
 
   const setField = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
+  const createMutation = useMutation({
+    mutationFn: () =>
+      childService.createChild({
+        beneficiaryId: form.beneficiaryId,
+        birthWeightGrams: form.weightKg ? Math.round(Number(form.weightKg) * 1000) : undefined,
+        birthLengthCm: form.heightCm ? Number(form.heightCm) : undefined,
+      }),
+    onSuccess: (created) => {
+      const ben = beneficiaryOptions.find((b) => b.id === form.beneficiaryId)
+      const record: ChildRecord = {
+        id: created.id,
+        name: form.name.trim() || ben?.name || '—',
+        parentName: form.parentName.trim() || '—',
+        gender: form.gender.trim() || '—',
+        dob: form.dob.trim() || '—',
+        ageMonths: Number(form.ageMonths) || 0,
+        weightKg: Number(form.weightKg) || 0,
+        heightCm: Number(form.heightCm) || 0,
+        immunizationDone: Number(form.immunizationDone) || 0,
+        immunizationTotal: 6,
+        status: form.status,
+        village: form.village.trim() || ben?.village || '—',
+      }
+      addChild(record)
+      addToast('success', t('asha.childSaved'))
+      setShowForm(false)
+      setForm({ beneficiaryId: '', name: '', parentName: '', gender: '', dob: '', ageMonths: '', weightKg: '', heightCm: '', immunizationDone: '', village: '', status: 'healthy' })
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim()) return
-    const record: ChildRecord = {
-      id: `c-${Date.now()}`,
-      name: form.name.trim(),
-      parentName: form.parentName.trim() || '—',
-      gender: form.gender.trim() || '—',
-      dob: form.dob.trim() || '—',
-      ageMonths: Number(form.ageMonths) || 0,
-      weightKg: Number(form.weightKg) || 0,
-      heightCm: Number(form.heightCm) || 0,
-      immunizationDone: Number(form.immunizationDone) || 0,
-      immunizationTotal: 6,
-      status: form.status,
-      village: form.village.trim() || '—',
-    }
-    addChild(record)
-    addToast('success', t('asha.childSaved'))
-    setShowForm(false)
-    setForm({ name: '', parentName: '', gender: '', dob: '', ageMonths: '', weightKg: '', heightCm: '', immunizationDone: '', village: '', status: 'healthy' })
+    if (!form.beneficiaryId || !form.name.trim() || createMutation.isPending) return
+    createMutation.mutate()
   }
 
   const visible = children.filter((c) => (filter === 'all' ? true : c.status === filter))
@@ -73,7 +98,7 @@ export default function ChildHealthAshaSathi() {
       <PageHeader
         title={t('asha.childHealthTitle')}
         subtitle={t('asha.childHealthSubtitle')}
-        breadcrumbs={[{ label: t('asha.childHealthTitle') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.childHealthTitle') }]}
         actions={
           <button
             type="button"
@@ -93,6 +118,17 @@ export default function ChildHealthAshaSathi() {
         >
           <h2 className="mb-3 font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.registerChild')}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <select value={form.beneficiaryId} onChange={(e) => setField('beneficiaryId', e.target.value)} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required>
+              <option value="" disabled>
+                {t('asha.selectChild')}
+              </option>
+              {beneficiaryOptions.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                  {b.village ? ` · ${b.village}` : ''}
+                </option>
+              ))}
+            </select>
             <input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder={t('asha.formChildName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" required />
             <input value={form.parentName} onChange={(e) => setField('parentName', e.target.value)} placeholder={t('asha.formParentName')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             <input value={form.gender} onChange={(e) => setField('gender', e.target.value)} placeholder={t('asha.formGender')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
@@ -112,7 +148,7 @@ export default function ChildHealthAshaSathi() {
             <button type="button" onClick={() => setShowForm(false)} className="h-touch-target rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-on-surface-variant hover:bg-surface-container">
               {t('asha.cancel')}
             </button>
-            <button type="submit" className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant">
+            <button type="submit" disabled={createMutation.isPending} className="h-touch-target rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary hover:bg-on-primary-fixed-variant disabled:opacity-60">
               {t('asha.saveChild')}
             </button>
           </div>

@@ -62,6 +62,27 @@ export interface StateDashboard {
 
 type BundleKPIs = Record<string, number | undefined>
 
+interface RawPHCRow {
+  phcId: string
+  phcName: string
+  values: Record<string, number>
+}
+
+interface RawResourceRow {
+  phcId: string
+  phcName: string
+  staffFillRate: number
+  vaccineStockPct: number
+  equipmentUtilization: number
+}
+
+interface RawFocusArea {
+  districtId: string
+  districtName: string
+  laggingIndicator: string
+  gapPct: number
+}
+
 function mapBundleKPIs(raw: BundleKPIs): DashboardKPIs {
   const num = (k: string): number => Number(raw[k]) || 0
   const pregnancies = num('pregnancies')
@@ -106,25 +127,38 @@ export const dashboardService = {
     }
   },
 
-  async getDistrictDashboard(districtId: string): Promise<DistrictDashboard> {
-    const { data } = await api.get<{ entity: string; name: string; kpis: BundleKPIs }>('/dashboard/district', {
-      params: { district_id: districtId },
+  async getDistrictDashboard(districtId?: string): Promise<DistrictDashboard> {
+    const { data } = await api.get<{
+      entity: string
+      name: string
+      kpis: BundleKPIs
+      phcComparison?: RawPHCRow[]
+      resourceUtilization?: RawResourceRow[]
+    }>('/dashboard/district', {
+      params: districtId ? { district_id: districtId } : undefined,
     })
     return {
       kpis: mapBundleKPIs(data.kpis),
-      phcComparison: [],
+      phcComparison: data.phcComparison ?? [],
       coverageTrend: [],
-      resourceUtilization: [],
+      resourceUtilization: data.resourceUtilization ?? [],
     }
   },
 
   async getStateDashboard(): Promise<StateDashboard> {
-    const { data } = await api.get<{ entity: string; name: string; kpis: BundleKPIs }>('/dashboard/state')
+    const { data } = await api.get<{
+      entity: string
+      name: string
+      kpis: BundleKPIs
+      districtComparison?: RawPHCRow[]
+      trend?: Array<{ label: string; value: number }>
+      focusAreas?: RawFocusArea[]
+    }>('/dashboard/state')
     return {
       kpis: mapBundleKPIs(data.kpis),
-      districtComparison: [],
-      trend: [],
-      focusAreas: [],
+      districtComparison: data.districtComparison ?? [],
+      trend: data.trend ?? [],
+      focusAreas: data.focusAreas ?? [],
     }
   },
 

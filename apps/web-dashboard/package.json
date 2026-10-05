@@ -14,6 +14,8 @@
     "@supabase/supabase-js": "^2.45.0",
     "@tanstack/react-query": "^5.45.0",
     "asha-design-system": "file:../../packages/design-system/react",
+    "asha-shared-types": "file:../../packages/shared-types/typescript",
+    "asha-supabase-client": "file:../../packages/supabase-client/typescript",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "i18next": "^23.11.5",

@@ -24,7 +24,7 @@ export default function DashboardPage() {
       { label: t('kpis.immunizationCoverage'), value: `${data?.kpis.immunizationCoverage ?? 0}%`, change: 2.4, trend: 'up' as const, accent: 'tertiary' as const, icon: <Icon name="shield" size={22} /> },
       { label: t('kpis.institutionalDeliveries'), value: `${data?.kpis.institutionalDeliveryRate ?? 0}%`, change: 1.1, trend: 'up' as const, accent: 'primary' as const, icon: <Icon name="checkCircle" size={22} /> },
       { label: t('kpis.ncdPositive'), value: data?.kpis.ncdPositive ?? 0, change: -3.0, trend: 'down' as const, accent: 'secondary' as const, icon: <Icon name="activity" size={22} /> },
-      { label: t('kpis.ashaCount'), value: data?.kpis.ashaCount ?? 0, hint: `${data?.kpis.beneficiaryCount ?? 0} ${t('kpis.beneficiaries')}`, accent: 'primary' as const, icon: <Icon name="users" size={22} /> },
+      { label: t('kpis.ashas'), value: data?.kpis.ashaCount ?? 0, hint: `${data?.kpis.beneficiaryCount ?? 0} ${t('kpis.beneficiaries')}`, accent: 'primary' as const, icon: <Icon name="users" size={22} /> },
       { label: t('kpis.homeVisits'), value: data?.kpis.homeVisits ?? 0, change: 9.8, trend: 'up' as const, accent: 'tertiary' as const, icon: <Icon name="activity" size={22} /> },
     ],
     [data, t],

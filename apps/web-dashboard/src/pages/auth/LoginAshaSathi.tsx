@@ -16,7 +16,7 @@ const HERO_FEATURES = [
   { icon: 'sync', title: 'Offline-first sync', desc: 'Works in low-connectivity rural areas' },
 ]
 
-const isPhoneValid = (value: string) => /^[6-9]\d{9}$/.test(value)
+const isPhoneValid = (value: string) => /^\d{10}$/.test(value)
 
 export default function LoginAshaSathi() {
   const navigate = useNavigate()
@@ -165,7 +165,7 @@ export default function LoginAshaSathi() {
             <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="mobile" className="font-label-md text-label-md font-semibold text-on-surface">
-                  Mobile Number or Email
+                  Mobile Number
                 </label>
                 <div
                   className={`flex items-center overflow-hidden rounded-lg border bg-surface transition-all focus-within:ring-2 ${
@@ -212,7 +212,7 @@ export default function LoginAshaSathi() {
               <div>
                 <label
                   htmlFor="login-password"
-                  className="font-body-md text-body-md text-on-surface"
+                  className="font-label-md text-label-md font-semibold text-on-surface"
                 >
                   Password
                 </label>

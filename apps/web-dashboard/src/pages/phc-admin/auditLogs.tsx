@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useAppStore } from '@/stores/app.store'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { PhcSidebar } from '@/components/layout/PhcSidebar'
+import { auditService } from '@/services/audit.service'
 import type { AuditLogEntry } from '@/types'
 
-const ACTORS = ['S. Devi', 'A. Kumari', 'R. Singh', 'P. Sharma', 'K. Verma']
 const PAGE_SIZE = 10
 
 const ACTION_META: Record<AuditLogEntry['action'], { icon: string; color: string }> = {
@@ -22,97 +22,6 @@ const STATUS_META: Record<string, { bg: string; text: string; dot: string }> = {
   success: { bg: 'bg-secondary-container', text: 'text-on-secondary-container', dot: 'bg-secondary' },
   denied: { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', dot: 'bg-tertiary' },
   error: { bg: 'bg-error-container', text: 'text-on-error-container', dot: 'bg-error' },
-}
-
-function useAuditLogs(): AuditLogEntry[] {
-  const checkups = useAppStore((s) => s.checkups)
-  const referrals = useAppStore((s) => s.referrals)
-  const notifications = useAppStore((s) => s.notifications)
-  const ashaWorkers = useAppStore((s) => s.ashaWorkers)
-  const patients = useAppStore((s) => s.patients)
-
-  const logs: AuditLogEntry[] = []
-
-  checkups.slice(0, 5).forEach((c, i) => {
-    logs.push({
-      id: `log-ck-${c.id}`,
-      timestamp: new Date(Date.now() - i * 36e5).toISOString(),
-      actorId: `u-${(i % 3) + 1}`,
-      actorName: ACTORS[i % ACTORS.length],
-      actorRole: 'admin',
-      action: 'create',
-      resource: 'checkup',
-      resourceId: c.id,
-      details: `Health checkup recorded for ${c.village}`,
-      ip: '10.20.1.15',
-      status: 'success',
-    })
-  })
-
-  referrals.slice(0, 5).forEach((r, i) => {
-    logs.push({
-      id: `log-rf-${r.id}`,
-      timestamp: new Date(Date.now() - (i + 5) * 36e5).toISOString(),
-      actorId: `u-${(i % 3) + 1}`,
-      actorName: ACTORS[i % ACTORS.length],
-      actorRole: 'admin',
-      action: i % 2 === 0 ? 'create' : 'update',
-      resource: 'referral',
-      resourceId: r.id,
-      details: `Referral ${r.status} for ${r.patientName}`,
-      ip: '10.20.1.15',
-      status: 'success',
-    })
-  })
-
-  notifications.slice(0, 3).forEach((n, i) => {
-    logs.push({
-      id: `log-n-${n.id}`,
-      timestamp: new Date(Date.now() - (i + 10) * 36e5).toISOString(),
-      actorId: 'u-system',
-      actorName: 'System',
-      actorRole: 'admin',
-      action: 'create',
-      resource: 'notification',
-      resourceId: n.id,
-      details: n.title,
-      status: 'success',
-    })
-  })
-
-  ashaWorkers.slice(0, 3).forEach((w, i) => {
-    logs.push({
-      id: `log-aw-${w.id}`,
-      timestamp: new Date(Date.now() - (i + 13) * 36e5).toISOString(),
-      actorId: `u-${(i % 3) + 1}`,
-      actorName: ACTORS[i % ACTORS.length],
-      actorRole: 'admin',
-      action: 'create',
-      resource: 'asha_worker',
-      resourceId: w.ashaId,
-      details: `ASHA worker ${w.name} registered`,
-      ip: '10.20.1.15',
-      status: 'success',
-    })
-  })
-
-  patients.slice(0, 3).forEach((p, i) => {
-    logs.push({
-      id: `log-pt-${p.id}`,
-      timestamp: new Date(Date.now() - (i + 16) * 36e5).toISOString(),
-      actorId: `u-${(i % 3) + 1}`,
-      actorName: ACTORS[i % ACTORS.length],
-      actorRole: 'admin',
-      action: 'create',
-      resource: 'beneficiary',
-      resourceId: p.id,
-      details: `Patient ${p.name} registered`,
-      ip: '10.20.1.15',
-      status: 'success',
-    })
-  })
-
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 }
 
 function formatTimestamp(ts: string) {
@@ -134,29 +43,33 @@ function getTimeAgo(d: Date) {
 }
 
 export default function AuditLogsPhcAdmin() {
-  const logs = useAuditLogs()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
+  const q = search.trim()
 
-  const logsList = logs.filter((l) => {
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      if (!l.details.toLowerCase().includes(q) && !l.resource.toLowerCase().includes(q) && !l.actorName.toLowerCase().includes(q)) return false
-    }
-    return true
+  const logsQ = useQuery({
+    queryKey: ['audit', 'logs', page, statusFilter, q],
+    queryFn: () =>
+      auditService.listLogs({
+        page,
+        pageSize: PAGE_SIZE,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        q: q || undefined,
+      }),
+    placeholderData: keepPreviousData,
   })
 
-  const totalPages = Math.ceil(logsList.length / PAGE_SIZE)
-  const paged = logsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const summaryQ = useQuery({
+    queryKey: ['audit', 'summary'],
+    queryFn: () => auditService.getSummary(),
+  })
 
-  const counts = {
-    total: logs.length,
-    success: logs.filter((l) => l.status === 'success').length,
-    denied: logs.filter((l) => l.status === 'denied').length,
-    error: logs.filter((l) => l.status === 'error').length,
-  }
+  const logsList = logsQ.data?.items ?? []
+  const total = logsQ.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const paged = logsList
+  const counts = summaryQ.data ?? { total: 0, success: 0, denied: 0, error: 0 }
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -331,7 +244,7 @@ export default function AuditLogsPhcAdmin() {
 
                 <div className="flex items-center justify-between border-t border-outline-variant/50 px-5 py-3">
                   <span className="text-caption text-on-surface-variant">
-                    Showing {Math.min((page - 1) * PAGE_SIZE + 1, logsList.length)}–{Math.min(page * PAGE_SIZE, logsList.length)} of {logsList.length}
+                    Showing {total === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} of {total}
                   </span>
                   <div className="flex items-center gap-3">
                     <button

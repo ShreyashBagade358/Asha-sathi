@@ -1,20 +1,23 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocalization } from '@/hooks/useLocalization'
-import { useAppStore } from '@/stores/app.store'
+import { useTodayTasks } from '@/hooks/useTodayTasks'
+import { DailyPlanCard } from '@/components/asha/DailyPlanCard'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { formatDay, type ViewTask } from '@/pages/asha/taskView'
 
 type Filter = 'all' | 'pending' | 'done'
 
 export default function TasksAshaSathi() {
   const { t } = useLocalization()
-  const tasks = useAppStore((s) => s.tasks)
-  const toggleTask = useAppStore((s) => s.toggleTask)
   const [filter, setFilter] = useState<Filter>('pending')
 
-  const pending = tasks.filter((x) => !x.done)
+  const { tasks, toggleTask, isToggling, isLoading, isError, error, refetch } = useTodayTasks()
 
+  const pending = tasks.filter((x) => !x.done)
   const visible = tasks.filter((x) =>
     filter === 'all' ? true : filter === 'done' ? x.done : !x.done,
   )
@@ -25,13 +28,20 @@ export default function TasksAshaSathi() {
     { key: 'all', label: t('asha.filterAll'), count: tasks.length },
   ]
 
+  const onToggle = (task: ViewTask) => {
+    if (isToggling) return
+    toggleTask(task)
+  }
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader
         title={t('asha.tasksTitle')}
         subtitle={t('asha.tasksSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaTasks') }]}
+        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaTasks') }]}
       />
+
+      <DailyPlanCard tasks={tasks} />
 
       <div className="flex gap-2">
         {tabs.map((tab) => (
@@ -57,7 +67,11 @@ export default function TasksAshaSathi() {
         ))}
       </div>
 
-      {visible.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+      ) : visible.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest py-14 text-center shadow-card">
           <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-surface-container-high shadow-sm">
             <div className="absolute inset-0 animate-pulse rounded-full bg-secondary opacity-10" />
@@ -77,10 +91,10 @@ export default function TasksAshaSathi() {
                 index < visible.length - 1 ? 'border-b border-outline-variant/40' : ''
               } ${task.done ? 'bg-surface-container-low/60' : ''}`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() => onToggle(task)}
                   aria-label={task.done ? t('asha.markPending') : t('asha.markDone')}
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all active:scale-90 ${
                     task.done ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container'
@@ -88,22 +102,51 @@ export default function TasksAshaSathi() {
                 >
                   <Icon name={task.done ? 'checkCircle' : 'check'} size={24} />
                 </button>
-                <div>
-                  <p className={`font-label-md text-label-md font-semibold text-on-surface ${task.done ? 'line-through opacity-60' : ''}`}>
-                    {task.title}
-                  </p>
-                  <p className="font-caption text-caption text-on-surface-variant">{task.subtitle}</p>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className={`font-label-md text-label-md font-semibold text-on-surface ${task.done ? 'line-through opacity-60' : ''}`}>
+                      {task.title}
+                    </p>
+                    {task.priority === 'high' && !task.done ? (
+                      <span className="rounded-full bg-error-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-error-container">
+                        {task.priority}
+                      </span>
+                    ) : null}
+                    {task.carriedFrom && !task.done ? (
+                      <span className="rounded-full bg-tertiary-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-tertiary-container">
+                        {t('asha.carriedBadge')} {formatDay(task.carriedFrom)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {task.householdLabel ? (
+                    <p className="font-caption text-caption text-on-surface-variant">{task.householdLabel}</p>
+                  ) : null}
+                  {task.subtitle ? (
+                    <p className="font-caption text-caption text-on-surface-variant">{task.subtitle}</p>
+                  ) : null}
                 </div>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${
-                  task.done
-                    ? 'bg-secondary-container text-on-secondary-container'
-                    : 'bg-surface-variant text-on-surface-variant'
-                }`}
-              >
-                {task.due}
-              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                {task.householdId && task.householdHhid && !task.done ? (
+                  <Link
+                    to={`/asha/households/${task.householdId}/visit`}
+                    className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 font-label-md text-label-md font-semibold text-on-primary hover:opacity-90"
+                  >
+                    {t('asha.startVisit')}
+                    <Icon name="chevronRight" size={14} />
+                  </Link>
+                ) : (
+                  <span
+                    className={`rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${
+                      task.done
+                        ? 'bg-secondary-container text-on-secondary-container'
+                        : 'bg-surface-variant text-on-surface-variant'
+                    }`}
+                  >
+                    {formatDay(task.due)}
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>

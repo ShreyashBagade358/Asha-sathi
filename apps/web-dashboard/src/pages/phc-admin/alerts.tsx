@@ -39,12 +39,15 @@ export default function AlertsNotificationsDashboardPhcAdmin() {
   const broadcast = async () => {
     if (!broadcastMessage.trim()) return
     try {
-      await notificationService.createNotification({
-        title: broadcastAudience === 'asha' ? 'PHC Bulletin' : 'PHC Notice',
+      const isAsha = broadcastAudience === 'asha'
+      await notificationService.broadcast({
+        title: isAsha ? 'PHC Bulletin' : 'PHC Notice',
         message: broadcastMessage.trim(),
+        roles: isAsha ? ['asha'] : ['patient'],
       })
       setBroadcastMessage('')
-      addToast('success', broadcastAudience === 'asha' ? 'Broadcast sent to ASHA workers' : 'Broadcast sent to patients')
+      addToast('success', isAsha ? 'Broadcast sent to ASHA workers' : 'Broadcast sent to patients')
+      refetch()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to send broadcast'
       addToast('error', msg)

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/layout/Breadcrumbs'
 
 interface PageHeaderProps {
@@ -9,14 +10,22 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, breadcrumbs, actions }: PageHeaderProps) {
+  const { pathname } = useLocation()
+  const topBarShowsHeader = pathname.startsWith('/asha') || pathname.startsWith('/patient')
+
   return (
     <div className="mb-6 flex flex-col gap-3">
-      {breadcrumbs && breadcrumbs.length > 0 ? <Breadcrumbs items={breadcrumbs} /> : null}
+      {breadcrumbs && breadcrumbs.length > 0 && !topBarShowsHeader ? <Breadcrumbs items={breadcrumbs} /> : null}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg text-on-surface">{title}</h1>
-          {subtitle ? <p className="mt-1 text-body-md text-on-surface-variant">{subtitle}</p> : null}
-        </div>
+        {topBarShowsHeader ? null : (
+          <div>
+            <h1 className="text-headline-lg text-on-surface">{title}</h1>
+            {subtitle ? <p className="mt-1 text-body-md text-on-surface-variant">{subtitle}</p> : null}
+          </div>
+        )}
+        {topBarShowsHeader && subtitle ? (
+          <p className="text-body-md text-on-surface-variant">{subtitle}</p>
+        ) : null}
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ASHACard } from 'asha-design-system'
+import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
 import { dashboardService } from '@/services/dashboard.service'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -17,11 +18,12 @@ const INDICATORS = [
 
 export default function PHCComparisonPage() {
   const { t } = useLocalization()
+  const { user } = useAuth()
   const [selected, setSelected] = useState<string[]>(['anc4', 'immunization'])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['district-dashboard', 'comparison'],
-    queryFn: () => dashboardService.getDistrictDashboard('dist-demo'),
+    queryKey: ['district-dashboard', user?.districtId ?? 'default'],
+    queryFn: () => dashboardService.getDistrictDashboard(user?.districtId),
   })
 
   const toggleIndicator = (key: string) => {
