@@ -361,9 +361,16 @@ async def test_put_patients_me_merges_profile_inputs(client, auth_headers):
     assert profile["vitals"] == {
         "height_cm": 170,
         "weight_kg": 62,
+        "bmi": 21.5,
         "bp_systolic": 118,
         "bp_diastolic": 76,
+        "pulse": None,
+        "temperature": None,
+        "spo2": None,
         "hemoglobin": None,
+        "blood_sugar_random": None,
+        "waist_circumference_cm": None,
+        "blood_group": "O+",
     }
     # Pre-existing metadata keys survive the merge.
     assert profile["village"] == "Sitapur"
@@ -519,6 +526,72 @@ async def test_household_survey_post_and_get(client, auth_headers):
     assert (
         await client.get("/api/v1/households/no-such-household/surveys", headers=headers)
     ).status_code == 404
+
+
+async def test_household_survey_records_member_checks(client, auth_headers):
+    """Each family member's OK/Concern result is stored with the survey."""
+    headers = await auth_headers(phone="9876543210", role="asha")
+    household = await _create_household(client, headers)
+    other = await _create_household(client, headers)
+
+    async def _member(household_id: str, name: str) -> dict:
+        r = await client.post(
+            f"/api/v1/households/{household_id}/members",
+            headers=headers,
+            json={"beneficiary_id": f"BEN-{_uid()}", "full_name": name, "status": "active"},
+        )
+        assert r.status_code == 201, r.text
+        return r.json()
+
+    first = await _member(household["id"], "Asha Devi")
+    second = await _member(household["id"], "Kiran Yadav")
+    outsider = await _member(other["id"], "Guddu Lal")
+
+    r = await client.post(
+        f"/api/v1/households/{household['id']}/survey",
+        headers=headers,
+        json={
+            "answers": {"drinking_water": "piped"},
+            "consent_obtained": True,
+            "visited_at": date.today().isoformat(),
+            "member_checks": [
+                {"beneficiary_id": first["id"], "check_type": "general", "result": "ok", "notes": "Healthy"},
+                {"beneficiary_id": second["id"], "check_type": "ncd", "result": "concern", "notes": "BP high"},
+            ],
+        },
+    )
+    assert r.status_code == 201, r.text
+    survey = r.json()
+    checks = survey["member_checks"]
+    assert len(checks) == 2
+
+    by_member = {c["beneficiary_id"]: c for c in checks}
+    assert by_member[first["id"]]["result"] == "ok"
+    assert by_member[first["id"]]["notes"] == "Healthy"
+    assert by_member[second["id"]]["result"] == "concern"
+    assert by_member[second["id"]]["notes"] == "BP high"
+    for check in checks:
+        assert check["household_id"] == household["id"]
+        assert check["survey_id"] == survey["id"]
+        assert check["visited_at"] == date.today().isoformat()
+
+    # Read back through the survey list the client polls.
+    r = await client.get(f"/api/v1/households/{household['id']}/surveys", headers=headers)
+    assert r.status_code == 200, r.text
+    stored = next(s for s in r.json() if s["id"] == survey["id"])
+    assert {c["beneficiary_id"] for c in stored["member_checks"]} == {first["id"], second["id"]}
+
+    # A member of a different household cannot be checked off here.
+    r = await client.post(
+        f"/api/v1/households/{household['id']}/survey",
+        headers=headers,
+        json={
+            "answers": {"q1": "yes"},
+            "member_checks": [{"beneficiary_id": outsider["id"], "result": "ok"}],
+        },
+    )
+    assert r.status_code == 409, r.text
+    assert "not part of this household" in r.text
 
 
 async def test_asha_tasks_crud(client, user_factory):

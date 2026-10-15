@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { PageHeader, Pill } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -8,6 +8,7 @@ import { FAB } from '@/components/ui/FAB';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { TextField } from '@/components/ui/Field';
 import { listPatients, type PatientRow, type RiskLevel } from '@/db/clinical';
+import { subscribeSync } from '@/sync/network';
 import { useLocalization } from '@/i18n/useLocalization';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MoreButton } from '@/nav/MoreSheet';
@@ -41,12 +42,36 @@ export default function PatientsScreen() {
   const [all, setAll] = useState<PatientRow[]>([]);
   const [filtered, setFiltered] = useState<PatientRow[]>([]);
 
-  // Keep the full set for the filter counts; filter the visible rows in the query.
+  // Latest search/risk, read when focus fires. The focus load must not depend
+  // on them: a dependency change re-runs it on every keystroke, which would
+  // query immediately and defeat the debounce below.
+  const criteria = useRef({ query, risk });
   useEffect(() => {
+    criteria.current = { query, risk };
+  });
+
+  // Keep the full set for the filter counts; filter the visible rows in the
+  // query. Reloads on focus as well as mount: the tab navigator keeps this
+  // screen mounted, so a patient registered offline would otherwise stay
+  // invisible until the next sync event.
+  useFocusEffect(
+    useCallback(() => {
+      const { query: search, risk: band } = criteria.current;
+      void (async () => {
+        setAll(await listPatients({}));
+        setFiltered(await listPatients({ search, risk: band }));
+      })();
+    }, []),
+  );
+
+  // A sync landing while open (post-login pull, Sync Now) changes the cohort.
+  useEffect(() => subscribeSync((result) => {
+    if (!result) return;
     void (async () => {
       setAll(await listPatients({}));
+      setFiltered(await listPatients({ search: query, risk }));
     })();
-  }, []);
+  }), [query, risk]);
 
   // The first load is not debounced: delaying it would flash the "no results"
   // empty state for the debounce window on every visit, which reads as "this
@@ -80,13 +105,13 @@ export default function PatientsScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScrollView
-        contentContainerClassName="px-4 pb-28"
+        className="flex-1"
+        contentContainerClassName="px-4 pb-36"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <PageHeader
           title={t('asha.patientsTitle')}
-          subtitle={t('asha.patientsSubtitle')}
           actions={
             <>
               <LanguageToggle onSurface />

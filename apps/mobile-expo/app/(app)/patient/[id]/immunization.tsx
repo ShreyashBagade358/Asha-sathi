@@ -9,6 +9,7 @@ import { Chip } from '@/components/ui/Chip';
 import { SelectField } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import {
   getPatient,
@@ -20,8 +21,10 @@ import {
   type ImmunizationDetail,
   type PatientRow,
 } from '@/db/clinical';
+import { getVaccineInfo, type VaccineInfo } from '@/data/vaccineInfo';
 import { useLocalization } from '@/i18n/useLocalization';
 import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
+import { shareText } from '@/utils/share';
 import { colors } from '@/theme';
 import { cx } from '@/cx';
 
@@ -107,6 +110,7 @@ export default function ImmunizationScheduleScreen() {
   const [activeChildId, setActiveChildId] = useState('');
   const [doses, setDoses] = useState<ImmunizationDetail[] | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [infoVaccine, setInfoVaccine] = useState<VaccineInfo | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -166,7 +170,9 @@ export default function ImmunizationScheduleScreen() {
         await markImmunizationGiven(row, givenDate);
         setDoses((prev) =>
           prev
-            ? prev.map((dose) => (dose.id === row.id ? { ...dose, status: 'given', given_date: givenDate } : dose))
+            ? prev.map((dose) =>
+                dose.id === row.id ? { ...dose, status: 'given', given_date: givenDate } : dose,
+              )
             : prev,
         );
         toast.toast(t('asha.doseMarkedToast'), 'success');
@@ -191,6 +197,21 @@ export default function ImmunizationScheduleScreen() {
 
   const currentDose = doses?.find((row) => deriveDoseStatus(row) === 'due') ?? null;
 
+  // Schedule health for the header chip: fully immunized beats overdue beats
+  // due within a week, so the chip shows the one status a worker acts on.
+  const doseRows = doses ?? [];
+  const today = todayISO();
+  const allGiven = doseRows.length > 0 && doseRows.every((d) => d.status === 'given' || d.given_date != null);
+  const anyOverdue = doseRows.some((d) => {
+    if (d.status === 'overdue') return true;
+    return d.status === 'due' && d.due_date != null && d.due_date.slice(0, 10) < today;
+  });
+  const anyDueSoon = doseRows.some((d) => {
+    if (d.status !== 'due' || d.due_date == null || d.due_date.slice(0, 10) < today) return false;
+    const diff = (new Date(d.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+
   const scheduleBody = (() => {
     if (phase !== 'ready' || doses === null) {
       return <EmptyState icon="inbox" title={t('common.loading')} />;
@@ -200,14 +221,24 @@ export default function ImmunizationScheduleScreen() {
     }
     if (doses.length === 0) {
       return (
-        <EmptyState icon="calendar" title={t('asha.immunizationEmpty')} description={t('asha.immunizationEmptyHint')} />
+        <EmptyState
+          icon="calendar"
+          title={t('asha.immunizationEmpty')}
+          description={t('asha.immunizationEmptyHint')}
+        />
       );
     }
     return (
       <View className="relative gap-6">
         <View className="absolute bottom-0 left-0 top-0 w-0.5 bg-outline-variant" />
         {doses.map((row) => (
-          <DoseRow key={row.id} row={row} saving={savingId === row.id} onMark={markGiven} />
+          <DoseRow
+            key={row.id}
+            row={row}
+            saving={savingId === row.id}
+            onMark={markGiven}
+            onInfo={(code) => setInfoVaccine(getVaccineInfo(code))}
+          />
         ))}
       </View>
     );
@@ -234,9 +265,23 @@ export default function ImmunizationScheduleScreen() {
               >
                 {t('asha.immunizationSchedule')}
               </Text>
-              <Chip tone="success" size="md">
-                {t('asha.onTrack')}
-              </Chip>
+              {allGiven ? (
+                <Chip tone="success" size="md">
+                  {t('asha.fullyImmunized')}
+                </Chip>
+              ) : anyOverdue ? (
+                <Chip tone="error" size="md">
+                  {t('asha.overdue')}
+                </Chip>
+              ) : anyDueSoon ? (
+                <Chip tone="warning" size="md">
+                  {t('asha.dueSoon')}
+                </Chip>
+              ) : (
+                <Chip tone="success" size="md">
+                  {t('asha.onTrack')}
+                </Chip>
+              )}
             </View>
 
             {children.length > 1 ? (
@@ -270,7 +315,31 @@ export default function ImmunizationScheduleScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => toast.toast(t('asha.certificateToast'), 'success')}
+                onPress={() => {
+                  const rows = (doses ?? []).map((row) => {
+                    const status = deriveDoseStatus(row);
+                    const name = row.vaccine_name || row.vaccine_code || '—';
+                    const code = row.vaccine_code ?? row.vaccine_name ?? '—';
+                    const meta =
+                      row.dose_number !== null
+                        ? t('asha.doseMeta', { n: row.dose_number, code })
+                        : code;
+                    const date = formatDate(status === 'given' ? row.given_date : row.due_date);
+                    const label =
+                      status === 'given'
+                        ? t('asha.administered')
+                        : status === 'overdue'
+                          ? t('asha.overdue')
+                          : status === 'due'
+                            ? t('asha.dueLabel', { date })
+                            : t('asha.upcoming');
+                    return `${name} · ${meta} · ${date} · ${label}`;
+                  });
+                  void shareText(
+                    t('asha.viewCertificate'),
+                    [t('asha.officialRecords'), ...rows].join('\n'),
+                  );
+                }}
                 className="h-touch-target w-full flex-row items-center justify-center gap-1 rounded-full bg-outline-variant px-5 active:opacity-90"
               >
                 <Icon name="download" size={18} color={colors.onSurface} />
@@ -290,7 +359,9 @@ export default function ImmunizationScheduleScreen() {
                 {t('asha.nextDoseInfo')}
               </Text>
             </View>
-            <Text className="pl-7 font-body-md text-body-md text-on-surface-variant">{t('asha.nextDoseHint')}</Text>
+            <Text className="pl-7 font-body-md text-body-md text-on-surface-variant">
+              {t('asha.nextDoseHint')}
+            </Text>
           </View>
 
           {currentDose ? (
@@ -317,7 +388,47 @@ export default function ImmunizationScheduleScreen() {
           />
         </View>
       </View>
+
+      <Modal
+        visible={infoVaccine !== null}
+        onClose={() => setInfoVaccine(null)}
+        title={infoVaccine?.name ?? ''}
+      >
+        {infoVaccine ? (
+          <View className="gap-4">
+            <InfoSection icon="shield" label={t('asha.vaccineProtects')} text={infoVaccine.protects} />
+            <InfoSection icon="calendar" label={t('asha.vaccineSchedule')} text={infoVaccine.schedule} />
+            <InfoSection icon="activity" label={t('asha.vaccineRoute')} text={infoVaccine.route} />
+            <InfoSection
+              icon="alert"
+              label={t('asha.vaccineSideEffects')}
+              text={infoVaccine.commonSideEffects}
+            />
+            <InfoSection icon="fileText" label={t('asha.vaccineNotes')} text={infoVaccine.notes} />
+          </View>
+        ) : null}
+      </Modal>
     </Screen>
+  );
+}
+
+function InfoSection({
+  icon,
+  label,
+  text,
+}: {
+  icon: IconName;
+  label: string;
+  text: string;
+}) {
+  return (
+    <View className="gap-1">
+      <View className="flex-row items-center gap-2">
+        <Icon name={icon} size={16} color={colors.primary} />
+        <Text className="font-label-md text-label-md font-semibold text-on-surface">{label}</Text>
+      </View>
+      <Text className="pl-6 font-body-md text-body-md text-on-surface-variant">{text}</Text>
+    </View>
   );
 }
 
@@ -325,10 +436,12 @@ function DoseRow({
   row,
   saving,
   onMark,
+  onInfo,
 }: {
   row: ImmunizationDetail;
   saving: boolean;
   onMark: (row: ImmunizationDetail) => void;
+  onInfo: (vaccineCode: string | null) => void;
 }) {
   const { t } = useLocalization();
   const status = deriveDoseStatus(row);
@@ -346,32 +459,57 @@ function DoseRow({
             <Text className="font-label-md text-label-md text-on-surface">{name}</Text>
             <Text className="mt-1 font-caption text-caption text-on-surface-variant">{meta}</Text>
           </View>
-          {status === 'overdue' ? (
-            <Text className="font-caption text-caption font-bold text-error">{t('asha.overdue')}</Text>
-          ) : status === 'due' ? (
-            <Text className="font-caption text-caption font-bold text-primary">{t('asha.dueLabel', { date })}</Text>
-          ) : (
-            <Text className="font-caption text-caption text-outline">{date}</Text>
-          )}
+          <View className="flex-row items-center gap-2">
+            {status === 'overdue' ? (
+              <Text className="font-caption text-caption font-bold text-error">
+                {t('asha.overdue')}
+              </Text>
+            ) : status === 'due' ? (
+              <Text className="font-caption text-caption font-bold text-primary">
+                {t('asha.dueLabel', { date })}
+              </Text>
+            ) : (
+              <Text className="font-caption text-caption text-outline">{date}</Text>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('asha.vaccineInfo')}
+              onPress={() => onInfo(row.vaccine_code)}
+              className="h-7 w-7 items-center justify-center rounded-full bg-outline-variant/50"
+              hitSlop={4}
+            >
+              <Icon name="info" size={14} color={colors.onSurfaceVariant} />
+            </Pressable>
+          </View>
         </View>
 
         {status === 'given' ? (
           <View className="flex-row items-center gap-1">
             <Icon name="checkCircle" size={16} color={colors.secondary} />
-            <Text className="font-label-md text-label-md text-secondary">{t('asha.administered')}</Text>
+            <Text className="font-label-md text-label-md text-secondary">
+              {t('asha.administered')}
+            </Text>
           </View>
         ) : null}
 
         {status === 'due' ? (
           <View className="mt-2">
-            <Button label={t('asha.markCompleted')} icon="edit" full loading={saving} onPress={() => onMark(row)} />
+            <Button
+              label={t('asha.markCompleted')}
+              icon="edit"
+              full
+              loading={saving}
+              onPress={() => onMark(row)}
+            />
           </View>
         ) : null}
 
         {status === 'upcoming' ? (
           <View className="flex-row items-center gap-1">
             <Icon name="calendar" size={16} color={colors.onSurfaceVariant} />
-            <Text className="font-label-md text-label-md text-on-surface-variant">{t('asha.upcoming')}</Text>
+            <Text className="font-label-md text-label-md text-on-surface-variant">
+              {t('asha.upcoming')}
+            </Text>
           </View>
         ) : null}
       </View>

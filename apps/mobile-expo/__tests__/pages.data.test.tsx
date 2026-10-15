@@ -130,7 +130,7 @@ describe('populated screens render real rows', () => {
       expect(body).toContain('Enter a valid 10-digit mobile number');
       expect(body).toContain('Date of birth is required');
       expect(body).toContain('Select a gender');
-      expect(body).toContain('ABHA / Health ID must be at least 4 characters');
+      expect(body).toContain('ABHA ID must be exactly 14 digits');
     } finally {
       await act(async () => {
         await i18n.changeLanguage(previous);
@@ -243,6 +243,34 @@ describe('populated screens render real rows', () => {
     expect(pregnant).toBeDefined();
   });
 
+  it('patient records screen renders check-up records and the pregnancy summary', async () => {
+    const tree = await render('../app/(patient)/(tabs)/records');
+    const body = text(tree);
+    // Every locally recorded NCD screening becomes a "Health Check-up" card.
+    expect(fixture.ncd_screenings.length).toBeGreaterThan(0);
+    expect(body).toContain('Health Check-up');
+    expect(body).not.toContain('common.loading');
+  });
+
+  it('patient vaccination screen lists the pulled immunization doses', async () => {
+    const tree = await render('../app/(patient)/(tabs)/vaccination');
+    const body = text(tree);
+    const vaccines = [...new Set(fixture.immunizations.map((i) => i.vaccine_name).filter(Boolean))];
+    expect(vaccines.length).toBeGreaterThan(0);
+    expect(vaccines.some((name) => body.includes(String(name)))).toBe(true);
+    // The child card must show a real done/total, not a stuck 0/0.
+    expect(body).not.toMatch(/0\/0 · 0%/);
+  });
+
+  it('patient referrals screen renders a local referral row instead of the empty state', async () => {
+    const tree = await render('../app/(patient)/my-referrals');
+    const body = text(tree);
+    const referral = fixture.referrals[0];
+    expect(referral).toBeDefined();
+    expect(body).toContain(String(referral?.reason));
+    expect(body).not.toContain('No referrals found');
+  });
+
   it('no screen renders a raw i18n key', async () => {
     const pages = [
       '../app/(app)/(tabs)/households',
@@ -263,10 +291,17 @@ describe('populated screens render real rows', () => {
       '../app/(app)/pregnancy',
       '../app/(app)/profile',
       '../app/(app)/referrals',
-      '../app/(app)/register',
-      '../app/index',
+        '../app/(app)/register',
+        '../app/(patient)/(tabs)/home',
+        '../app/(patient)/(tabs)/health-profile',
+        '../app/(patient)/(tabs)/records',
+        '../app/(patient)/(tabs)/vaccination',
+        '../app/(patient)/(tabs)/settings',
+        '../app/(patient)/appointments',
+        '../app/(patient)/my-referrals',
+        '../app/(patient)/my-notifications',
+        '../app/index',
       '../app/login',
-      '../app/redirecting',
       '../app/verify-otp',
       '../app/account-recovery',
     ];
@@ -333,14 +368,16 @@ describe('populated screens render real rows', () => {
     await settle();
 
     // Pressables render through host Views in this renderer, so they are located
-    // by onPress plus their rendered subtree text.
-    const tappable = (needle: string) =>
-      tree!.root
+    // by onPress plus their rendered subtree text. Pick the innermost match:
+    // sheets wrap every control in a backdrop/panel Pressable that also carries
+    // the option's text, and tapping that would only dismiss the sheet.
+    const tappable = (needle: string) => {
+      const matches = tree!.root
         .findAll(
           (node) => typeof node.type !== 'string' && typeof node.props?.onPress === 'function',
           { deep: true },
         )
-        .find((node) => {
+        .filter((node) => {
           // Select fields label themselves via accessibilityLabel, while
           // Button renders its label as text.
           const a11y = node.props?.accessibilityLabel;
@@ -348,6 +385,16 @@ describe('populated screens render real rows', () => {
             (typeof a11y === 'string' && a11y.includes(needle)) || subtreeText(node).includes(needle)
           );
         });
+      const inside = (node: TestRenderer.ReactTestInstance, ancestor: TestRenderer.ReactTestInstance) => {
+        let parent = node.parent;
+        while (parent) {
+          if (parent === ancestor) return true;
+          parent = parent.parent;
+        }
+        return false;
+      };
+      return matches.find((node) => !matches.some((other) => other !== node && inside(other, node)));
+    };
 
     // Open the capture form.
     const openForm = tappable('Start Survey');
@@ -398,9 +445,9 @@ describe('populated screens render real rows', () => {
     expect(Number(queued?.n ?? 0)).toBeGreaterThan(0);
   });
   it('login posts phone and password to /auth/login and masks the field', async () => {
-    // Regression guard for the credential path: with the login mock's OTP view
-    // now the default, the password form must still go to /auth/login (never an
-    // /auth/otp endpoint) and the entry must not be echoed in clear text.
+    // Regression guard for the credential path: the login screen is
+    // password-only (no OTP entry) and the entry must not be echoed in clear
+    // text. The user type is picked before submitting.
     const calls: { url: string; body: unknown }[] = [];
     const fetchMock = jest.fn(async (url: string, init: { body?: string }) => {
       calls.push({ url, body: init.body ? JSON.parse(init.body) : undefined });
@@ -435,10 +482,10 @@ describe('populated screens render real rows', () => {
     }
 
     const json = text(tree!);
-    // The login mock's primary CTA is the OTP path; the credential form is the
-    // secondary swap-in and is not mounted (or echoed in clear text) yet.
-    expect(json).toContain('Send OTP');
-    expect(json).not.toContain('secureTextEntry');
+    // Password login is the only path: the picker and a masked password entry
+    // are mounted up front, and no OTP control exists.
+    expect(json).toContain('Select user type');
+    expect(json).toContain('secureTextEntry');
     expect(json).not.toContain('sendOtp');
     expect(json).not.toContain('verifyOtp');
 
@@ -451,16 +498,15 @@ describe('populated screens render real rows', () => {
       )[0]!;
     expect(field('phone-input')).toBeDefined();
 
-    // Swap to the password form.
-    const swap = tree!.root
+    // Pick the ASHA user type before submitting.
+    const rolePill = tree!.root
       .findAll(
-        (node) => typeof node.type !== 'string' && typeof node.props?.onPress === 'function',
+        (node) => node.props?.testID === 'login-role-asha' && typeof node.props?.onPress === 'function',
         { deep: true },
-      )
-      .find((node) => subtreeText(node).includes('Login with password'));
-    expect(swap).toBeDefined();
+      )[0];
+    expect(rolePill).toBeDefined();
     await act(async () => {
-      swap!.props.onPress();
+      rolePill!.props.onPress();
     });
     for (let i = 0; i < 10; i += 1) {
       // eslint-disable-next-line no-await-in-loop
@@ -468,8 +514,6 @@ describe('populated screens render real rows', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
     }
-    // A password entry exists and is masked.
-    expect(text(tree!)).toContain('secureTextEntry');
     expect(field('password-input')).toBeDefined();
     await act(async () => {
       field('phone-input').props.onChangeText('9876543210');

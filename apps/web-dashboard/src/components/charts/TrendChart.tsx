@@ -20,7 +20,7 @@ interface TrendChartProps {
   ySuffix?: string
 }
 
-export function TrendChart({ data, color = '#006565', height = 260, ySuffix = '%' }: TrendChartProps) {
+export function TrendChart({ data, color = '#4F46E5', height = 260, ySuffix = '%' }: TrendChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

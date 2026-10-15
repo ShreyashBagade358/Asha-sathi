@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,16 +32,21 @@ export default function AccountRecoveryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ phone: string; devOtp: string | null } | null>(null);
+  // Closes the double-submit race: `busy` only lands on the next render, so a
+  // second activation arriving in the same tick is stopped here instead.
+  const inFlight = useRef(false);
 
   const hasTyped = phone.length > 0;
   const phoneValid = PHONE_PATTERN.test(phone);
   const phoneInvalid = hasTyped && !phoneValid;
 
   async function submit() {
+    if (inFlight.current) return;
     if (!phoneValid) {
       setError(t('common.phoneInvalid'));
       return;
     }
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -53,6 +58,7 @@ export default function AccountRecoveryScreen() {
       setError(message);
       toast(message, 'error');
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }

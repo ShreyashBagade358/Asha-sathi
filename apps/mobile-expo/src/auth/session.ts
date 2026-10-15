@@ -3,7 +3,9 @@ import { Platform } from 'react-native';
 
 import { authApi, syncApi } from './api';
 import { tokenStore } from './tokenStore';
-import { metadata } from '../db/database';
+import { fetchMyRegion } from '../data/region';
+import { metadata, resetLocalData } from '../db/database';
+import { scheduleSync } from '../sync/network';
 import type { LoginResponse, UserSummary } from '../types';
 
 /**
@@ -36,9 +38,33 @@ export interface AuthState {
   error: string | null;
 }
 
-export async function login(phone: string, password: string): Promise<UserSummary> {
+/**
+ * The credentials are valid but belong to a different user type than the login
+ * screen's picker declared. It is thrown before any session side effect runs,
+ * so picking the wrong pill can never wipe the account that is already on this
+ * device, persist a session for the wrong identity and then have to undo it.
+ */
+export class RoleMismatchError extends Error {
+  constructor(
+    readonly expectedRole: string,
+    readonly actualRole: string,
+  ) {
+    super(`Expected a ${expectedRole} account but this login is ${actualRole}`);
+    this.name = 'RoleMismatchError';
+  }
+}
+
+export async function login(
+  phone: string,
+  password: string,
+  expectedRole?: string,
+): Promise<UserSummary> {
   const deviceId = await getDeviceId();
   const response = await authApi.login(phone, password, deviceId);
+  if (expectedRole && response.user.role !== expectedRole) {
+    throw new RoleMismatchError(expectedRole, response.user.role);
+  }
+  await tokenStore.saveLastPhone(phone);
   return completeLogin(response, deviceId);
 }
 
@@ -52,15 +78,28 @@ export async function requestOtp(phone: string): Promise<string> {
 export async function verifyOtp(phone: string, code: string): Promise<UserSummary> {
   const deviceId = await getDeviceId();
   const response = await authApi.otpVerify(phone, code, deviceId);
+  await tokenStore.saveLastPhone(phone);
   return completeLogin(response, deviceId);
 }
 
 async function completeLogin(response: LoginResponse, deviceId: string): Promise<UserSummary> {
+  const previous = await tokenStore.getUser();
   await tokenStore.save({
     accessToken: response.tokens.access_token,
     refreshToken: response.tokens.refresh_token,
     user: response.user,
   });
+
+  // A different account signing in on this device must not inherit the
+  // previous user's offline rows, queued pushes or pull watermark — that is
+  // what made an admin login land on stale ASHA data with an empty sync.
+  if (previous && previous.id !== response.user.id) {
+    try {
+      await resetLocalData();
+    } catch (error) {
+      console.warn('[auth] local data reset failed', error);
+    }
+  }
 
   // Best effort: a failure here must not block the login.
   try {
@@ -72,6 +111,20 @@ async function completeLogin(response: LoginResponse, deviceId: string): Promise
   } catch (error) {
     console.warn('[auth] device registration failed', error);
   }
+
+  // Login is the one moment guaranteed to be online: cache the worker's
+  // state / district / village right here so the registration forms have
+  // their dropdown data on a phone that spends the rest of the day offline.
+  try {
+    await fetchMyRegion();
+  } catch (error) {
+    console.warn('[auth] region cache warm failed', error);
+  }
+
+  // The tabs render from SQLite, and the network watcher only syncs on an
+  // offline -> online edge — a phone that stays online would never pull after
+  // login, leaving an empty shell. Kick a sync for this session now.
+  scheduleSync();
 
   return response.user;
 }
@@ -85,14 +138,17 @@ export async function restoreSession(): Promise<UserSummary | null> {
   // background so a revoked account does not leave a stale shell.
   try {
     const fresh = await authApi.me();
-    await tokenStore.save({
-      accessToken: (await tokenStore.getAccessToken()) ?? '',
-      refreshToken: (await tokenStore.getRefreshToken()) ?? '',
-      user: fresh,
-    });
+    const accessToken = await tokenStore.getAccessToken();
+    const refreshToken = await tokenStore.getRefreshToken();
+    // me() 401s clear the store while this call is in flight; writing the
+    // empty read back would resurrect a session that no longer exists.
+    if (!accessToken || !refreshToken) return null;
+    await tokenStore.save({ accessToken, refreshToken, user: fresh });
     return fresh;
   } catch {
-    return cached;
+    // A refused session is over (the store is already empty), but a phone
+    // that simply cannot reach the server keeps its cached profile.
+    return (await tokenStore.getAccessToken()) ? cached : null;
   }
 }
 
@@ -103,4 +159,10 @@ export async function logout(): Promise<void> {
     // Local sign-out regardless.
   }
   await tokenStore.clear();
+  // The device is shared: leave no patient data behind for the next account.
+  try {
+    await resetLocalData();
+  } catch (error) {
+    console.warn('[auth] local data reset failed on logout', error);
+  }
 }

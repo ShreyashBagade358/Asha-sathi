@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin, get_current_user, get_db_session, require_roles
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import generate_asha_password, get_password_hash
-from app.models.admin import SubCenter, Village
+from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.audit import SyncLog
-from app.models.beneficiary import Household
+from app.models.beneficiary import Beneficiary, Household
 from app.models.incentive import IncentiveClaim
 from app.models.task import ASHAKPI, ASHATask
 from app.models.user import ASHAProfile, Role, User
@@ -38,6 +38,7 @@ from app.schemas.user import (
 )
 from app.services.audit import log_action
 from app.services.incentive_calc import calculate_claim
+from app.services.sync_scope import resolve_scope
 from app.services.task_plan import generate_daily_plan, pending_first_order, plan_today
 
 router = APIRouter()
@@ -161,16 +162,30 @@ async def list_my_tasks(
             # wins, we simply read the result.
             await db.rollback()
 
+    # Build scope for this ASHA (same logic as households sync scope)
+    scope = await resolve_scope(db, user)
+    
     stmt = (
         select(ASHATask, Household.hhid, Village.name)
         .outerjoin(Household, Household.id == ASHATask.household_id)
         .outerjoin(Village, Village.id == func.coalesce(ASHATask.village_id, Household.village_id))
-        .where(ASHATask.asha_id == user.id)
     )
+    
+    # ASHA sees tasks assigned to them OR tasks for households in their scope
+    if scope.household_ids:
+        stmt = stmt.where(
+            or_(ASHATask.asha_id == user.id, ASHATask.household_id.in_(scope.household_ids))
+        )
+    else:
+        stmt = stmt.where(ASHATask.asha_id == user.id)
     if day is not None:
         stmt = stmt.where(ASHATask.task_date == day)
     if status:
         stmt = stmt.where(ASHATask.status == status)
+    else:
+        # Cancelled rows (superseded duplicates the plan cleaned up) are not
+        # work — they stay out of the queue unless explicitly asked for.
+        stmt = stmt.where(ASHATask.status != "cancelled")
 
     result = await db.execute(stmt.order_by(*pending_first_order()))
     items: list[ASHATaskResponse] = []
@@ -182,12 +197,100 @@ async def list_my_tasks(
     return items
 
 
+async def _asha_can_access_task_target(
+    db: AsyncSession,
+    user: User,
+    household_id: str | None,
+    village_id: str | None,
+    beneficiary_id: str | None,
+) -> bool:
+    """Check if ASHA can create tasks for the given target.
+    
+    ASHA can create tasks for:
+    - Households they directly own (Household.asha_id == user.id)
+    - Households in their catchment villages (from ASHAProfile.catchment_villages)
+    - Beneficiaries in their households
+    - Villages in their catchment
+    """
+    if user.role != "asha":
+        return True  # non-ASHAs (admins) can create tasks anywhere
+    
+    # Get ASHA's catchment villages
+    profile = (await db.execute(
+        select(ASHAProfile).where(ASHAProfile.user_id == user.id)
+    )).scalar_one_or_none()
+    catchment_villages = set(profile.catchment_villages or []) if profile else set()
+    if user.village_id:
+        catchment_villages.add(user.village_id)
+    
+    # Check household
+    if household_id:
+        household = await db.get(Household, household_id)
+        if not household:
+            return False
+        if household.asha_id == user.id:
+            return True
+        if household.village_id and household.village_id in catchment_villages:
+            return True
+        return False
+    
+    # Check village directly
+    if village_id:
+        return village_id in catchment_villages
+    
+    # Check beneficiary
+    if beneficiary_id:
+        beneficiary = await db.get(Beneficiary, beneficiary_id)
+        if not beneficiary:
+            return False
+        if beneficiary.household_id:
+            household = await db.get(Household, beneficiary.household_id)
+            if not household:
+                return False
+            if household.asha_id == user.id:
+                return True
+            if household.village_id and household.village_id in catchment_villages:
+                return True
+        return False
+    
+    # No target specified - allow (e.g., general task)
+    return True
+    
+    # Check village directly
+    if village_id:
+        return village_id in catchment_villages
+    
+    # Check beneficiary
+    if beneficiary_id:
+        beneficiary = await db.get(Beneficiary, beneficiary_id)
+        if not beneficiary:
+            return False
+        if beneficiary.household_id:
+            household = await db.get(Household, beneficiary.household_id)
+            if not household:
+                return False
+            if household.asha_id == user.id:
+                return True
+            if household.village_id and household.village_id in catchment_villages:
+                return True
+        return False
+    
+    # No target specified - allow (e.g., general task)
+    return True
+
+
 @router.post("/me/tasks", response_model=ASHATaskResponse, status_code=201)
 async def create_my_task(
     payload: ASHATaskCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
+    # Validate ASHA can create task for the given target
+    if not await _asha_can_access_task_target(
+        db, user, payload.household_id, payload.village_id, payload.beneficiary_id
+    ):
+        raise NotFoundError("Cannot create task for this household/village/beneficiary — not in your assigned area")
+    
     task = ASHATask(**payload.model_dump(), asha_id=user.id)
     db.add(task)
     try:
@@ -511,6 +614,28 @@ async def update_asha(
     )
 
 
+async def _geo_from_village(db: AsyncSession, village: Village) -> dict:
+    """Resolve the full geo chain for a village.
+
+    The village is the source of truth: sub-centre -> PHC -> block ->
+    district -> state are all derived from it, so an ASHA created by a
+    district-level admin (no PHC of their own) still lands in the village's
+    real PHC instead of inheriting a null one.
+    """
+    sub_center = await db.get(SubCenter, village.sub_center_id)
+    phc = await db.get(PHC, sub_center.phc_id) if sub_center else None
+    block = await db.get(Block, phc.block_id) if phc else None
+    district = await db.get(District, block.district_id) if block else None
+    state = await db.get(State, district.state_id) if district else None
+    return {
+        "state_id": state.id if state else None,
+        "district_id": district.id if district else None,
+        "block_id": block.id if block else None,
+        "phc_id": phc.id if phc else None,
+        "sub_center_id": sub_center.id if sub_center else None,
+    }
+
+
 @router.post("", response_model=ASHACreateResponse, status_code=201)
 async def create_asha(
     payload: ASHACreate,
@@ -524,6 +649,7 @@ async def create_asha(
         raise ConflictError("A user with this phone number already exists")
     village_id = None
     village_name = payload.village
+    village = None
     if payload.village:
         # Match by id or by name, like the sub-centre lookup below: with the
         # full India directory a bare name can be ambiguous (4 duplicated names).
@@ -537,9 +663,32 @@ async def create_asha(
         if village:
             village_id = village.id
             village_name = village.name
+    # The village decides the worker's whole geography (sub-centre -> PHC ->
+    # block -> district -> state). A district-level admin with no PHC of their
+    # own still lands the worker in the village's real PHC instead of null.
+    geo = await _geo_from_village(db, village) if village else {}
+    # No village (or a village with no PHC chain): fall back to the PHC the
+    # form picked directly, deriving its block/district/state.
+    if not geo.get("phc_id") and payload.phc:
+        phc_row = (
+            await db.execute(
+                select(PHC).where(or_(PHC.id == payload.phc, PHC.name == payload.phc))
+            )
+        ).scalars().first()
+        if phc_row:
+            block_row = await db.get(Block, phc_row.block_id)
+            district_row = await db.get(District, block_row.district_id) if block_row else None
+            state_row = await db.get(State, district_row.state_id) if district_row else None
+            geo = {
+                "state_id": state_row.id if state_row else None,
+                "district_id": district_row.id if district_row else None,
+                "block_id": block_row.id if block_row else None,
+                "phc_id": phc_row.id,
+                "sub_center_id": None,
+            }
     # The form may name the sub-centre by id or by label; an unknown or absent
-    # value falls back to the admin's own sub-centre (the previous behaviour).
-    sub_center_id = user.sub_center_id
+    # value falls back to the village's own sub-centre, then the admin's.
+    sub_center_id = geo.get("sub_center_id") or user.sub_center_id
     if payload.sub_center:
         sub_center = (
             await db.execute(
@@ -553,10 +702,10 @@ async def create_asha(
     password = payload.password or generate_asha_password(payload.phone)
     new_user = User(
         role=Role.ASHA.value,
-        state_id=user.state_id,
-        district_id=user.district_id,
-        block_id=user.block_id,
-        phc_id=user.phc_id,
+        state_id=geo.get("state_id") or user.state_id,
+        district_id=geo.get("district_id") or user.district_id,
+        block_id=geo.get("block_id") or user.block_id,
+        phc_id=geo.get("phc_id") or user.phc_id,
         sub_center_id=sub_center_id,
         village_id=village_id,
         phone=payload.phone,

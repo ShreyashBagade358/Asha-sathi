@@ -5,10 +5,12 @@ import { useASHAStore } from '@/stores/asha.store'
 import { Icon } from '@/components/common/Icons'
 import type { RiskLevel } from '@/pages/asha/mockData'
 
+import { RISK_STYLES } from '@/lib/risk';
+
 const riskStyles: Record<RiskLevel, string> = {
-  low: 'bg-secondary-container text-on-secondary-container',
-  medium: 'bg-[#FF8C00]/15 text-[#B34E00]',
-  high: 'bg-error-container text-on-error-container',
+  low: RISK_STYLES.low.bg + ' ' + RISK_STYLES.low.text,
+  medium: RISK_STYLES.medium.bg + ' ' + RISK_STYLES.medium.text,
+  high: RISK_STYLES.high.bg + ' ' + RISK_STYLES.high.text,
 }
 
 export default function MyHealthProfileAshaSathi() {

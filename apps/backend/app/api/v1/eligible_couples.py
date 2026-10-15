@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
 from app.core.exceptions import NotFoundError
+from app.models.beneficiary import Beneficiary
 from app.models.eligible_couple import ECFollowup, EligibleCouple
+from app.models.notification import Notification
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
 from app.schemas.other_domain import (
@@ -34,7 +36,9 @@ async def list_eligible_couples(
     db: AsyncSession = Depends(get_db_session),
     user: User = Depends(get_current_user),
 ):
-    stmt = select(EligibleCouple).where(EligibleCouple.status == status)
+    stmt = select(EligibleCouple)
+    if status and status != "all":
+        stmt = stmt.where(EligibleCouple.status == status)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(
         stmt.order_by(EligibleCouple.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -77,9 +81,35 @@ async def update_eligible_couple(
 ):
     ec = await _get_ec(db, ec_id)
     data = payload.model_dump(exclude_unset=True)
+    was_confirmed = ec.pregnancy_confirmed
     await log_action(db, user.id, "ec_updated", "eligible_couple", ec.id, old_values=ec.to_dict(), new_values=data)
     for key, value in data.items():
         setattr(ec, key, value)
+
+    if data.get("pregnancy_confirmed") and not was_confirmed:
+        wife = await db.get(Beneficiary, ec.wife_id)
+        husband = await db.get(Beneficiary, ec.husband_id)
+        wife_name = wife.full_name if wife else "Wife"
+        husband_name = husband.full_name if husband else "Husband"
+        asha_ids = {b.asha_id for b in (wife, husband) if b and b.asha_id}
+        for asha_id in asha_ids:
+            db.add(
+                Notification(
+                    user_id=asha_id,
+                    type="pregnancy_confirmed",
+                    priority="high",
+                    title="Pregnancy Confirmed",
+                    message=(
+                        f"Pregnancy confirmed for {wife_name} & {husband_name}."
+                        " Register ANC and schedule first visit."
+                    ),
+                    action_url="/phc/maternal-health",
+                    action_label="Open Maternal Health",
+                    reference_id=ec.id,
+                    reference_type="eligible_couple",
+                )
+            )
+
     await db.commit()
     await db.refresh(ec)
     return ec

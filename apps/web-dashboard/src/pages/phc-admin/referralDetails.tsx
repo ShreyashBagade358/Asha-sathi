@@ -2,7 +2,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { referralService } from '@/services/referral.service'
 import { useUIStore } from '@/stores/ui.store'
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 
@@ -83,30 +82,22 @@ export default function ReferralDetailsPhcAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-4 md:p-6 bg-background min-h-screen pb-24 md:pb-0 overflow-y-auto flex flex-col">
+        <div className="flex items-center justify-center py-24">
           <LoadingState label="Loading referral…" />
-        </main>
-      </div>
+        </div>
     )
   }
 
   if (isError || !referral) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-4 md:p-6 bg-background min-h-screen pb-24 md:pb-0 overflow-y-auto flex flex-col">
+        <div className="flex items-center justify-center py-24">
           <ErrorState message={getErrorMessage(error)} onRetry={refetch} />
-        </main>
-      </div>
+        </div>
     )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <PhcSidebar />
-      <main className="flex-1 ml-0 md:ml-64 p-lg md:p-xl bg-background min-h-screen pb-24 md:pb-0 overflow-y-auto flex flex-col">
+      <div className="flex flex-col gap-6">
         <div className="hidden md:flex justify-between items-center mb-xl border-b border-outline-variant pb-md">
           <div className="flex items-center">
             <Link className="mr-md text-on-surface-variant hover:text-primary transition-colors flex items-center" to="/phc/referrals">
@@ -285,7 +276,6 @@ export default function ReferralDetailsPhcAdmin() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   )
 }

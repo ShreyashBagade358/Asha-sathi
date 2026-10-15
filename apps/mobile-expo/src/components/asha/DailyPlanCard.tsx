@@ -48,7 +48,11 @@ export function DailyPlanCard({ tasks }: { tasks: ViewTask[] }) {
 
   const done = tasks.filter((task) => task.done).length;
   const carried = tasks.filter((task) => task.carriedFrom);
-  const percent = Math.min(100, Math.round((done / DAILY_TASK_QUOTA) * 100));
+  // Denominator tracks the actual plan (never the fixed quota alone) so the
+  // header always agrees with the filter pills below it: an empty day reads
+  // "0 of 0" next to All 0, not a quota the list does not have.
+  const quota = tasks.length;
+  const percent = quota > 0 ? Math.min(100, Math.round((done / quota) * 100)) : 0;
 
   return (
     <View
@@ -63,7 +67,7 @@ export function DailyPlanCard({ tasks }: { tasks: ViewTask[] }) {
           <View className="flex-1">
             <Text className="font-label-md text-label-md font-semibold text-on-surface">{t('asha.todaysVisits')}</Text>
             <Text className="font-caption text-caption text-on-surface-variant">
-              {t('asha.visitsDoneOf', { done, quota: DAILY_TASK_QUOTA })}
+              {t('asha.visitsDoneOf', { done, quota })}
             </Text>
           </View>
         </View>

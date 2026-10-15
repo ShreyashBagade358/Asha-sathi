@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db_session
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.abha import ABHARecord
-from app.models.admin import Village
+from app.models.admin import PHC, SubCenter, Village
 from app.models.beneficiary import Beneficiary, Household
 from app.models.user import User
 from app.schemas.beneficiary import (
@@ -56,6 +56,50 @@ async def _hydrate_beneficiaries(db: AsyncSession, beneficiaries: list[Beneficia
     return out
 
 
+@router.get("/stats")
+async def beneficiary_stats(
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    total = (await db.execute(select(func.count(Beneficiary.id)))).scalar_one()
+    pregnant = (
+        (await db.execute(select(func.count(Beneficiary.id)).where(Beneficiary.is_pregnant.is_(True)))).scalar_one()
+    )
+
+    bens = (await db.execute(select(Beneficiary))).scalars().all()
+    hh_ids = {b.household_id for b in bens if b.household_id}
+    meta_villages = {b.village for b in bens if b.village}
+    hh_village_ids: set[str] = set()
+    if hh_ids:
+        hh_village_ids = set(
+            (await db.execute(select(Household.village_id).where(Household.id.in_(hh_ids)))).scalars()
+        )
+    linked_villages = set()
+    if hh_village_ids:
+        linked_villages = set(
+            (await db.execute(select(Village.name).where(Village.id.in_(hh_village_ids)))).scalars()
+        )
+    villages = sorted(linked_villages | meta_villages)
+
+    phc_rows = []
+    if hh_village_ids:
+        phc_rows = (
+            await db.execute(
+                select(PHC.id, PHC.name)
+                .join(SubCenter, SubCenter.phc_id == PHC.id)
+                .where(SubCenter.id.in_(select(Village.sub_center_id).where(Village.id.in_(hh_village_ids))))
+                .order_by(PHC.name)
+            )
+        ).all()
+
+    return {
+        "total": total,
+        "pregnant": pregnant,
+        "villages": villages,
+        "phcs": [{"id": r[0], "name": r[1]} for r in phc_rows],
+    }
+
+
 @router.get("", response_model=PaginatedResponse[BeneficiaryResponse])
 async def search_beneficiaries(
     q: str = Query(None),
@@ -63,6 +107,7 @@ async def search_beneficiaries(
     status: str = Query(None),
     village_id: str = Query(None),
     village: str = Query(None),
+    phc_id: str = Query(None),
     abha_id: str = Query(None),
     has_abha: bool = Query(None),
     page: int = Query(1, ge=1),
@@ -77,6 +122,7 @@ async def search_beneficiaries(
                 Beneficiary.full_name.ilike(f"%{q}%"),
                 Beneficiary.beneficiary_id.ilike(f"%{q}%"),
                 Beneficiary.phone.ilike(f"%{q}%"),
+                Beneficiary.abha_id.ilike(f"%{q}%"),
             )
         )
     if gender:
@@ -91,12 +137,28 @@ async def search_beneficiaries(
         stmt = stmt.where(Beneficiary.household_id.in_(select(Household.id).where(Household.village_id == village_id)))
     if village:
         stmt = stmt.where(
+            or_(
+                Beneficiary.household_id.in_(
+                    select(Household.id).where(
+                        Household.village_id.in_(select(Village.id).where(Village.name == village))
+                    )
+                ),
+                Beneficiary.metadata_json["village"].as_string() == village,
+            )
+        )
+    if phc_id:
+        stmt = stmt.where(
             Beneficiary.household_id.in_(
                 select(Household.id).where(
-                    Household.village_id.in_(select(Village.id).where(Village.name == village))
+                    Household.village_id.in_(
+                        select(Village.id).where(
+                            Village.sub_center_id.in_(select(SubCenter.id).where(SubCenter.phc_id == phc_id))
+                        )
+                    )
                 )
             )
         )
+
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(
         stmt.order_by(Beneficiary.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
@@ -207,28 +269,25 @@ async def get_beneficiary_timeline(
 
     events: list[dict] = []
 
-    def _append(model_cls: type[Any], rows: Any) -> None:
+    def _append(model_cls: type[Any], rows: Any, when: Any = None) -> None:
         for row in rows:
+            stamp = when(row) if when else row.created_at
             events.append(
-                {"type": model_cls.__name__, "date": row.created_at.isoformat(), "record": row.to_dict()}
+                {"type": model_cls.__name__, "date": (stamp or row.created_at).isoformat(), "record": row.to_dict()}
             )
 
     pregnancies = (
-        await db.execute(select(Pregnancy).where(Pregnancy.beneficiary_id == beneficiary.id))
-    ).scalars().all()
+        (await db.execute(select(Pregnancy).where(Pregnancy.beneficiary_id == beneficiary.id))).scalars().all()
+    )
     for pregnancy in pregnancies:
         _append(Pregnancy, [pregnancy])
         for model in [ANCVISIT, PNCVisit, DeliveryOutcome]:
             rows = (
-                await db.execute(
-                    select(model).where(model.pregnancy_id == pregnancy.id).order_by(model.created_at)
-                )
+                await db.execute(select(model).where(model.pregnancy_id == pregnancy.id).order_by(model.created_at))
             ).scalars()
             _append(model, rows)
 
-    rows = (
-        await db.execute(select(DeathReport).where(DeathReport.beneficiary_id == beneficiary.id))
-    ).scalars()
+    rows = (await db.execute(select(DeathReport).where(DeathReport.beneficiary_id == beneficiary.id))).scalars()
     _append(DeathReport, rows)
 
     child = (await db.execute(select(Child).where(Child.beneficiary_id == beneficiary.id))).scalar_one_or_none()
@@ -240,6 +299,49 @@ async def get_beneficiary_timeline(
             ).scalars()
             for row in rows:
                 events.append({"type": model.__name__, "date": row.created_at.isoformat(), "record": row.to_dict()})
+
+    # Everything the ASHA records during visits and check-ups — the patient's
+    # lived history, not just the clinical milestones above.
+    from app.models.beneficiary import HouseholdVisitCheck
+    from app.models.disease import DiseaseCase
+    from app.models.eligible_couple import ECFollowup, EligibleCouple
+    from app.models.ncd import NCDScreening
+    from app.models.referral import Referral
+    from app.models.task import ASHATask
+
+    visit_checks = (
+        await db.execute(select(HouseholdVisitCheck).where(HouseholdVisitCheck.beneficiary_id == beneficiary.id))
+    ).scalars()
+    _append(HouseholdVisitCheck, visit_checks, lambda row: row.visited_at)
+
+    screenings = (await db.execute(select(NCDScreening).where(NCDScreening.beneficiary_id == beneficiary.id))).scalars()
+    _append(NCDScreening, screenings, lambda row: row.screening_date)
+
+    diseases = (await db.execute(select(DiseaseCase).where(DiseaseCase.beneficiary_id == beneficiary.id))).scalars()
+    _append(DiseaseCase, diseases, lambda row: row.diagnosis_date)
+
+    referrals = (await db.execute(select(Referral).where(Referral.beneficiary_id == beneficiary.id))).scalars()
+    _append(Referral, referrals, lambda row: row.initiated_at)
+
+    ec_ids = (
+        (await db.execute(select(EligibleCouple.id).where(EligibleCouple.wife_id == beneficiary.id))).scalars().all()
+    )
+    if ec_ids:
+        followups = (
+            await db.execute(select(ECFollowup).where(ECFollowup.ec_id.in_(ec_ids)).order_by(ECFollowup.created_at))
+        ).scalars()
+        _append(ECFollowup, followups, lambda row: row.followup_date)
+
+    # Completed ASHA visits: the record of the worker actually showing up.
+    completed_visits = (
+        await db.execute(
+            select(ASHATask).where(
+                ASHATask.beneficiary_id == beneficiary.id,
+                ASHATask.status == "completed",
+            )
+        )
+    ).scalars()
+    _append(ASHATask, completed_visits, lambda row: row.completed_time)
 
     events.sort(key=lambda e: e["date"])
     return {"beneficiary_id": beneficiary.id, "events": events}

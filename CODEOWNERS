@@ -15,7 +15,6 @@
 # Web dashboard
 /apps/web-dashboard/ @asha-sathi/web
 /packages/design-system/web/ @asha-sathi/web
-/packages/shared-types/typescript/ @asha-sathi/web
 
 # ML pipeline
 /apps/ml-training/ @asha-sathi/ml

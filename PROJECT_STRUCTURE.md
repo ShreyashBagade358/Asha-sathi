@@ -37,13 +37,7 @@ asha-sathi/
 │   ├── design-system/       # Shared UI components
 │   │   ├── react/           # React components (scaffold)
 │   │   └── tokens/          # Design tokens
-│   ├── shared-types/        # Cross-language type definitions
-│   │   ├── typescript/      # TypeScript type definitions
-│   │   └── python/          # Python type definitions
-│   ├── ml-common/           # ML utilities (feature_spec, risk_utils)
-│   └── supabase-client/     # Thin Supabase clients per language
-│       ├── typescript/      # React Supabase client
-│       └── python/          # Python Supabase client
+│   └── ml-common/           # ML utilities (feature_spec, risk_utils)
 ├── docker/                  # Docker infrastructure
 │   ├── docker-compose.yml   # Local dev stack
 │   ├── docker-compose.prod.yml  # Production overrides
@@ -107,8 +101,6 @@ changes using an `updated_at` watermark.
 ### Shared Packages
 - `design-system/react`: Scaffold (types currently being populated)
 - `ml-common`: Python ML utilities (feature_spec.py, risk_utils.py)
-- `shared-types`: Cross-language type definitions (TypeScript/Python - currently scaffolded)
-- `supabase-client`: Thin Supabase clients per language (TypeScript/Python - currently scaffolded)
 
 ## Quick Start for New Users
 

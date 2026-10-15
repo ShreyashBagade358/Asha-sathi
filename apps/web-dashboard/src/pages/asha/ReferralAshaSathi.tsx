@@ -1,14 +1,15 @@
-import { useState, type FormEvent } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMemo, useState, type FormEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useAuth } from '@/hooks/useAuth'
-import { useAppStore } from '@/stores/app.store'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { getErrorMessage } from '@/components/common/ErrorState'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { EmptyState } from '@/components/common/EmptyState'
 import { referralService } from '@/services/referral.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
+import { ageFromBeneficiary, formatRecordDate } from '@/pages/asha/patientView'
 import type { ReferralRecord, ReferralStatus, ReferralUrgency } from '@/pages/asha/mockData'
 
 const STATUS_META: Record<ReferralStatus, { label: string; className: string }> = {
@@ -28,16 +29,40 @@ export default function ReferralAshaSathi() {
   const { t } = useLocalization()
   const { user } = useAuth()
   const { addToast } = useUIStore()
-  const referrals = useAppStore((s) => s.referrals)
-  const addReferral = useAppStore((s) => s.addReferral)
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<'all' | ReferralStatus>('all')
   const [showForm, setShowForm] = useState(false)
+
+  const referralsQuery = useQuery({
+    queryKey: ['referrals', 'asha-list'],
+    queryFn: () => referralService.listReferrals({ pageSize: 1000 }),
+  })
 
   const beneficiariesQuery = useQuery({
     queryKey: ['beneficiaries', 'all'],
     queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
   })
   const beneficiaryOptions = beneficiariesQuery.data?.items ?? []
+
+  // API rows carry a beneficiary id only — names/ages come from the list cache.
+  const referrals: ReferralRecord[] = useMemo(() => {
+    const byId = new Map((beneficiariesQuery.data?.items ?? []).map((b) => [b.id, b]))
+    return (referralsQuery.data?.items ?? []).map((r) => {
+      const ben = byId.get(r.beneficiaryId)
+      return {
+        id: r.id,
+        patientName: ben?.name ?? '—',
+        age: ben ? ageFromBeneficiary(ben) : 0,
+        fromFacility: r.fromFacility || t('asha.refFromUnspecified'),
+        toFacility: r.toFacility || t('asha.refToUnspecified'),
+        reason: r.reason || t('asha.refReasonUnspecified'),
+        urgency: r.urgency,
+        date: formatRecordDate(r.referredAt),
+        status: r.status,
+        referredBy: r.referredBy || t('asha.refReferredByUnknown'),
+      }
+    })
+  }, [referralsQuery.data, beneficiariesQuery.data, t])
 
   const [form, setForm] = useState({
     beneficiaryId: '',
@@ -61,21 +86,8 @@ export default function ReferralAshaSathi() {
         referredTo: snapshot.toFacility.trim(),
         referredFrom: snapshot.fromFacility.trim() || user?.phcName || undefined,
       }),
-    onSuccess: (created, snapshot) => {
-      const ben = beneficiaryOptions.find((b) => b.id === snapshot.beneficiaryId)
-      const record: ReferralRecord = {
-        id: created.id,
-        patientName: snapshot.patientName.trim() || ben?.name || '—',
-        age: Number(snapshot.age) || 0,
-        fromFacility: snapshot.fromFacility.trim() || user?.phcName || t('asha.refFromUnspecified'),
-        toFacility: snapshot.toFacility.trim(),
-        reason: snapshot.reason.trim() || t('asha.refReasonUnspecified'),
-        urgency: snapshot.urgency,
-        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-        status: 'pending',
-        referredBy: user ? `${user.fullName} (ASHA)` : t('asha.refReferredByUnknown'),
-      }
-      addReferral(record)
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['referrals'] })
       addToast('success', t('asha.referralCreated'))
       setShowForm(false)
       setForm({ beneficiaryId: '', patientName: '', age: '', fromFacility: '', toFacility: '', reason: '', urgency: 'routine' })
@@ -100,21 +112,16 @@ export default function ReferralAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.referralTitle')}
-        subtitle={t('asha.referralSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.referralTitle') }]}
-        actions={
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98]"
-          >
-            <Icon name="plus" size={18} />
-            {showForm ? t('asha.closeForm') : t('asha.newReferral')}
-          </button>
-        }
-      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98]"
+        >
+          <Icon name="plus" size={18} />
+          {showForm ? t('asha.closeForm') : t('asha.newReferral')}
+        </button>
+      </div>
 
       {showForm ? (
         <form
@@ -170,7 +177,7 @@ export default function ReferralAshaSathi() {
           >
             {tab.label}
             <span
-              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+              className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                 filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
               }`}
             >
@@ -181,59 +188,78 @@ export default function ReferralAshaSathi() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {visible.map((ref) => {
-          const statusMeta = STATUS_META[ref.status]
-          const urgencyMeta = URGENCY_TONE[ref.urgency]
-          return (
-            <div
-              key={ref.id}
-              className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card"
-            >
-              <div className="flex items-start justify-between gap-3 p-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-                    <Icon name="edit" size={22} />
-                  </span>
-                  <div>
-                    <p className="font-label-md text-label-md font-semibold text-on-surface">{ref.patientName}</p>
-                    <p className="font-caption text-caption text-on-surface-variant">
-                      {ref.age} yrs · {ref.referredBy}
-                    </p>
+        {referralsQuery.isLoading ? (
+          <LoadingState label={t('common.loading')} />
+        ) : referralsQuery.isError ? (
+          <ErrorState
+            message={getErrorMessage(referralsQuery.error)}
+            onRetry={() => referralsQuery.refetch()}
+          />
+        ) : referrals.length === 0 ? (
+          <EmptyState
+            icon="referral"
+            title={t('asha.noReferrals')}
+            description={t('asha.noReferralsHint')}
+          />
+        ) : visible.length === 0 ? (
+          <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest px-4 py-12 text-center font-body-md text-body-md text-on-surface-variant shadow-card">
+            {t('common.noResults')}
+          </div>
+        ) : (
+          visible.map((ref) => {
+            const statusMeta = STATUS_META[ref.status]
+            const urgencyMeta = URGENCY_TONE[ref.urgency]
+            return (
+              <div
+                key={ref.id}
+                className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card"
+              >
+                <div className="flex items-start justify-between gap-3 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
+                      <Icon name="edit" size={22} />
+                    </span>
+                    <div>
+                      <p className="font-label-md text-label-md font-semibold text-on-surface">{ref.patientName}</p>
+                      <p className="font-caption text-caption text-on-surface-variant">
+                        {ref.age} yrs · {ref.referredBy}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${urgencyMeta.className}`}>
+                      {urgencyMeta.label}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${statusMeta.className}`}>
+                      {statusMeta.label}
+                    </span>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${urgencyMeta.className}`}>
-                    {urgencyMeta.label}
-                  </span>
-                  <span className={`rounded-full px-2.5 py-1 font-caption text-caption font-semibold ${statusMeta.className}`}>
-                    {statusMeta.label}
-                  </span>
-                </div>
-              </div>
 
-              <div className="space-y-2 border-t border-outline-variant/40 bg-surface-container-low/50 px-4 py-3">
-                <div className="flex items-center gap-2 font-body-md text-body-md text-on-surface">
-                  <Icon name="mapPin" size={16} className="text-primary" />
-                  <span className="text-on-surface-variant">{t('asha.refFrom')}:</span>
-                  {ref.fromFacility}
+                <div className="space-y-2 border-t border-outline-variant/40 bg-surface-container-low/50 px-4 py-3">
+                  <div className="flex items-center gap-2 font-body-md text-body-md text-on-surface">
+                    <Icon name="mapPin" size={16} className="text-primary" />
+                    <span className="text-on-surface-variant">{t('asha.refFrom')}:</span>
+                    {ref.fromFacility}
+                  </div>
+                  <div className="flex items-center gap-2 font-body-md text-body-md text-on-surface">
+                    <Icon name="chevronRight" size={16} className="text-primary" />
+                    <span className="text-on-surface-variant">{t('asha.refTo')}:</span>
+                    {ref.toFacility}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 font-body-md text-body-md text-on-surface">
-                  <Icon name="chevronRight" size={16} className="text-primary" />
-                  <span className="text-on-surface-variant">{t('asha.refTo')}:</span>
-                  {ref.toFacility}
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between gap-3 px-4 py-3">
-                <p className="min-w-0 flex-1 truncate font-caption text-caption text-on-surface-variant">{ref.reason}</p>
-                <span className="shrink-0 font-caption text-caption text-on-surface-variant">
-                  <Icon name="calendar" size={14} className="mr-1 inline" />
-                  {ref.date}
-                </span>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <p className="min-w-0 flex-1 truncate font-caption text-caption text-on-surface-variant">{ref.reason}</p>
+                  <span className="shrink-0 font-caption text-caption text-on-surface-variant">
+                    <Icon name="calendar" size={14} className="mr-1 inline" />
+                    {ref.date}
+                  </span>
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ import { householdService } from '@/services/household.service'
 export default function HouseholdSurvey() {
   const { id } = useParams<{ id: string }>()
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { isLoading, isError, error, refetch } = useQuery({
     queryKey: ['household', id],
     queryFn: () => householdService.getHousehold(id!),
     enabled: Boolean(id),
@@ -19,7 +19,6 @@ export default function HouseholdSurvey() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Household Health Survey"
-        subtitle={data ? `${data.householdId} · ${data.village || '—'}` : 'Household survey report'}
         breadcrumbs={[{ label: 'Households', to: '/phc/households' }, { label: 'Survey' }]}
       />
 

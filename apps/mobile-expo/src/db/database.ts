@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import type { Household, QueueItem, SyncState } from '../types';
-import { isTableName } from './tables';
+import { ALL_TABLES, isTableName } from './tables';
 
 /**
  * Local store.
@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS households (
   address       TEXT,
   consent_given INTEGER DEFAULT 0,
   version       INTEGER DEFAULT 1,
-  updated_at    TEXT
+  updated_at    TEXT,
+  head_name     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS beneficiaries (
@@ -49,6 +50,10 @@ CREATE TABLE IF NOT EXISTS beneficiaries (
   age_years      INTEGER,
   age_months     INTEGER,
   phone          TEXT,
+  blood_group    TEXT,
+  metadata_json  TEXT,
+  photo_url      TEXT,
+  relationship_to_head TEXT,
   status         TEXT DEFAULT 'active',
   version        INTEGER DEFAULT 1,
   updated_at     TEXT
@@ -123,8 +128,43 @@ CREATE TABLE IF NOT EXISTS pregnancies (
 CREATE INDEX IF NOT EXISTS idx_pregnancies_beneficiary_id ON pregnancies (beneficiary_id);
 CREATE INDEX IF NOT EXISTS idx_pregnancies_status ON pregnancies (status);
 
+CREATE TABLE IF NOT EXISTS delivery_outcomes (
+  pregnancy_id TEXT NOT NULL,
+  delivery_date TEXT,
+  place_of_delivery TEXT,
+  delivery_type TEXT,
+  outcome TEXT,
+  birth_weight_grams INTEGER,
+  complications TEXT,
+  birth_notification_no TEXT,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_delivery_outcomes_pregnancy_id ON delivery_outcomes (pregnancy_id);
+
+CREATE TABLE IF NOT EXISTS pnc_visits (
+  pregnancy_id TEXT NOT NULL,
+  visit_number INTEGER NOT NULL,
+  visit_date TEXT NOT NULL,
+  bp_systolic INTEGER,
+  bp_diastolic INTEGER,
+  danger_signs_mother TEXT,
+  breastfeeding_status TEXT,
+  referral_made INTEGER NOT NULL,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pnc_visits_pregnancy_id ON pnc_visits (pregnancy_id);
+
 CREATE TABLE IF NOT EXISTS children (
   beneficiary_id TEXT NOT NULL,
+  mother_id TEXT,
+  father_id TEXT,
+  delivery_outcome_id TEXT,
   birth_registration_no TEXT,
   birth_weight_grams INTEGER,
   birth_length_cm REAL,
@@ -165,6 +205,36 @@ CREATE TABLE IF NOT EXISTS immunizations (
 );
 CREATE INDEX IF NOT EXISTS idx_immunizations_child_id ON immunizations (child_id);
 CREATE INDEX IF NOT EXISTS idx_immunizations_status ON immunizations (status);
+
+CREATE TABLE IF NOT EXISTS hbnc_visits (
+  child_id TEXT NOT NULL,
+  visit_number INTEGER NOT NULL,
+  visit_date TEXT NOT NULL,
+  weight_grams INTEGER,
+  danger_signs TEXT,
+  referral_made INTEGER NOT NULL,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_hbnc_visits_child_id ON hbnc_visits (child_id);
+
+CREATE TABLE IF NOT EXISTS hbyc_visits (
+  child_id TEXT NOT NULL,
+  visit_number INTEGER NOT NULL,
+  visit_date TEXT NOT NULL,
+  age_months INTEGER,
+  weight_kg REAL,
+  muac_mm REAL,
+  nutrition_status TEXT,
+  referral_made INTEGER NOT NULL,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_hbyc_visits_child_id ON hbyc_visits (child_id);
 
 CREATE TABLE IF NOT EXISTS asha_tasks (
   asha_id TEXT NOT NULL,
@@ -220,6 +290,22 @@ CREATE TABLE IF NOT EXISTS referrals (
 CREATE INDEX IF NOT EXISTS idx_referrals_beneficiary_id ON referrals (beneficiary_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals (status);
 
+CREATE TABLE IF NOT EXISTS referral_followups (
+  id TEXT PRIMARY KEY NOT NULL,
+  referral_id TEXT NOT NULL,
+  followup_date TEXT,
+  conducted_by TEXT,
+  beneficiary_status TEXT,
+  treatment_compliance TEXT,
+  complications TEXT,
+  further_referral INTEGER NOT NULL DEFAULT 0,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_referral_followups_referral_id ON referral_followups (referral_id);
+
 CREATE TABLE IF NOT EXISTS ncd_screenings (
   beneficiary_id TEXT NOT NULL,
   screening_date TEXT NOT NULL,
@@ -251,6 +337,24 @@ CREATE TABLE IF NOT EXISTS ncd_screenings (
   updated_at TEXT NOT NULL,
   version INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS disease_cases (
+  disease_type TEXT NOT NULL,
+  beneficiary_id TEXT,
+  village_id TEXT,
+  detection_date TEXT,
+  diagnosis_date TEXT,
+  lab_confirmed INTEGER NOT NULL,
+  treatment_started INTEGER NOT NULL,
+  treatment_outcome TEXT,
+  status TEXT NOT NULL,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_disease_cases_beneficiary_id ON disease_cases (beneficiary_id);
+CREATE INDEX IF NOT EXISTS idx_disease_cases_status ON disease_cases (status);
 CREATE INDEX IF NOT EXISTS idx_ncd_screenings_beneficiary_id ON ncd_screenings (beneficiary_id);
 CREATE INDEX IF NOT EXISTS idx_ncd_screenings_screening_date ON ncd_screenings (screening_date);
 
@@ -339,6 +443,19 @@ CREATE TABLE IF NOT EXISTS eligible_couples (
 );
 CREATE INDEX IF NOT EXISTS idx_eligible_couples_status ON eligible_couples (status);
 
+CREATE TABLE IF NOT EXISTS ec_followups (
+  ec_id TEXT NOT NULL,
+  followup_date TEXT NOT NULL,
+  method_used TEXT,
+  method_changed INTEGER NOT NULL,
+  side_effects TEXT,
+  id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ec_followups_ec_id ON ec_followups (ec_id);
+
 -- Village / household health surveys captured by the ASHA on the phone. The
 -- server already syncs this table; form_data holds the survey answers as JSON
 -- so a new question does not need a schema change.
@@ -361,6 +478,47 @@ CREATE TABLE IF NOT EXISTS village_forms (
 );
 CREATE INDEX IF NOT EXISTS idx_village_forms_type_date ON village_forms (form_type, form_date);
 CREATE INDEX IF NOT EXISTS idx_village_forms_status ON village_forms (status);
+
+-- One row per family member per visit: the health check the ASHA records
+-- while going through the household. Link columns mirror the server, which
+-- has no FK here either — the row can be queued before the survey it
+-- belongs to exists.
+CREATE TABLE IF NOT EXISTS household_visit_checks (
+  id TEXT PRIMARY KEY NOT NULL,
+  household_id TEXT NOT NULL,
+  survey_id TEXT,
+  beneficiary_id TEXT,
+  check_type TEXT NOT NULL DEFAULT 'general',
+  result TEXT NOT NULL DEFAULT 'ok',
+  notes TEXT,
+  visited_at TEXT,
+  created_by TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_household_visit_checks_household
+  ON household_visit_checks (household_id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'normal',
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  action_url TEXT,
+  reference_id TEXT,
+  reference_type TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  read_at TEXT,
+  metadata TEXT,
+  created_at TEXT,
+  updated_at TEXT,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications (user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications (type);
 `;
 
 export async function initializeDatabase(): Promise<void> {
@@ -368,7 +526,9 @@ export async function initializeDatabase(): Promise<void> {
   const db = await getDatabase();
   await db.execAsync(SCHEMA);
   await db.execAsync(CLINICAL_SCHEMA);
+  await ensureIdUniqueIndexes(db);
   await runAdditiveMigrations(db);
+  await recoverStuckQueue(db);
   initialized = true;
 }
 
@@ -388,7 +548,59 @@ const ADDED_COLUMNS: Array<{ table: string; column: string; ddl: string }> = [
   // The server has had abha_id on beneficiaries all along; the local table was
   // created before the register form collected it.
   { table: 'beneficiaries', column: 'abha_id', ddl: 'abha_id TEXT' },
+  // Intake fields the register form collects: blood group column plus the
+  // server's `metadata` column (intake risk / notes / village), stored under
+  // the ORM attribute name the pull payload uses.
+  { table: 'beneficiaries', column: 'blood_group', ddl: 'blood_group TEXT' },
+  { table: 'beneficiaries', column: 'metadata_json', ddl: 'metadata_json TEXT' },
+  { table: 'beneficiaries', column: 'photo_url', ddl: 'photo_url TEXT' },
+  // Head of family, entered when a household is registered in the field; the
+  // server has always had the column, the local table predates it.
+  { table: 'households', column: 'head_name', ddl: 'head_name TEXT' },
+  // Amenities captured at registration (toilet / electricity / clean water / LPG).
+  { table: 'households', column: 'amenities', ddl: 'amenities TEXT' },
+  // How a member relates to the household head (family linking); the server
+  // column arrived with migration 0009.
+  { table: 'beneficiaries', column: 'relationship_to_head', ddl: 'relationship_to_head TEXT' },
+  // Child–parent links (migration 0011): mother is required at the API layer,
+  // father is optional, delivery_outcome_id joins to the mother's delivery.
+  { table: 'children', column: 'mother_id', ddl: 'mother_id TEXT' },
+  { table: 'children', column: 'father_id', ddl: 'father_id TEXT' },
+  { table: 'children', column: 'delivery_outcome_id', ddl: 'delivery_outcome_id TEXT' },
 ];
+
+/**
+ * Upsert uses `INSERT … ON CONFLICT(id)`, which SQLite resolves against any
+ * unique index on `id` — not only a PRIMARY KEY. Most clinical tables were
+ * created with `id TEXT NOT NULL` and no constraint, so the first pull into a
+ * fresh install threw "ON CONFLICT clause does not match any PRIMARY KEY or
+ * UNIQUE constraint" and silently dropped every row. A unique index is enough
+ * to make the upsert work without rebuilding the tables.
+ */
+const ID_UNIQUE_TABLES = [
+  'pregnancies',
+  'delivery_outcomes',
+  'pnc_visits',
+  'children',
+  'immunizations',
+  'hbnc_visits',
+  'hbyc_visits',
+  'asha_tasks',
+  'referrals',
+  'ncd_screenings',
+  'disease_cases',
+  'anc_visits',
+  'growth_records',
+  'eligible_couples',
+  'ec_followups',
+  'notifications',
+];
+
+async function ensureIdUniqueIndexes(db: SQLite.SQLiteDatabase): Promise<void> {
+  for (const table of ID_UNIQUE_TABLES) {
+    await db.execAsync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_id ON ${table}(id)`);
+  }
+}
 
 async function runAdditiveMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   for (const { table, column, ddl } of ADDED_COLUMNS) {
@@ -436,22 +648,103 @@ export async function setPullWatermark(value: string): Promise<void> {
   await metadata.set('last_pull_at', value);
 }
 
+/**
+ * Wipe every synced row, the outbox, conflicts and the pull watermark.
+ *
+ * Called when a different account signs in or on logout: the next session must
+ * never inherit the previous user's offline rows, queued pushes must not land
+ * under the new identity, and the first pull must be a full one from the epoch
+ * instead of an incremental pull measured against someone else's watermark.
+ * Key/value metadata goes too - the cached region, the last-sync stamp and the
+ * notification read set all describe the previous account. The device id is
+ * kept: it identifies the installation, not the user.
+ */
+export async function resetLocalData(): Promise<void> {
+  const db = await getDatabase();
+  for (const table of ALL_TABLES) {
+    await db.runAsync(`DELETE FROM ${table}`);
+  }
+  await db.runAsync('DELETE FROM sync_queue');
+  await db.runAsync('DELETE FROM sync_conflicts');
+  await db.runAsync('DELETE FROM sync_metadata WHERE key <> ?', 'device_id');
+  await metadata.set('last_pull_at', EPOCH_WATERMARK);
+  emitQueueChange();
+}
+
+// --- Outbox subscriptions -------------------------------------------------
+
+type QueueListener = () => void;
+
+const queueListeners = new Set<QueueListener>();
+
+/**
+ * Fire when the outbox's set of rows changes (enqueue, dequeue, retry, reset),
+ * so a mounted banner or badge can refresh its count instead of polling.
+ * State transitions within a push do not fire: the pending/failed totals a
+ * subscriber shows do not move when a row goes `pending -> syncing -> gone`.
+ */
+export function subscribeQueue(listener: QueueListener): () => void {
+  queueListeners.add(listener);
+  return () => queueListeners.delete(listener);
+}
+
+function emitQueueChange(): void {
+  for (const listener of [...queueListeners]) {
+    try {
+      listener();
+    } catch (error) {
+      // A misbehaving subscriber must not fail the write that notified it.
+      console.warn('[db] queue listener failed', error);
+    }
+  }
+}
+
 // --- Queue ----------------------------------------------------------------
+
+/**
+ * Server cap on `client_request_id` (`SyncOperationItem.max_length` in the
+ * backend schemas): one character over and Pydantic rejects the whole push
+ * batch with a 422, so no operation in it lands.
+ */
+const MAX_CLIENT_REQUEST_ID = 64;
+
+/**
+ * Bound an over-long idempotency key without losing its uniqueness.
+ *
+ * Every caller builds ids as a fixed prefix plus a UUID, so the tail is what
+ * distinguishes two records and the head is what says what kind of record it
+ * is: keep 20 characters of the head and the unique tail, joined by a marker
+ * a plain prefix could not collide with. Deterministic, because a retry must
+ * produce the same key or the server would apply the change twice.
+ */
+function boundClientRequestId(raw: string): string {
+  if (raw.length <= MAX_CLIENT_REQUEST_ID) return raw;
+  const tail = raw.slice(-(MAX_CLIENT_REQUEST_ID - 20 - 1));
+  return `${raw.slice(0, 20)}~${tail}`;
+}
 
 export async function enqueue(
   item: Omit<QueueItem, 'state' | 'attempts' | 'lastError' | 'createdAt'> &
     Partial<Pick<QueueItem, 'state' | 'attempts' | 'lastError' | 'createdAt'>>,
 ): Promise<void> {
+  const clientRequestId = boundClientRequestId(item.clientRequestId.trim());
+  if (!clientRequestId) throw new Error('enqueue requires a clientRequestId');
+
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO sync_queue
        (client_request_id, entity, operation, record_id, version, data, state, attempts, last_error, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(client_request_id) DO UPDATE SET
+       entity = excluded.entity,
+       operation = excluded.operation,
+       record_id = excluded.record_id,
+       version = excluded.version,
        data = excluded.data,
        state = 'pending',
+       attempts = 0,
        last_error = NULL`,
-    item.clientRequestId,
+    clientRequestId,
     item.entity,
     item.operation,
     item.recordId,
@@ -462,6 +755,7 @@ export async function enqueue(
     item.lastError ?? null,
     item.createdAt ?? new Date().toISOString(),
   );
+  emitQueueChange();
 }
 
 function rowToQueueItem(row: Record<string, unknown>): QueueItem {
@@ -479,16 +773,61 @@ function rowToQueueItem(row: Record<string, unknown>): QueueItem {
   };
 }
 
+/**
+ * What the next push will send: every `pending` row, oldest first.
+ *
+ * `failed` is deliberately not included - those rows have spent their retry
+ * budget and need a human to press Retry (`retryFailedQueue`), otherwise a
+ * permanently rejected operation would be resent on every sync forever. Rows
+ * still marked `syncing` are excluded too: they belong to a push that is
+ * either in flight right now or died with the process, and
+ * `recoverStuckQueue` (run at startup) is what brings the dead ones back.
+ */
 export async function getPendingQueue(limit = 100): Promise<QueueItem[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<Record<string, unknown>>(
     `SELECT * FROM sync_queue
-      WHERE state IN ('pending', 'failed')
+      WHERE state = 'pending'
       ORDER BY created_at ASC
       LIMIT ?`,
     limit,
   );
   return rows.map(rowToQueueItem);
+}
+
+/**
+ * Return rows abandoned in `syncing` by a crash mid-push to `pending`.
+ *
+ * `syncing` means "a response is coming"; once the process is gone nothing
+ * will ever report one, so those rows would sit in the outbox forever -
+ * visible in the Sync Center, invisible to `getPendingQueue`, never retried.
+ * Replaying them is safe: the server replays the stored result for an
+ * idempotency key it has already processed instead of applying it twice.
+ */
+export async function recoverStuckQueue(db?: SQLite.SQLiteDatabase): Promise<number> {
+  const database = db ?? (await getDatabase());
+  const result = await database.runAsync(
+    `UPDATE sync_queue SET state = 'pending', last_error = ? WHERE state = 'syncing'`,
+    'recovered after an interrupted sync',
+  );
+  if (result.changes > 0) emitQueueChange();
+  return result.changes;
+}
+
+/**
+ * Put every capped row back into rotation after the user asked for a retry.
+ *
+ * Used by the Sync Center's Retry affordance: `attempts` restarts at zero so
+ * a fix on the server side is not immediately re-capped by the old count.
+ */
+export async function retryFailedQueue(): Promise<number> {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    `UPDATE sync_queue SET state = 'pending', attempts = 0, last_error = NULL
+      WHERE state = 'failed'`,
+  );
+  if (result.changes > 0) emitQueueChange();
+  return result.changes;
 }
 
 /**
@@ -522,28 +861,50 @@ export async function getQueueCounts(): Promise<Record<SyncState, number>> {
   return counts;
 }
 
+/**
+ * Move an outbox row between states, optionally spending one retry attempt.
+ *
+ * `countAttempt` is set by the engine only when the *server* answered and
+ * refused the operation: a device with no signal is not the row's fault, so
+ * transport failures must not march it towards the cap. The engine decides
+ * between `pending` (still inside the budget, backoff handled by the network
+ * layer) and `failed` (budget spent, waiting for a manual Retry) from the
+ * attempt count this increments.
+ */
 export async function markQueueState(
   clientRequestId: string,
   state: SyncState,
   lastError?: string | null,
+  options?: { countAttempt?: boolean },
 ): Promise<void> {
   const db = await getDatabase();
+  const error = lastError ?? null;
+  if (options?.countAttempt) {
+    await db.runAsync(
+      `UPDATE sync_queue
+          SET state = ?, attempts = attempts + 1, last_error = ?
+        WHERE client_request_id = ?`,
+      state,
+      error,
+      clientRequestId,
+    );
+    return;
+  }
   await db.runAsync(
-    `UPDATE sync_queue
-        SET state = ?,
-            attempts = attempts + CASE WHEN ? = 'failed' THEN 1 ELSE 0 END,
-            last_error = ?
-      WHERE client_request_id = ?`,
+    `UPDATE sync_queue SET state = ?, last_error = ? WHERE client_request_id = ?`,
     state,
-    state,
-    lastError ?? null,
+    error,
     clientRequestId,
   );
 }
 
 export async function dequeue(clientRequestId: string): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('DELETE FROM sync_queue WHERE client_request_id = ?', clientRequestId);
+  const result = await db.runAsync(
+    'DELETE FROM sync_queue WHERE client_request_id = ?',
+    clientRequestId,
+  );
+  if (result.changes > 0) emitQueueChange();
 }
 
 /**
@@ -631,6 +992,7 @@ export async function clearConflict(clientRequestId: string): Promise<void> {
 /** Columns written from a server payload. Unknown keys are ignored. */
 const HOUSEHOLD_COLUMNS = [
   'id', 'hhid', 'village_id', 'asha_id', 'address', 'consent_given', 'version', 'updated_at',
+  'head_name', 'amenities', 'consent_date', 'consent_version',
 ] as const;
 
 const BENEFICIARY_COLUMNS = [
@@ -667,7 +1029,7 @@ export async function listHouseholds(): Promise<Household[]> {
 export async function insertLocalBeneficiary(input: {
   id: string;
   beneficiaryId: string;
-  householdId: string;
+  householdId: string | null;
   abhaId?: string;
   fullName: string;
   gender: string;
@@ -675,19 +1037,27 @@ export async function insertLocalBeneficiary(input: {
   phone: string;
   /** Captured when the exact date of birth is unknown, as in a household visit. */
   ageYears?: number | null;
+  bloodGroup?: string | null;
+  /** Relation to the household head (`head`, `spouse`, ...). */
+  relationshipToHead?: string | null;
+  /** Intake annotations mirrored into the server's beneficiaries.metadata column. */
+  metadata?: Record<string, unknown> | null;
 }): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO beneficiaries
-       (id, beneficiary_id, household_id, abha_id, full_name, gender, date_of_birth, age_years, phone, status, version, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?)
+       (id, beneficiary_id, household_id, abha_id, full_name, gender, date_of_birth, age_years, phone, blood_group, relationship_to_head, metadata_json, status, version, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, ?)
      ON CONFLICT(id) DO UPDATE SET
        abha_id = excluded.abha_id,
        full_name = excluded.full_name,
        gender = excluded.gender,
        date_of_birth = excluded.date_of_birth,
        age_years = excluded.age_years,
-       phone = excluded.phone`,
+       phone = excluded.phone,
+       blood_group = COALESCE(excluded.blood_group, beneficiaries.blood_group),
+       relationship_to_head = COALESCE(excluded.relationship_to_head, beneficiaries.relationship_to_head),
+       metadata_json = COALESCE(excluded.metadata_json, beneficiaries.metadata_json)`,
     input.id,
     input.beneficiaryId,
     input.householdId,
@@ -697,6 +1067,9 @@ export async function insertLocalBeneficiary(input: {
     input.dateOfBirth,
     input.ageYears ?? null,
     input.phone,
+    input.bloodGroup || null,
+    input.relationshipToHead || null,
+    input.metadata ? JSON.stringify(input.metadata) : null,
     new Date().toISOString(),
   );
 }
@@ -741,4 +1114,52 @@ export async function insertLocalVillageForm(input: {
     now,
     now,
   );
+}
+
+/**
+ * Local write for the per-member checks captured during a household visit.
+ *
+ * Queued with the visit itself so the device already shows what was observed
+ * before the rows reach the server; the outbox carries the same payload and
+ * `upsertRows` puts it back to the same place after a pull.
+ */
+export async function insertLocalVisitChecks(
+  rows: Array<{
+    id: string;
+    householdId: string;
+    beneficiaryId: string | null;
+    checkType: string;
+    result: 'ok' | 'concern';
+    notes: string | null;
+    visitedAt: string;
+    createdBy: string | null;
+  }>,
+): Promise<void> {
+  if (rows.length === 0) return;
+  const db = await getDatabase();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const row of rows) {
+      await db.runAsync(
+        `INSERT INTO household_visit_checks
+           (id, household_id, survey_id, beneficiary_id, check_type, result, notes,
+            visited_at, created_by, created_at, updated_at, version)
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+         ON CONFLICT(id) DO UPDATE SET
+           result = excluded.result,
+           notes = excluded.notes,
+           updated_at = excluded.updated_at`,
+        row.id,
+        row.householdId,
+        row.beneficiaryId,
+        row.checkType,
+        row.result,
+        row.notes,
+        row.visitedAt,
+        row.createdBy,
+        now,
+        now,
+      );
+    }
+  });
 }

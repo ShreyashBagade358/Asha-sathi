@@ -97,39 +97,6 @@ jest.mock('@/sync/network', () => ({
   subscribeSync: jest.fn(() => () => {}),
 }));
 
-// --- reanimated / worklets ----------------------------------------------
-// Reanimated 4 resolves a native worklets module at import time, which does not
-// exist under Jest, and its own `mock` entry point still loads that graph. So
-// reanimated is replaced with a hand-written stub covering exactly what
-// src/theme.ts imports. Screens only use these to build decorative animations,
-// so resolving to the plain target value is enough to render.
-jest.mock('react-native-reanimated', () => {
-  const identity = (to) => to;
-  return {
-    __esModule: true,
-    default: { call: () => {}, value: 0 },
-    Easing: {
-      linear: (t) => t,
-      ease: (t) => t,
-      inOut: (fn) => fn,
-      out: (fn) => fn,
-      in: (fn) => fn,
-      bezier: () => (t) => t,
-    },
-    useSharedValue: (initial) => ({ value: initial }),
-    useAnimatedStyle: (fn) => (typeof fn === 'function' ? fn() : {}),
-    useAnimatedProps: (fn) => (typeof fn === 'function' ? fn() : {}),
-    useDerivedValue: (fn) => ({ value: fn() }),
-    withRepeat: (animation) => animation,
-    withSequence: (...animations) => animations[animations.length - 1],
-    withDelay: (_delay, animation) => animation,
-    withSpring: identity,
-    withTiming: identity,
-    cancelAnimation: () => {},
-    runOnJS: (fn) => fn,
-  };
-});
-
 // --- async storage -------------------------------------------------------
 // Ships its own jest mock; used by the i18n locale persistence and the auth
 // session cache.
@@ -156,6 +123,25 @@ jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(async () => {}),
   hideAsync: jest.fn(async () => {}),
 }));
+
+// The register form imports the picker; no native picker exists under jest.
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: [] })),
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
+}));
+
+// The DOB field opens the system date picker; Field.tsx imports it at module
+// load, so the register screen cannot mount without this substitute.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const MockDateTimePicker = () => React.createElement(View, { testID: 'datetimepicker' });
+  return {
+    __esModule: true,
+    default: MockDateTimePicker,
+    DateTimePickerAndroid: { open: jest.fn(async () => {}), dismiss: jest.fn() },
+  };
+});
 
 jest.mock('expo-font', () => ({
   useFonts: jest.fn(() => [true, null]),

@@ -14,18 +14,31 @@
 export const TABLES = {
   households: [
     'id', 'hhid', 'village_id', 'asha_id', 'address', 'consent_given', 'version', 'updated_at',
+    'head_name',
   ],
   beneficiaries: [
     'id', 'beneficiary_id', 'household_id', 'abha_id', 'full_name', 'gender', 'date_of_birth',
-    'age_years', 'age_months', 'phone', 'status', 'version', 'updated_at',
+    'age_years', 'age_months', 'phone', 'blood_group', 'metadata_json', 'photo_url',
+    'relationship_to_head', 'status', 'version', 'updated_at',
   ],
   pregnancies: [
     'id', 'beneficiary_id', 'lmp', 'edd', 'gravida', 'parity', 'abortions', 'living_children',
     'risk_level', 'risk_factors', 'risk_score', 'last_anc_date', 'next_anc_due', 'anc_count',
     'status', 'delivery_outcome_id', 'created_at', 'updated_at', 'version',
   ],
+  delivery_outcomes: [
+    'id', 'pregnancy_id', 'delivery_date', 'place_of_delivery', 'delivery_type', 'outcome',
+    'birth_weight_grams', 'complications', 'birth_notification_no', 'created_at', 'updated_at',
+    'version',
+  ],
+  pnc_visits: [
+    'id', 'pregnancy_id', 'visit_number', 'visit_date', 'bp_systolic', 'bp_diastolic',
+    'danger_signs_mother', 'breastfeeding_status', 'referral_made', 'created_at', 'updated_at',
+    'version',
+  ],
   children: [
-    'id', 'beneficiary_id', 'birth_registration_no', 'birth_weight_grams', 'birth_length_cm',
+    'id', 'beneficiary_id', 'mother_id', 'father_id', 'delivery_outcome_id',
+    'birth_registration_no', 'birth_weight_grams', 'birth_length_cm',
     'head_circumference_cm', 'gestation_weeks', 'delivery_type', 'place_of_birth', 'apgar_1min',
     'apgar_5min', 'congenital_anomalies', 'created_at', 'updated_at', 'version',
   ],
@@ -33,6 +46,14 @@ export const TABLES = {
     'id', 'child_id', 'vaccine_code', 'vaccine_name', 'dose_number', 'due_date', 'given_date',
     'status', 'given_by', 'facility_id', 'batch_number', 'expiry_date', 'route', 'site',
     'adverse_event', 'recorded_by', 'created_at', 'updated_at', 'version',
+  ],
+  hbnc_visits: [
+    'id', 'child_id', 'visit_number', 'visit_date', 'weight_grams', 'danger_signs',
+    'referral_made', 'created_at', 'updated_at', 'version',
+  ],
+  hbyc_visits: [
+    'id', 'child_id', 'visit_number', 'visit_date', 'age_months', 'weight_kg', 'muac_mm',
+    'nutrition_status', 'referral_made', 'created_at', 'updated_at', 'version',
   ],
   asha_tasks: [
     'id', 'asha_id', 'task_date', 'task_type', 'beneficiary_id', 'household_id', 'village_id',
@@ -45,6 +66,11 @@ export const TABLES = {
     'clinical_summary', 'investigations', 'provisional_diagnosis', 'status', 'initiated_at',
     'accepted_at', 'completed_at', 'outcome', 'feedback_from_receiver', 'followup_required',
     'followup_date', 'created_at', 'updated_at', 'version',
+  ],
+  referral_followups: [
+    'id', 'referral_id', 'followup_date', 'conducted_by', 'beneficiary_status',
+    'treatment_compliance', 'complications', 'further_referral', 'notes',
+    'created_at', 'updated_at', 'version',
   ],
   ncd_screenings: [
     'id', 'beneficiary_id', 'screening_date', 'age_above_30', 'tobacco_use', 'alcohol_use',
@@ -74,10 +100,30 @@ export const TABLES = {
     'last_missed_period_date', 'pregnancy_confirmed', 'registered_by', 'created_at', 'updated_at',
     'version',
   ],
+  ec_followups: [
+    'id', 'ec_id', 'followup_date', 'method_used', 'method_changed', 'side_effects',
+    'created_at', 'updated_at', 'version',
+  ],
+  disease_cases: [
+    'id', 'disease_type', 'beneficiary_id', 'village_id', 'detection_date', 'diagnosis_date',
+    'lab_confirmed', 'treatment_started', 'treatment_outcome', 'status', 'created_at',
+    'updated_at', 'version',
+  ],
   village_forms: [
     'id', 'asha_id', 'form_type', 'form_date', 'village_id', 'form_data', 'status', 'submitted_at',
     'verified_by', 'verified_at', 'incentive_eligible', 'incentive_amount', 'created_at',
     'updated_at', 'version',
+  ],
+  // Per-member ok/concern recorded during a household visit. survey_id is
+  // null for a visit queued offline (it links back to the village_form row).
+  household_visit_checks: [
+    'id', 'household_id', 'survey_id', 'beneficiary_id', 'check_type', 'result', 'notes',
+    'visited_at', 'created_by', 'created_at', 'updated_at', 'version',
+  ],
+  notifications: [
+    'id', 'user_id', 'type', 'priority', 'title', 'message', 'action_url',
+    'reference_id', 'reference_type', 'status', 'read_at', 'metadata',
+    'created_at', 'updated_at', 'version',
   ],
 } as const;
 

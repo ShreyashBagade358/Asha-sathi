@@ -6,7 +6,6 @@ import { useUIStore } from '@/stores/ui.store'
 import { ashaService } from '@/services/asha.service'
 import { configService } from '@/services/config.service'
 import { isAxiosError } from 'axios'
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { CredentialsModal, type CredentialsValue } from '@/components/common/CredentialsModal'
 import { PhotoUploadField } from '@/components/common/PhotoUploadField'
 import { SearchableSelect } from '@/components/common/SearchableSelect'
@@ -37,23 +36,55 @@ export default function AddNewAshaWorkerPhcAdmin() {
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [subcenter, setSubcenter] = useState('')
   const [doj, setDoj] = useState('')
+  // Super-admin cascade (no PHC of their own): State -> District -> Block -> PHC.
+  const [statePick, setStatePick] = useState('')
+  const [district, setDistrict] = useState('')
+  const [block, setBlock] = useState('')
+  const [phcSelect, setPhcSelect] = useState('')
 
   const { user } = useAuth()
   const phcId = user?.phcId
+  // PHC admins are locked to their own PHC; super admins pick one in the cascade.
+  const effectivePhcId = phcId ?? phcSelect
+  // Super admins may have no state of their own — they pick one in the cascade.
+  const effectiveStateId = user?.stateId || statePick
+
+  const statesQuery = useQuery({
+    queryKey: ['config', 'states'],
+    queryFn: () => configService.getStates(),
+    enabled: !phcId && !user?.stateId,
+  })
+  const districtsQuery = useQuery({
+    queryKey: ['config', 'districts', effectiveStateId],
+    queryFn: () => configService.getDistricts(effectiveStateId!),
+    enabled: !phcId && Boolean(effectiveStateId),
+  })
+  const blocksQuery = useQuery({
+    queryKey: ['config', 'blocks', district],
+    queryFn: () => configService.getBlocks(district),
+    enabled: !phcId && Boolean(district),
+  })
+  const phcListQuery = useQuery({
+    queryKey: ['config', 'phcs', block],
+    queryFn: () => configService.getPHCs(block),
+    enabled: !phcId && Boolean(block),
+  })
 
   const phcQuery = useQuery({
-    queryKey: ['config', 'phc', phcId],
-    queryFn: () => configService.getPHC(phcId!),
-    enabled: Boolean(phcId),
+    queryKey: ['config', 'phc', effectivePhcId],
+    queryFn: () => configService.getPHC(effectivePhcId!),
+    enabled: Boolean(effectivePhcId),
   })
   const villagesQuery = useQuery({
-    queryKey: ['villages', phcId],
-    queryFn: () => configService.getVillages(phcId!),
-    enabled: Boolean(phcId),
+    queryKey: ['villages', effectivePhcId],
+    queryFn: () => configService.getVillages(effectivePhcId!),
+    enabled: Boolean(effectivePhcId),
   })
 
   const subCenters = (phcQuery.data?.sub_centers as Array<{ id: string; name: string }> | undefined) ?? []
   const villageOptions = (villagesQuery.data ?? []).map((v) => ({ id: v.id, name: v.name, code: v.code }))
+  const selectedPhcName =
+    (!phcId && phcListQuery.data?.find((p) => p.id === phcSelect)?.name) || user?.phcName || null
 
   const saveForm = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,10 +92,19 @@ export default function AddNewAshaWorkerPhcAdmin() {
     if (!PHONE_RE.test(phone.replace(/\s/g, ''))) {
       return addToast('error', 'Enter a valid 10-digit mobile number')
     }
-    if (phcId && subCenters.length > 0 && !subcenter) {
+    if (!dob) return addToast('error', 'Date of Birth is required')
+    if (!gender) return addToast('error', 'Gender is required')
+    if (!doj) return addToast('error', 'Date of Joining is required')
+    if (!phcId) {
+      if (!user?.stateId && !statePick) return addToast('error', 'Select the state')
+      if (!district) return addToast('error', 'Select the district')
+      if (!block) return addToast('error', 'Select the block')
+      if (!phcSelect) return addToast('error', 'Select the PHC')
+    }
+    if (effectivePhcId && subCenters.length > 0 && !subcenter) {
       return addToast('error', 'Select the reporting sub-centre')
     }
-    if (phcId && villageOptions.length > 0 && !village) {
+    if (effectivePhcId && villageOptions.length > 0 && !village) {
       return addToast('error', 'Select the assigned village')
     }
     if (dob) {
@@ -84,6 +124,7 @@ export default function AddNewAshaWorkerPhcAdmin() {
         name: name.trim(),
         phone: phone.replace(/\D/g, ''),
         village: village || undefined,
+        phc: effectivePhcId || undefined,
         email: email.trim() || undefined,
         date_of_birth: dob || undefined,
         gender: (gender || undefined) as 'female' | 'male' | 'other' | undefined,
@@ -124,228 +165,283 @@ export default function AddNewAshaWorkerPhcAdmin() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <PhcSidebar />
-      <main className="flex-1 ml-0 md:ml-64 flex flex-col h-screen overflow-hidden pb-24 md:pb-0">
-        <header className="h-16 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-6 shrink-0 z-10">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/phc/ashas')} className="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            </button>
-            <div>
-              <h2 className="text-headline-md text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[20px]">person_add</span>
-                Register New ASHA Worker
-              </h2>
-              <p className="text-caption text-on-surface-variant">
-                <button onClick={() => navigate('/phc/ashas')} className="text-primary hover:underline">Workers</button>
-                <span className="mx-1 text-outline">/</span>
-                <span>New Worker</span>
-              </p>
+    <>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/phc/ashas')} className="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors">
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div>
+          </div>
+        </div>
+
+        <form onSubmit={saveForm} className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-4 flex flex-col gap-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center text-center">
+              <PhotoUploadField file={photo} onFileChange={setPhoto} onError={(msg) => addToast('error', msg)} />
+              <h3 className="text-headline-md text-on-surface mt-2">Profile Picture</h3>
+              <span className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full">ASHA Worker</span>
+            </div>
+
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+              <h3 className="text-headline-md text-on-surface mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
+                Credentials
+              </h3>
+              <div className="flex items-start gap-3 rounded-lg bg-surface-container-low p-3 border border-outline-variant">
+                <span className="material-symbols-outlined text-secondary text-[20px]">password</span>
+                <div className="text-left">
+                  <span className="block text-label-md text-on-surface font-medium">Generated at save time</span>
+                  <span className="block text-caption text-on-surface-variant">
+                    Sign-in is the mobile number above plus a generated password. It is shown once when the worker is
+                    created — share it with them before leaving this page.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </header>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <form onSubmit={saveForm} className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-4 flex flex-col gap-6">
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center text-center">
-                <PhotoUploadField file={photo} onFileChange={setPhoto} onError={(msg) => addToast('error', msg)} />
-                <h3 className="text-headline-md text-on-surface mt-2">Profile Picture</h3>
-                <span className="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full mb-4">ASHA Worker</span>
-                <div className="w-full bg-surface-container-low rounded-lg p-3 border border-outline-variant flex items-center gap-3 mt-auto">
-                  <span className="material-symbols-outlined text-secondary text-[20px]">verified_user</span>
-                  <div className="text-left">
-                    <span className="block text-label-md text-on-surface font-medium">ID Verification</span>
-                    <span className="block text-caption text-on-surface-variant">Required for activation</span>
+          <div className="md:col-span-8 grid grid-cols-1 lg:grid-cols-2 gap-6 content-start">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl">
+              <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
+                <span className="text-lg font-bold text-blue-600">1</span>
+                <h3 className="text-headline-md font-semibold text-on-surface">Personal Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 p-6">
+                <div className="md:col-span-2 flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="fullName">Full Name *</label>
+                  <input className="py-2.5 w-full rounded-lg border border-outline bg-surface px-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" id="fullName" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="dob">Date of Birth *</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[20px]">calendar_today</span>
+                    </span>
+                    <input className={`${inputCls} pl-11`} id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-                <h3 className="text-headline-md text-on-surface mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
-                  Credentials
-                </h3>
-                <div className="flex items-start gap-3 rounded-lg bg-surface-container-low p-3 border border-outline-variant">
-                  <span className="material-symbols-outlined text-secondary text-[20px]">password</span>
-                  <div className="text-left">
-                    <span className="block text-label-md text-on-surface font-medium">Generated at save time</span>
-                    <span className="block text-caption text-on-surface-variant">
-                      Sign-in is the mobile number above plus a generated password. It is shown once when the worker is
-                      created — share it with them before leaving this page.
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="gender">Gender *</label>
+                  <div className="relative">
+                    <select className={`${inputCls} appearance-none pr-10`} id="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+                      <option value="" disabled>Select Gender</option>
+                      <option value="female">Female</option>
+                      <option value="male">Male</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant pointer-events-none">
+                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
                     </span>
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="aadhaar">Aadhaar Number (Optional)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[20px]">fingerprint</span>
+                    </span>
+                    <input className={`${inputCls} pl-11 font-mono tracking-widest`} id="aadhaar" placeholder="XXXX XXXX XXXX" type="text" value={aadhaar} onChange={(e) => setAadhaar(e.target.value)} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="md:col-span-8 flex flex-col gap-6">
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-                <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
-                  <span className="text-lg font-bold text-blue-600">1</span>
-                  <h3 className="text-headline-md font-semibold text-on-surface">Personal Information</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 p-6">
-                  <div className="md:col-span-2 flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="fullName">Full Name *</label>
-                    <input className="py-2.5 w-full rounded-lg border border-outline bg-surface px-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" id="fullName" type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="dob">Date of Birth *</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">calendar_today</span>
-                      </span>
-                      <input className={`${inputCls} pl-11`} id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="gender">Gender *</label>
-                    <div className="relative">
-                      <select className={`${inputCls} appearance-none pr-10`} id="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
-                        <option value="" disabled>Select Gender</option>
-                        <option value="female">Female</option>
-                        <option value="male">Male</option>
-                        <option value="other">Other</option>
-                      </select>
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant pointer-events-none">
-                        <span className="material-symbols-outlined text-[20px]">expand_more</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="aadhaar">Aadhaar Number *</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">fingerprint</span>
-                      </span>
-                      <input className={`${inputCls} pl-11 font-mono tracking-widest`} id="aadhaar" pattern="\d{4}\s\d{4}\s\d{4}" placeholder="XXXX XXXX XXXX" type="text" value={aadhaar} onChange={(e) => setAadhaar(e.target.value)} />
-                    </div>
-                  </div>
-                </div>
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl">
+              <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
+                <span className="text-lg font-bold text-blue-600">2</span>
+                <h3 className="text-headline-md font-semibold text-on-surface">Contact Details</h3>
               </div>
-
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-                <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
-                  <span className="text-lg font-bold text-blue-600">2</span>
-                  <h3 className="text-headline-md font-semibold text-on-surface">Contact Details</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="mobile">Mobile Number *</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">phone_iphone</span>
-                      </span>
-                      <input className={`${inputCls} pl-11`} id="mobile" placeholder="+91" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="email">Email Address (Optional)</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">mail</span>
-                      </span>
-                      <input className={`${inputCls} pl-11`} id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant">Emergency Contact *</label>
-                    <div className="flex flex-col md:flex-row gap-3">
-                      <input className={`${inputCls} flex-1`} placeholder="Contact Name" type="text" value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)} />
-                      <div className="relative flex-1">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                          <span className="material-symbols-outlined text-[20px]">sos</span>
-                        </span>
-                        <input className={`${inputCls} pl-11`} placeholder="Emergency Number" type="tel" value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-                <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
-                  <span className="text-lg font-bold text-blue-600">3</span>
-                  <h3 className="text-headline-md font-semibold text-on-surface">Work Assignment</h3>
-                  {user?.phcName && (
-                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-caption font-semibold text-primary">
-                      <span className="material-symbols-outlined text-[14px]">local_hospital</span>
-                      {user.phcName}
+              <div className="grid grid-cols-1 gap-4 p-6">
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="mobile">Mobile Number *</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[20px]">phone_iphone</span>
                     </span>
-                  )}
+                    <input className={`${inputCls} pl-11`} id="mobile" placeholder="10-digit mobile number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-                  <SearchableSelect
-                    id="subcenter"
-                    label="Reporting Sub-center *"
-                    options={subCenters.map((s) => ({ id: s.id, name: s.name }))}
-                    value={subcenter}
-                    onChange={setSubcenter}
-                    placeholder="Select sub-centre"
-                    loading={phcQuery.isLoading}
-                    loadingLabel="Loading sub-centres…"
-                    disabled={!phcId}
-                    disabledHint="No PHC assigned"
-                    emptyLabel="This PHC has no sub-centres yet"
-                  />
-                  <SearchableSelect
-                    id="village"
-                    label="Assigned Village *"
-                    options={villageOptions}
-                    showCode
-                    value={village}
-                    onChange={setVillage}
-                    placeholder="Select village"
-                    loading={villagesQuery.isLoading}
-                    loadingLabel="Loading villages…"
-                    disabled={!phcId}
-                    disabledHint="No PHC assigned"
-                    emptyLabel="No villages configured — add one in Village Management"
-                  />
-                  <div className="flex flex-col gap-1">
-                    <label className="text-label-md text-on-surface-variant" htmlFor="doj">Date of Joining *</label>
-                    <div className="relative">
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="email">Email Address (Optional)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[20px]">mail</span>
+                    </span>
+                    <input className={`${inputCls} pl-11`} id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant">Emergency Contact (Optional)</label>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <input className={`${inputCls} flex-1`} placeholder="Contact Name" type="text" value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)} />
+                    <div className="relative flex-1">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">event_available</span>
+                        <span className="material-symbols-outlined text-[20px]">sos</span>
                       </span>
-                      <input className={`${inputCls} pl-11`} id="doj" type="date" value={doj} onChange={(e) => setDoj(e.target.value)} />
+                      <input className={`${inputCls} pl-11`} placeholder="Emergency Number" type="tel" value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} />
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pb-4 sticky bottom-0 bg-surface/95 backdrop-blur-sm py-4 -mx-6 px-6 border-t border-outline-variant/50 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
-                <button
-                  className="flex items-center justify-center rounded-full px-6 py-2 font-label-md text-label-md font-semibold border border-gray-300 text-gray-600 transition-colors hover:bg-surface-container-highest"
-                  type="button"
-                  onClick={() => navigate(-1)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="flex items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-2 font-label-md text-label-md font-semibold text-white shadow-sm transition-colors hover:bg-green-700 active:scale-[0.98] disabled:opacity-60"
-                  type="submit"
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">save</span>
-                      Save Worker Details
-                    </>
-                  )}
-                </button>
               </div>
             </div>
-          </form>
-        </div>
-      </main>
+
+            <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl">
+              <div className="border-b border-outline-variant px-6 py-4 flex items-center gap-3">
+                <span className="text-lg font-bold text-blue-600">3</span>
+                <h3 className="text-headline-md font-semibold text-on-surface">Work Assignment</h3>
+                {selectedPhcName && (
+                  <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-caption font-semibold text-primary">
+                    <span className="material-symbols-outlined text-[14px]">local_hospital</span>
+                    {selectedPhcName}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                {!phcId && (
+                  <>
+                    {!user?.stateId && (
+                      <SearchableSelect
+                        id="state"
+                        label="State *"
+                        options={(statesQuery.data ?? []).map((st) => ({ id: st.id, name: st.name, code: st.code }))}
+                        showCode
+                        value={statePick}
+                        onChange={(id) => {
+                          setStatePick(id)
+                          setDistrict('')
+                          setBlock('')
+                          setPhcSelect('')
+                          setSubcenter('')
+                          setVillage('')
+                        }}
+                        placeholder="Select state"
+                        loading={statesQuery.isLoading}
+                        loadingLabel="Loading states…"
+                        emptyLabel="No states available"
+                      />
+                    )}
+                    <SearchableSelect
+                      id="district"
+                      label="District *"
+                      options={(districtsQuery.data ?? []).map((d) => ({ id: d.id, name: d.name, code: d.code }))}
+                      showCode
+                      value={district}
+                      onChange={(id) => {
+                        setDistrict(id)
+                        setBlock('')
+                        setPhcSelect('')
+                        setSubcenter('')
+                        setVillage('')
+                      }}
+                      placeholder={effectiveStateId ? 'Select district' : 'Select a state first'}
+                      loading={districtsQuery.isLoading}
+                      loadingLabel="Loading districts…"
+                      emptyLabel="No districts in this state"
+                    />
+                    <SearchableSelect
+                      id="block"
+                      label="Block *"
+                      options={(blocksQuery.data ?? []).map((b) => ({ id: b.id, name: b.name, code: b.code }))}
+                      showCode
+                      value={block}
+                      onChange={(id) => {
+                        setBlock(id)
+                        setPhcSelect('')
+                        setSubcenter('')
+                        setVillage('')
+                      }}
+                      placeholder={district ? 'Select block' : 'Select a district first'}
+                      loading={blocksQuery.isLoading}
+                      loadingLabel="Loading blocks…"
+                      emptyLabel="No blocks in this district"
+                    />
+                    <SearchableSelect
+                      id="phc"
+                      label="PHC *"
+                      options={(phcListQuery.data ?? []).map((p) => ({ id: p.id, name: p.name, code: p.code }))}
+                      showCode
+                      value={phcSelect}
+                      onChange={(id) => {
+                        setPhcSelect(id)
+                        setSubcenter('')
+                        setVillage('')
+                      }}
+                      placeholder={block ? 'Select PHC' : 'Select a block first'}
+                      loading={phcListQuery.isLoading}
+                      loadingLabel="Loading PHCs…"
+                      emptyLabel="No PHCs in this block"
+                    />
+                  </>
+                )}
+                <SearchableSelect
+                  id="subcenter"
+                  label={subCenters.length > 0 ? 'Reporting Sub-center *' : 'Reporting Sub-center'}
+                  options={subCenters.map((s) => ({ id: s.id, name: s.name }))}
+                  value={subcenter}
+                  onChange={setSubcenter}
+                  placeholder="Select sub-centre"
+                  loading={phcQuery.isLoading}
+                  loadingLabel="Loading sub-centres…"
+                  disabled={!effectivePhcId}
+                  disabledHint={phcId ? 'No PHC assigned' : 'Select the PHC first'}
+                  emptyLabel="This PHC has no sub-centres yet"
+                />
+                <SearchableSelect
+                  id="village"
+                  label={villageOptions.length > 0 ? 'Assigned Village *' : 'Assigned Village'}
+                  options={villageOptions}
+                  showCode
+                  value={village}
+                  onChange={setVillage}
+                  placeholder="Select village"
+                  loading={villagesQuery.isLoading}
+                  loadingLabel="Loading villages…"
+                  disabled={!effectivePhcId}
+                  disabledHint={phcId ? 'No PHC assigned' : 'Select the PHC first'}
+                  emptyLabel="No villages configured — add one in Village Management"
+                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-label-md text-on-surface-variant" htmlFor="doj">Date of Joining *</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[20px]">event_available</span>
+                    </span>
+                    <input className={`${inputCls} pl-11`} id="doj" type="date" value={doj} onChange={(e) => setDoj(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 flex items-center justify-end gap-3 pb-4">
+              <button
+                className="flex items-center justify-center rounded-full px-6 py-2 font-label-md text-label-md font-semibold border border-gray-300 text-gray-600 transition-colors hover:bg-surface-container-highest"
+                type="button"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-2 font-label-md text-label-md font-semibold text-white shadow-sm transition-colors hover:bg-green-700 active:scale-[0.98] disabled:opacity-60"
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                    Save Worker Details
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
       <CredentialsModal
         value={credentials}
         onClose={() => {
@@ -353,6 +449,7 @@ export default function AddNewAshaWorkerPhcAdmin() {
           navigate('/phc/ashas')
         }}
       />
-    </div>
+    </>
   )
 }
+

@@ -27,9 +27,15 @@ class Settings(BaseSettings):
 
     database_url: str
 
-    supabase_url: str | None = None
-    supabase_service_key: str | None = None
-    supabase_anon_key: str | None = None
+    # Neon S3-compatible object storage (photo uploads).
+    aws_endpoint_url_s3: str | None = None
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+    aws_region: str | None = None
+    # Bucket used for beneficiary/growth photos; created on first upload when
+    # missing. Override the public URL base if a CDN fronts the bucket.
+    aws_s3_bucket: str = "asha-sathi"
+    s3_public_base_url: str | None = None
 
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

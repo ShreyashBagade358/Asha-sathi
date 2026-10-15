@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/ui/Button';
 import { Card, Pill } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { DateField } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
-import { listFollowUps, type FollowUp } from '@/db/clinical';
+import { useToast } from '@/components/ui/Toast';
+import { listFollowUps, setFollowUpDate, setFollowUpDone, type FollowUp } from '@/db/clinical';
 import { useLocalization } from '@/i18n/useLocalization';
+import { dateToIso } from '@/utils/date';
 import { cx } from '@/cx';
 
 type Filter = 'all' | 'overdue' | 'upcoming';
@@ -18,18 +23,34 @@ const SOURCE_CLS: Record<FollowUp['kind'], string> = {
   task: 'bg-primary-container text-on-primary',
 };
 
+/** Rescheduling only ever pushes a deadline forward, so the picker runs to next year. */
+const NEXT_YEAR_LIMIT_ISO = dateToIso(new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate()));
+
 /**
  * Follow-up, from the More menu.
  *
  * The web kept scheduled and completed visits in a mock array. Here the list is
  * what the worker actually owes: outstanding tasks plus every referral flagged
  * `followup_required`, both of which already come down the sync feed.
+ *
+ * Each row can be closed or moved: Complete asks for confirmation (it takes
+ * the row off the open list), Reschedule asks for a new date. Both write
+ * through `setFollowUpDone`/`setFollowUpDate`, so the change lands in SQLite
+ * and the outbox before the list reloads — a reschedule typed with no signal
+ * still travels when the network returns.
  */
 export default function FollowUpsScreen() {
   const { t } = useLocalization();
+  const toast = useToast();
   const [rows, setRows] = useState<FollowUp[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [rescheduleRow, setRescheduleRow] = useState<FollowUp | null>(null);
+  const [nextDate, setNextDate] = useState('');
+  const [dateError, setDateError] = useState<string | undefined>(undefined);
+  const [rescheduleBusy, setRescheduleBusy] = useState(false);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -65,8 +86,73 @@ export default function FollowUpsScreen() {
     [rows, today],
   );
 
+  const complete = async (row: FollowUp) => {
+    if (busyId) return;
+    setBusyId(row.id);
+    try {
+      // Local write + outbox first, then the list reflects it.
+      await setFollowUpDone(row, true);
+      await load();
+      toast.toast(t('asha.fuDoneToast'), 'success');
+    } catch (err) {
+      toast.toast(err instanceof Error && err.message ? err.message : t('asha.fuActionFailed'), 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const confirmComplete = (row: FollowUp) => {
+    Alert.alert(t('asha.fuCompleteTitle'), t('asha.fuCompleteMsg', { name: row.patient_name ?? '—' }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('asha.fuComplete'), onPress: () => void complete(row) },
+    ]);
+  };
+
+  const openReschedule = (row: FollowUp) => {
+    setNextDate(row.due_date && row.due_date >= today ? row.due_date : today);
+    setDateError(undefined);
+    setRescheduleRow(row);
+  };
+
+  const closeReschedule = () => {
+    if (rescheduleBusy) return;
+    setRescheduleRow(null);
+    setNextDate('');
+    setDateError(undefined);
+  };
+
+  const reschedule = async () => {
+    const row = rescheduleRow;
+    if (!row) return;
+    if (!nextDate) {
+      setDateError(t('asha.fuRescheduleRequired'));
+      return;
+    }
+
+    setRescheduleBusy(true);
+    try {
+      await setFollowUpDate(row, nextDate);
+      setRescheduleRow(null);
+      setNextDate('');
+      setDateError(undefined);
+      await load();
+      toast.toast(t('asha.fuRescheduled'), 'success');
+    } catch (err) {
+      toast.toast(err instanceof Error && err.message ? err.message : t('asha.fuActionFailed'), 'error');
+    } finally {
+      setRescheduleBusy(false);
+    }
+  };
+
+
   return (
-    <Screen title={t('asha.followUpTitle')} subtitle={t('asha.followUpSubtitle')} back withTabBar={false}>
+    <Screen
+      header="page"
+      title={t('asha.followUpTitle')}
+      back
+      withTabBar={false}
+      actions={<LanguageToggle onSurface />}
+    >
       {status === 'ready' && rows.length > 0 ? (
         <>
           <View className="-mx-1 mb-4 flex-row flex-wrap gap-2">
@@ -119,15 +205,62 @@ export default function FollowUpsScreen() {
       ) : (
         <View className="gap-3">
           {visible.map((row) => (
-            <FollowUpCard key={row.id} row={row} overdue={overdue(row)} />
+            <FollowUpCard
+              key={row.id}
+              row={row}
+              overdue={overdue(row)}
+              busy={busyId === row.id}
+              onComplete={() => confirmComplete(row)}
+              onReschedule={() => openReschedule(row)}
+            />
           ))}
         </View>
       )}
+
+      <Modal visible={rescheduleRow !== null} onClose={closeReschedule} title={t('asha.fuRescheduleTitle')}>
+        <View className="gap-3">
+          <Text className="text-body-sm text-body-sm text-on-surface-variant" numberOfLines={2}>
+            {`${rescheduleRow?.patient_name ?? '—'}${rescheduleRow?.due_date ? ` · ${t('modules.followUpDue')} ${rescheduleRow.due_date}` : ''}`}
+          </Text>
+          <DateField
+            label={t('asha.fuRescheduleDate')}
+            value={nextDate}
+            onChange={(iso) => {
+              setNextDate(iso);
+              setDateError(undefined);
+            }}
+            errorText={dateError}
+            minIso={today}
+            maxIso={NEXT_YEAR_LIMIT_ISO}
+            doneLabel={t('common.done')}
+          />
+          <Button
+            label={t('asha.fuRescheduleSave')}
+            icon="calendar"
+            full
+            loading={rescheduleBusy}
+            disabled={rescheduleBusy}
+            onPress={() => void reschedule()}
+          />
+        </View>
+      </Modal>
     </Screen>
   );
 }
 
-function FollowUpCard({ row, overdue }: { row: FollowUp; overdue: boolean }) {
+function FollowUpCard({
+  row,
+  overdue,
+  busy,
+  onComplete,
+  onReschedule,
+}: {
+  row: FollowUp;
+  overdue: boolean;
+  busy: boolean;
+  onComplete: () => void;
+  onReschedule: () => void;
+}) {
   const { t } = useLocalization();
   const initial = (row.patient_name ?? '').trim().charAt(0).toUpperCase();
 
@@ -142,7 +275,7 @@ function FollowUpCard({ row, overdue }: { row: FollowUp; overdue: boolean }) {
 
         <View className="min-w-0 flex-1 gap-2">
           <View className="gap-1">
-            <Text className="text-headline-md text-headline-md font-semibold text-on-surface" numberOfLines={1}>
+            <Text className="font-headline-md text-headline-md font-semibold text-on-surface" numberOfLines={1}>
               {row.patient_name ?? '—'}
             </Text>
             <View className="flex-row flex-wrap items-center gap-2">
@@ -194,6 +327,26 @@ function FollowUpCard({ row, overdue }: { row: FollowUp; overdue: boolean }) {
                 </Text>
               </View>
             ) : null}
+          </View>
+
+          <View className="flex-row gap-2">
+            <Button
+              className="flex-1"
+              label={t('asha.fuComplete')}
+              icon="check"
+              variant="primary"
+              loading={busy}
+              disabled={busy}
+              onPress={onComplete}
+            />
+            <Button
+              className="flex-1"
+              label={t('asha.fuReschedule')}
+              icon="calendar"
+              variant="secondary"
+              disabled={busy}
+              onPress={onReschedule}
+            />
           </View>
         </View>
       </View>

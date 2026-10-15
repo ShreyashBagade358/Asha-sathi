@@ -4,7 +4,6 @@ import { useLocalization } from '@/hooks/useLocalization'
 import { useTodayTasks } from '@/hooks/useTodayTasks'
 import { DailyPlanCard } from '@/components/asha/DailyPlanCard'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { formatDay, type ViewTask } from '@/pages/asha/taskView'
@@ -35,12 +34,6 @@ export default function TasksAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.tasksTitle')}
-        subtitle={t('asha.tasksSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaTasks') }]}
-      />
-
       <DailyPlanCard tasks={tasks} />
 
       <div className="flex gap-2">
@@ -57,7 +50,7 @@ export default function TasksAshaSathi() {
           >
             {tab.label}
             <span
-              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+              className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                 filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
               }`}
             >
@@ -108,12 +101,12 @@ export default function TasksAshaSathi() {
                       {task.title}
                     </p>
                     {task.priority === 'high' && !task.done ? (
-                      <span className="rounded-full bg-error-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-error-container">
+                      <span className="rounded-full bg-error-container px-2 py-0.5 font-caption text-label-sm font-semibold text-on-error-container">
                         {task.priority}
                       </span>
                     ) : null}
                     {task.carriedFrom && !task.done ? (
-                      <span className="rounded-full bg-tertiary-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-tertiary-container">
+                      <span className="rounded-full bg-tertiary-container px-2 py-0.5 font-caption text-label-sm font-semibold text-on-tertiary-container">
                         {t('asha.carriedBadge')} {formatDay(task.carriedFrom)}
                       </span>
                     ) : null}
@@ -123,6 +116,11 @@ export default function TasksAshaSathi() {
                   ) : null}
                   {task.subtitle ? (
                     <p className="font-caption text-caption text-on-surface-variant">{task.subtitle}</p>
+                  ) : null}
+                  {task.alsoCovers.length > 0 ? (
+                    <p className="font-caption text-caption font-medium text-primary">
+                      {t('asha.alsoCovers', { list: task.alsoCovers.join(', ') })}
+                    </p>
                   ) : null}
                 </div>
               </div>

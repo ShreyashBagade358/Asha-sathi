@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import Boolean, Date, String
+from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -22,6 +22,9 @@ class EligibleCouple(BaseModel):
     missed_period_tracked: Mapped[bool] = mapped_column(Boolean, default=False)
     last_missed_period_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     pregnancy_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    pregnancy_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("pregnancies.id"), nullable=True, index=True
+    )
     registered_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
 

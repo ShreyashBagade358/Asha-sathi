@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -25,7 +25,9 @@ class Pregnancy(BaseModel):
     next_anc_due: Mapped[date | None] = mapped_column(Date, nullable=True)
     anc_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(30), default="ongoing", index=True)
-    delivery_outcome_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    delivery_outcome_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("delivery_outcomes.id"), nullable=True, index=True
+    )
 
 
 class ANCVISIT(BaseModel):

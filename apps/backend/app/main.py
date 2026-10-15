@@ -11,7 +11,6 @@ from app.core.config import settings
 from app.core.database import engine
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
-from app.core.supabase import get_supabase
 
 configure_logging()
 
@@ -21,9 +20,6 @@ async def lifespan(app: FastAPI):
     configure_logging()
     if not getattr(app.state, "started_at", None):
         app.state.started_at = datetime.now(UTC)
-    client = get_supabase()
-    if client is not None:
-        app.state.supabase = client
     yield
     await engine.dispose()
 

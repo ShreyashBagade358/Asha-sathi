@@ -17,10 +17,11 @@ import {
   getHouseholdCard,
   listHouseholdMemberCards,
   listHouseholdVisitRecords,
+  listHouseholdVisitTasks,
   type HouseholdCard,
   type HouseholdMemberCard,
 } from '@/db/clinical';
-import { enqueue, insertLocalVillageForm } from '@/db/database';
+import { enqueue, insertLocalVillageForm, insertLocalVisitChecks } from '@/db/database';
 import { useLocalization } from '@/i18n/useLocalization';
 import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
 import { colors } from '@/theme';
@@ -28,8 +29,12 @@ import { cx } from '@/cx';
 
 type Status = 'loading' | 'ready' | 'missing' | 'failed';
 type FeverAnswer = '' | 'yes' | 'no';
+type CheckResult = 'ok' | 'concern';
 
 const FEVER_OPTIONS: readonly Exclude<FeverAnswer, ''>[] = ['yes', 'no'];
+
+/** What the ASHA records per member during this visit. */
+const CHECK_OPTIONS: readonly CheckResult[] = ['ok', 'concern'];
 
 function newId(): string {
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -51,6 +56,10 @@ function memberAge(member: HouseholdMemberCard, yearsUnit: string, monthsUnit: s
  * closes the household's open tasks locally and queues those status changes, so
  * the task list is correct on the device immediately and on the server as soon
  * as the outbox drains.
+ *
+ * Each member's ok/concern flag is its own row in `household_visit_checks`,
+ * queued alongside the visit, so a concern raised in the field is a first-class
+ * record rather than a note buried in the survey answers.
  */
 export default function HouseholdVisitScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -67,6 +76,7 @@ export default function HouseholdVisitScreen() {
   const [water, setWater] = useState(false);
   const [toilet, setToilet] = useState(false);
   const [fever, setFever] = useState<FeverAnswer>('');
+  const [checks, setChecks] = useState<Record<string, CheckResult>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,6 +101,7 @@ export default function HouseholdVisitScreen() {
       }
       setHousehold(card);
       setMembers(memberRows);
+      setChecks(() => Object.fromEntries(memberRows.map((m) => [m.id, 'ok' as CheckResult])));
       setPastVisits(visitRows.length);
       setAshaId(user?.id ?? '');
       setStatus('ready');
@@ -144,20 +155,79 @@ export default function HouseholdVisitScreen() {
           submitted_at: submittedAt,
         },
       });
+
+      const checkRows = members.map((member) => ({
+        id: newId(),
+        householdId: id,
+        beneficiaryId: member.id,
+        checkType: 'general',
+        result: checks[member.id] ?? 'ok',
+        notes: null,
+        visitedAt: formDate,
+        createdBy: ashaId || null,
+      }));
+      await insertLocalVisitChecks(checkRows);
+      for (const row of checkRows) {
+        await enqueue({
+          clientRequestId: `create-household-visit-check-${row.id}`,
+          entity: 'household_visit_checks',
+          operation: 'create',
+          recordId: row.id,
+          version: 1,
+          data: {
+            household_id: row.householdId,
+            survey_id: null,
+            beneficiary_id: row.beneficiaryId,
+            check_type: row.checkType,
+            result: row.result,
+            notes: row.notes,
+            visited_at: row.visitedAt,
+            created_by: row.createdBy,
+          },
+        });
+      }
+      const openTasks = await listHouseholdVisitTasks(id);
       await completeHouseholdTasks(id, true);
 
       if (isCurrentlyOnline()) scheduleSync(300);
 
+      const today = new Date().toISOString().slice(0, 10);
+      const upcoming = openTasks
+        .map((task) => task.task_date)
+        .filter((date): date is string => date != null && date >= today)
+        .sort();
+      const nextVisit = upcoming[0];
+
+      const flagged = members.find((member) => {
+        const level = (member.risk_level ?? '').toLowerCase();
+        return level === 'high' || level === 'high_risk';
+      });
+      const focus =
+        flagged ??
+        members.find((member) => member.is_pregnant > 0) ??
+        (members.length === 1 ? members[0] : undefined);
+      const riskMessage = flagged
+        ? flagged.is_pregnant > 0
+          ? t('asha.highRiskPregnancy')
+          : t('asha.riskHighLabel')
+        : undefined;
+
       toast.toast(t('errors.savedQueued'), 'success');
-      if (router.canGoBack()) router.back();
-      else router.replace(`/household/${id}`);
+      router.replace({
+        pathname: '/checkup-completed',
+        params: {
+          ...(riskMessage ? { risk: riskMessage } : {}),
+          ...(nextVisit ? { nextVisit } : {}),
+          ...(focus ? { patientId: focus.id } : {}),
+        },
+      });
     } catch (err) {
       console.error('[household-visit] save failed', err);
       setError(t('modules.surveySaveFailed'));
     } finally {
       setSaving(false);
     }
-  }, [id, household, consent, water, toilet, fever, ashaId, t, toast, router]);
+  }, [id, household, members, checks, consent, water, toilet, fever, ashaId, t, toast, router]);
 
   if (status === 'failed') {
     return (
@@ -230,36 +300,83 @@ export default function HouseholdVisitScreen() {
             </Text>
           ) : (
             <View className="gap-3">
-              {members.map((member) => (
-                <View
-                  key={member.id}
-                  className="flex-row items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
-                >
-                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                    <View
-                      className={cx(
-                        'h-touch-target w-touch-target items-center justify-center rounded-full',
-                        member.is_pregnant > 0 ? 'bg-tertiary-container' : 'bg-surface-container-high',
-                      )}
-                    >
-                      <Icon
-                        name={member.is_pregnant > 0 ? 'heart' : 'users'}
-                        size={20}
-                        color={member.is_pregnant > 0 ? colors.tertiary : colors.primary}
-                      />
+              <Text className="font-caption text-caption text-on-surface-variant">
+                {t('asha.memberChecksHint')}
+              </Text>
+              {members.map((member) => {
+                const value = checks[member.id] ?? 'ok';
+                return (
+                  <View
+                    key={member.id}
+                    className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
+                  >
+                    <View className="flex-row items-center justify-between gap-3">
+                      <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                        <View
+                          className={cx(
+                            'h-touch-target w-touch-target items-center justify-center rounded-full',
+                            member.is_pregnant > 0 ? 'bg-tertiary-container' : 'bg-surface-container-high',
+                          )}
+                        >
+                          <Icon
+                            name={member.is_pregnant > 0 ? 'heart' : 'users'}
+                            size={20}
+                            color={member.is_pregnant > 0 ? colors.tertiary : colors.primary}
+                          />
+                        </View>
+                        <View className="min-w-0 flex-1">
+                          <Text className="font-body-md text-body-md font-bold text-on-surface" numberOfLines={1}>
+                            {member.full_name}
+                          </Text>
+                          <Text className="font-caption text-caption text-on-surface-variant">
+                            {member.gender ?? '—'},{' '}
+                            {memberAge(member, t('asha.ageYearsShort'), t('asha.ageMonthsShort'))}
+                          </Text>
+                        </View>
+                      </View>
+                      {member.is_pregnant > 0 ? <Chip tone="info">{t('asha.highRisk')}</Chip> : null}
                     </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="font-body-md text-body-md font-bold text-on-surface" numberOfLines={1}>
-                        {member.full_name}
-                      </Text>
-                      <Text className="font-caption text-caption text-on-surface-variant">
-                        {member.gender ?? '—'}, {memberAge(member, t('asha.ageYearsShort'), t('asha.ageMonthsShort'))}
-                      </Text>
+                    <View className="mt-3 flex-row gap-2">
+                      {CHECK_OPTIONS.map((option) => {
+                        const selected = value === option;
+                        return (
+                          <Pressable
+                            key={option}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected }}
+                            accessibilityLabel={
+                              option === 'ok' ? t('asha.checkOk') : t('asha.checkConcern')
+                            }
+                            onPress={() => setChecks((prev) => ({ ...prev, [member.id]: option }))}
+                            className={cx(
+                              'h-touch-target min-w-0 flex-1 items-center justify-center rounded-xl border py-3',
+                              selected
+                                ? option === 'ok'
+                                  ? 'border-primary bg-primary-container'
+                                  : 'border-error bg-error-container'
+                                : 'border-outline-variant bg-surface-container-lowest',
+                            )}
+                          >
+                            <Text
+                              className={cx(
+                                'font-label-md text-label-md',
+                                selected ? 'font-bold' : 'text-on-surface-variant',
+                                selected
+                                  ? option === 'ok'
+                                    ? 'text-on-primary-container'
+                                    : 'text-on-error-container'
+                                  : '',
+                              )}
+                            >
+                              {option === 'ok' ? t('asha.checkOk') : t('asha.checkConcern')}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   </View>
-                  {member.is_pregnant > 0 ? <Chip tone="info">{t('asha.highRisk')}</Chip> : null}
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>

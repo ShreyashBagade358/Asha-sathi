@@ -6,15 +6,18 @@ import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { onSessionExpired } from '@/auth/api';
+import { ToastProvider, useToast } from '@/components/ui';
 import { initializeDatabase } from '@/db/database';
 import { hydrateLocale } from '@/i18n';
+import { useLocalization } from '@/i18n/useLocalization';
 import './../global.css';
 import { startNetworkWatcher } from '@/sync/network';
 import { colors } from '@/theme';
@@ -22,6 +25,28 @@ import { colors } from '@/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Already hidden, or unavailable on web. Not fatal.
 });
+
+/**
+ * The UI half of the session-expiry handshake: apiRequest drops the stored
+ * tokens when an authenticated 401 can no longer be refreshed, and this is
+ * what turns that into a logout instead of leaving the ASHA in a shell that
+ * quietly fails every request.
+ */
+function SessionExpiryWatcher() {
+  const { t } = useLocalization();
+  const { toast } = useToast();
+
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        toast(t('errors.sessionExpired.message'), 'warning');
+        router.replace('/login');
+      }),
+    [t, toast],
+  );
+
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -38,12 +63,22 @@ export default function RootLayout() {
       // The store must be ready before any screen reads from it. A failure here
       // must not become an unhandled rejection: the screens need to render so
       // the ASHA can see *something* is wrong and restart, rather than get a
-      // blank screen with no clue why.
-      await initializeDatabase();
+      // blank screen with no clue why. Each step is isolated so a database that
+      // will not open cannot also take the saved language and the network
+      // watcher down with it.
+      try {
+        await initializeDatabase();
+      } catch (error) {
+        console.error('[startup] database init failed', error);
+      }
       if (cancelled) return;
       // Restore the persisted EN/hi preference before the first screen renders
       // so no screen flashes the wrong language.
-      await hydrateLocale();
+      try {
+        await hydrateLocale();
+      } catch (error) {
+        console.error('[startup] locale init failed', error);
+      }
       if (cancelled) return;
       stop = startNetworkWatcher();
     })().catch((error) => {
@@ -75,22 +110,26 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.onPrimary,
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        {/* Login draws its own top bar via Screen, so the native header is
-            hidden here to avoid two stacked bars. */}
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="redirecting" options={{ headerShown: false }} />
-        <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
-        <Stack.Screen name="account-recovery" options={{ headerShown: false }} />
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
-      </Stack>
+      <ToastProvider>
+        <SessionExpiryWatcher />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.primary },
+            headerTintColor: colors.onPrimary,
+            contentStyle: { backgroundColor: colors.background },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          {/* Login draws its own top bar via Screen, so the native header is
+              hidden here to avoid two stacked bars. */}
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
+          <Stack.Screen name="account-recovery" options={{ headerShown: false }} />
+          <Stack.Screen name="(app)" options={{ headerShown: false }} />
+          {/* Patient dashboard shell — draws its own headers like (app). */}
+          <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+        </Stack>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

@@ -28,10 +28,29 @@ async def _create_child_and_growth(client, headers):
     assert b_resp.status_code == 201, b_resp.text
     beneficiary = b_resp.json()
 
+    m_resp = await client.post(
+        "/api/v1/beneficiaries",
+        headers=headers,
+        json={
+            "beneficiary_id": f"BEN-{uuid.uuid4().hex[:8].upper()}",
+            "full_name": "Photo Test Mother",
+            "gender": "female",
+            "phone": f"7{uuid.uuid4().hex[:9].translate(str.maketrans('abcdef','123456'))}",
+            "status": "active",
+        },
+    )
+    assert m_resp.status_code == 201, m_resp.text
+    mother = m_resp.json()
+
     c_resp = await client.post(
         "/api/v1/children",
         headers=headers,
-        json={"beneficiary_id": beneficiary["id"], "birth_weight_grams": 2800, "gestation_weeks": 39},
+        json={
+            "beneficiary_id": beneficiary["id"],
+            "mother_id": mother["id"],
+            "birth_weight_grams": 2800,
+            "gestation_weeks": 39,
+        },
     )
     assert c_resp.status_code == 201, c_resp.text
     child = c_resp.json()

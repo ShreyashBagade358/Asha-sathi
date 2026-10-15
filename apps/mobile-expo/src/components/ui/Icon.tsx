@@ -62,7 +62,8 @@ export type IconName =
   | 'alertCircle'
   | 'tool'
   | 'arrowLeft'
-  | 'inbox';
+  | 'inbox'
+  | 'info';
 
 const FEATHER: Record<IconName, ComponentProps<typeof Feather>['name']> = {
   dashboard: 'grid',
@@ -109,6 +110,7 @@ const FEATHER: Record<IconName, ComponentProps<typeof Feather>['name']> = {
   tool: 'tool',
   arrowLeft: 'arrow-left',
   inbox: 'inbox',
+  info: 'info',
 };
 
 export type IconProps = {

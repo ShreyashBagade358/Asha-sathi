@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { getErrorMessage, ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { pregnancyService } from '@/services/pregnancy.service'
@@ -62,6 +61,7 @@ function toPregnancyRecord(p: Pregnancy, ben?: Beneficiary): PregnancyRecord {
   const week = weeksSinceLmp(p.lmp)
   return {
     id: p.id,
+    beneficiaryId: p.beneficiaryId,
     patientName: ben?.name ?? '—',
     abhaId: ben?.abhaId ?? '—',
     village: ben?.village ?? '—',
@@ -87,8 +87,12 @@ export default function PregnancyTrackingAshaSathi() {
   const beneficiariesQuery = useQuery({
     queryKey: ['beneficiaries', 'all'],
     queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
-  })
-  const beneficiaryOptions = beneficiariesQuery.data?.items ?? []
+  });
+  // Pregnancy registration is for women only — filter the picker to female
+  // beneficiaries so a male can never be selected as the pregnant patient.
+  const beneficiaryOptions = (beneficiariesQuery.data?.items ?? []).filter(
+    (b) => b.gender === 'female',
+  );
 
   const pregnanciesQuery = useQuery({
     queryKey: ['pregnancies', 'all'],
@@ -151,21 +155,16 @@ export default function PregnancyTrackingAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.pregnancyTitle')}
-        subtitle={t('asha.pregnancySubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.pregnancyTitle') }]}
-        actions={
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98]"
-          >
-            <Icon name="plus" size={18} />
-            {showForm ? t('asha.closeForm') : t('asha.registerPregnancy')}
-          </button>
-        }
-      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98]"
+        >
+          <Icon name="plus" size={18} />
+          {showForm ? t('asha.closeForm') : t('asha.registerPregnancy')}
+        </button>
+      </div>
 
       {showForm ? (
         <form
@@ -247,7 +246,7 @@ export default function PregnancyTrackingAshaSathi() {
           >
             {tab.label}
             <span
-              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+              className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                 filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
               }`}
             >
@@ -286,7 +285,7 @@ function PregnancyCard({ pregnancy }: { pregnancy: PregnancyRecord }) {
       <div className="relative p-4 pl-5">
         <span
           className={`absolute bottom-0 left-0 top-0 w-1.5 ${
-            pregnancy.risk === 'high' ? 'bg-error' : pregnancy.risk === 'medium' ? 'bg-[#FF8C00]' : 'bg-secondary'
+            pregnancy.risk === 'high' ? 'bg-error' : pregnancy.risk === 'medium' ? 'bg-[#F59E0B]' : 'bg-secondary'
           }`}
         />
         <div className="flex items-start justify-between gap-3">
@@ -307,7 +306,7 @@ function PregnancyCard({ pregnancy }: { pregnancy: PregnancyRecord }) {
             <p className="font-caption text-caption text-on-surface-variant">{pregnancy.abhaId}</p>
           </div>
           <Link
-            to="/asha/patients/1"
+            to={`/asha/patients/${pregnancy.beneficiaryId ?? pregnancy.id}`}
             aria-label={t('asha.viewPatientProfile')}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container transition-all hover:bg-primary hover:text-on-primary active:scale-95"
           >

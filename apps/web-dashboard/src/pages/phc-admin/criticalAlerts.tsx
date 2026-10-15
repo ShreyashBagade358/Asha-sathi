@@ -33,7 +33,7 @@ export default function CriticalAlerts() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Critical Alerts" subtitle="Pregnancies currently flagged as high risk." />
+      <PageHeader title="Critical Alerts" />
 
       {isLoading ? (
         <LoadingState />

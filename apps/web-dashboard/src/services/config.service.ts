@@ -68,6 +68,29 @@ export const configService = {
     return data
   },
 
+  /** The signed-in worker's geography in one call — state / district / PHC
+   *  plus catchment villages flattened with `districtId` so a form can
+   *  cascade state -> district -> village like the mobile app does. */
+  async getMyRegion(): Promise<{
+    state: GeoEntry | null
+    district: GeoEntry | null
+    phc: GeoEntry | null
+    villages: Array<VillageEntry & { districtId?: string }>
+  }> {
+    const { data } = await api.get<{
+      state: { id: string; code: string; name: string } | null
+      district: { id: string; code: string; name: string } | null
+      phc: { id: string; code?: string; name: string } | null
+      villages: Array<{ id: string; code: string; name: string; district_id?: string }>
+    }>('/config/my-region')
+    return {
+      state: data.state ? mapEntry(data.state) : null,
+      district: data.district ? mapEntry(data.district) : null,
+      phc: data.phc ? mapEntry({ id: data.phc.id, code: data.phc.code ?? '', name: data.phc.name }) : null,
+      villages: (data.villages ?? []).map((v) => ({ ...mapEntry(v), districtId: v.district_id })),
+    }
+  },
+
   async createVillage(
     phcId: string,
     payload: { name: string; code?: string; subCenterId?: string; totalHouseholds?: number; totalPopulation?: number },

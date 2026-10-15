@@ -17,7 +17,8 @@
       "package": "org.ashasathi.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0F766E"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -29,10 +30,17 @@
       "expo-sqlite",
       "expo-status-bar",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "ASHA Sathi attaches profile photos to patient records."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0F766E",
-          "resizeMode": "contain"
+          "image": "./assets/splash-art.jpg",
+          "backgroundColor": "#FAF6EB",
+          "resizeMode": "cover"
         }
       ]
     ],

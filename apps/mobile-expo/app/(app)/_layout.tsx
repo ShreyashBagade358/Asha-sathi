@@ -11,16 +11,20 @@ import { colors } from '@/theme';
  * This is the mobile equivalent of the web's ProtectedRoute in App.tsx: while
  * the stored session is still being read, render a spinner rather than either
  * the app or the login screen, so a cold start never flashes login at an
- * already-authenticated user.
+ * already-authenticated user. A patient session is pushed back to the patient
+ * dashboard — this shell renders ASHA-only work.
  */
 export default function AppLayout() {
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [isPatient, setIsPatient] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const token = await tokenStore.getAccessToken();
+      const user = await tokenStore.getUser();
       setSignedIn(Boolean(token));
+      setIsPatient(user?.role === 'patient');
       setReady(true);
     })();
   }, []);
@@ -37,6 +41,10 @@ export default function AppLayout() {
     return <Redirect href="/login" />;
   }
 
+  if (isPatient) {
+    return <Redirect href="/home" />;
+  }
+
   return (
     <Stack
       screenOptions={{
@@ -49,6 +57,8 @@ export default function AppLayout() {
         <Stack.Screen name="patient/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="patient/[id]/immunization" options={{ headerShown: false }} />
         <Stack.Screen name="patient/[id]/profile" options={{ headerShown: false }} />
+        <Stack.Screen name="household/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="household/[id]/visit" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="connection-error" options={{ headerShown: false }} />
         {/* More-menu modules. Real routes so the sheet never lands on an
@@ -59,8 +69,10 @@ export default function AppLayout() {
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="health-survey" options={{ headerShown: false }} />
         <Stack.Screen name="health-checkup" options={{ headerShown: false }} />
+        <Stack.Screen name="new-checkup" options={{ headerShown: false }} />
         <Stack.Screen name="follow-ups" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="checkup-completed" options={{ headerShown: false }} />
       </Stack>
   );
 }

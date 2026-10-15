@@ -2,12 +2,14 @@ import { Pressable } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { cx } from '@/cx';
+import { useLocalization } from '@/i18n/useLocalization';
 
 export type FABProps = {
   onPress: () => void;
   icon?: IconName;
   /** Distance from the bottom edge; defaults to clearing the tab bar (bottom-28). */
   bottomOffset?: number;
+  /** Falls back to t('common.add'): an icon-only button must stay labelled. */
   accessibilityLabel?: string;
   className?: string;
 };
@@ -19,10 +21,12 @@ export type FABProps = {
  * (web uses bottom-24; bottom-28 clears this app's taller tab bar).
  */
 export function FAB({ onPress, icon = 'plus', bottomOffset, accessibilityLabel, className }: FABProps) {
+  const { t } = useLocalization();
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ?? t('common.add')}
       onPress={onPress}
       className={cx('absolute right-6 bottom-28 h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg active:scale-95', className)}
       style={bottomOffset !== undefined ? { bottom: bottomOffset } : null}

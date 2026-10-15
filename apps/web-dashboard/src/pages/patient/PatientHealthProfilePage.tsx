@@ -98,8 +98,14 @@ export default function PatientHealthProfilePage() {
   const VITALS: Vital[] = [
     { label: 'patient.height', value: profile.height, icon: 'activity', tone: 'default' },
     { label: 'patient.weight', value: profile.weight, icon: 'box', tone: 'default' },
+    { label: 'patient.bmi', value: profile.bmi, icon: 'activity', tone: 'default' },
     { label: 'patient.latestBp', value: profile.latestBp, icon: 'activity', tone: 'error' },
+    { label: 'patient.pulse', value: profile.pulse, icon: 'heart', tone: 'default' },
+    { label: 'patient.temperature', value: profile.temperature, icon: 'activity', tone: 'default' },
+    { label: 'patient.spo2', value: profile.spo2, icon: 'activity', tone: 'default' },
     { label: 'patient.haemoglobin', value: profile.haemoglobin, icon: 'heart', tone: 'error' },
+    { label: 'patient.bloodSugar', value: profile.bloodSugar, icon: 'activity', tone: 'default' },
+    { label: 'patient.waistCircumference', value: profile.waistCircumference, icon: 'activity', tone: 'default' },
   ]
 
   const personalRows = [

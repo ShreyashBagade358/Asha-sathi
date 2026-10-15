@@ -17,7 +17,7 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-label-md font-semibold text-on-primary transition-colors hover:bg-primary-hover"
+          className="mt-1 flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-label-md font-semibold text-on-primary transition-colors hover:bg-on-primary-fixed-variant"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
           Retry

@@ -37,6 +37,7 @@ interface AuthState {
   isAuthenticated: boolean
   isHydrating: boolean
   signIn: (phone: string, password: string) => Promise<User>
+  signInWithOtp: (phone: string, otp: string) => Promise<User>
   logout: () => Promise<void>
   hydrate: () => Promise<void>
   setUser: (user: User) => void
@@ -59,6 +60,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       // The API returns one message for both an unknown phone and a wrong
       // password, so this copy must not imply which one it was.
       throw new Error(authErrorMessage(err, 'Incorrect phone number or password'))
+    }
+  },
+
+  signInWithOtp: async (phone, otp) => {
+    try {
+      const res = await authService.verifyOtp(phone, otp)
+      writeTokens(res.tokens.accessToken, res.tokens.refreshToken)
+      const user = await withGeoScope(res.user)
+      set({ user, token: res.tokens.accessToken, isAuthenticated: true })
+      return user
+    } catch (err) {
+      throw new Error(authErrorMessage(err, 'Incorrect or expired code'))
     }
   },
 

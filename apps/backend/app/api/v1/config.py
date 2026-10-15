@@ -6,7 +6,7 @@ from app.api.deps import get_current_user, get_db_session, require_roles
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.config import AppConfig
-from app.models.user import Role, User
+from app.models.user import ASHAProfile, Role, User
 from app.schemas.admin import VillageCreate
 from app.schemas.common import MessageResponse
 from app.schemas.config import ConfigUpdateRequest, ConfigUpdateResponse
@@ -204,3 +204,53 @@ async def create_phc_village(
     await db.commit()
     await db.refresh(village)
     return village.to_dict()
+
+
+@router.get("/my-region")
+async def my_region(db: AsyncSession = Depends(get_db_session), user: User = Depends(get_current_user)):
+    """The signed-in worker's own geography, in one round trip.
+
+    The offline-first mobile forms need the state / district / village selects
+    (and the PHC they imply) without a chain of cascading calls: an ASHA gets
+    her assigned state, district, PHC and her catchment villages; anyone
+    without a personal village (admin, supervisor) gets their PHC's villages.
+    The phone caches the response after login so the fields still work with no
+    signal.
+    """
+    state = await db.get(State, user.state_id) if user.state_id else None
+    district = await db.get(District, user.district_id) if user.district_id else None
+    phc = await db.get(PHC, user.phc_id) if user.phc_id else None
+
+    village_ids: list[str] = [user.village_id] if user.village_id else []
+    profile = (
+        await db.execute(select(ASHAProfile).where(ASHAProfile.user_id == user.id))
+    ).scalar_one_or_none()
+    for vid in (profile.catchment_villages or []) if profile and profile.catchment_villages else []:
+        if vid and vid not in village_ids:
+            village_ids.append(vid)
+
+    villages: list[dict] = []
+    # Flattened with the district id so the client can cascade
+    # state -> district -> village offline without the four-hop lookup.
+    base = (
+        select(Village, District.id.label("district_id"))
+        .join(SubCenter, SubCenter.id == Village.sub_center_id)
+        .join(PHC, PHC.id == SubCenter.phc_id)
+        .join(Block, Block.id == PHC.block_id)
+        .join(District, District.id == Block.district_id)
+        .where(Village.is_active.is_(True))
+        .order_by(Village.name)
+    )
+    if village_ids:
+        result = await db.execute(base.where(Village.id.in_(village_ids)))
+        villages = [{**row[0].to_dict(), "district_id": str(row[1])} for row in result.all()]
+    elif user.phc_id:
+        result = await db.execute(base.where(PHC.id == user.phc_id))
+        villages = [{**row[0].to_dict(), "district_id": str(row[1])} for row in result.all()]
+
+    return {
+        "state": state.to_dict() if state else None,
+        "district": district.to_dict() if district else None,
+        "phc": phc.to_dict() if phc else None,
+        "villages": villages,
+    }

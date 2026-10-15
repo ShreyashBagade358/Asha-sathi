@@ -184,7 +184,7 @@
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #727783;
+    background: #64748B;
   }
 
   .table-container::-webkit-scrollbar,
@@ -194,17 +194,17 @@
   }
   .table-container::-webkit-scrollbar-track,
   .table-scroll::-webkit-scrollbar-track {
-    background: #f0f3ff;
+    background: #F1F5F9;
     border-radius: 4px;
   }
   .table-container::-webkit-scrollbar-thumb,
   .table-scroll::-webkit-scrollbar-thumb {
-    background: #c2c6d4;
+    background: #E2E8F0;
     border-radius: 4px;
   }
   .table-container::-webkit-scrollbar-thumb:hover,
   .table-scroll::-webkit-scrollbar-thumb:hover {
-    background: #727783;
+    background: #64748B;
   }
 
   .chart-container {
@@ -213,12 +213,12 @@
     height: 200px;
   }
   .chart-grid {
-    background-image: linear-gradient(to right, #e7eeff 1px, transparent 1px),
-      linear-gradient(to bottom, #e7eeff 1px, transparent 1px);
+    background-image: linear-gradient(to right, #EEF2FF 1px, transparent 1px),
+      linear-gradient(to bottom, #EEF2FF 1px, transparent 1px);
     background-size: 40px 40px;
   }
   .chart-bar-bg {
-    background-color: #f0f3ff;
+    background-color: #F1F5F9;
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -227,14 +227,14 @@
     margin: 0 auto;
   }
   .chart-bar-fill {
-    background-color: #005eb8;
+    background-color: #4F46E5;
     position: absolute;
     bottom: 0;
     width: 100%;
     border-radius: 4px 4px 0 0;
   }
   .chart-bar-fill-secondary {
-    background-color: #a9c7ff;
+    background-color: #A5B4FC;
     position: absolute;
     bottom: 0;
     width: 100%;
@@ -248,7 +248,7 @@
   }
   .bento-card {
     background-color: #ffffff;
-    border: 1px solid #c2c6d4;
+    border: 1px solid #E2E8F0;
     border-radius: 0.5rem;
     padding: 24px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
@@ -264,7 +264,7 @@
   }
 
   .risk-strip-high {
-    border-left: 4px solid #7b0000;
+    border-left: 4px solid #DC2626;
   }
   .risk-strip-medium {
     border-left: 4px solid #f59e0b;
@@ -282,8 +282,8 @@
     height: 80px;
     border-radius: 50%;
     border: 4px solid transparent;
-    border-top-color: #005eb8;
-    border-bottom-color: #006880;
+    border-top-color: #4F46E5;
+    border-bottom-color: #10B981;
     animation: spin 1.5s linear infinite;
     position: relative;
   }
@@ -296,8 +296,8 @@
     bottom: 4px;
     border-radius: 50%;
     border: 4px solid transparent;
-    border-left-color: #82fc90;
-    border-right-color: #a9c7ff;
+    border-left-color: #A7F3D0;
+    border-right-color: #A5B4FC;
     animation: spin-reverse 2s linear infinite;
   }
 
@@ -332,15 +332,15 @@
 
   .toggle-checkbox:checked {
     right: 0;
-    border-color: #68d391;
+    border-color: #10B981;
   }
   .toggle-checkbox:checked + .toggle-label {
-    background-color: #68d391;
+    background-color: #10B981;
   }
 
   .radio-card-input:checked + .radio-card-body {
-    border-color: #005eb8;
-    background-color: #e7eeff;
+    border-color: #4F46E5;
+    background-color: #EEF2FF;
   }
 }
 

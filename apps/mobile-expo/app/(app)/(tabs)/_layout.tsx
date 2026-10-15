@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/nav/TabBar';
 import { useTabBadges } from '@/nav/useTabBadges';
@@ -8,13 +9,21 @@ import { useTabBadges } from '@/nav/useTabBadges';
  * `bottomNav: true` in AdminLayout (home, tasks, patients, households, sync).
  * Everything else the ASHA sidebar exposes is reachable from the top app bar's
  * More sheet, so the bar stays at five items like the web's.
+ *
+ * `sceneStyle.paddingTop` pushes every scene below the status bar / notch —
+ * the screens draw their own headers and would otherwise start at y=0 under
+ * the system UI.
  */
 export default function TabsLayout() {
   const badges = useTabBadges();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#F9F9FF' } }}
+      screenOptions={{
+        headerShown: false,
+        sceneStyle: { backgroundColor: '#F9F9FF', paddingTop: insets.top },
+      }}
       tabBar={(props) => <TabBar state={props.state} badges={badges} />}
     >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />

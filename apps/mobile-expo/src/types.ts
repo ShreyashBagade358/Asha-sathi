@@ -75,6 +75,11 @@ export interface Household {
   asha_id: string;
   address?: string | null;
   consent_given?: boolean;
+  head_name?: string | null;
+  /** Amenities captured at registration: toilet / electricity / clean_water / lpg_connection. */
+  amenities?: Record<string, boolean> | null;
+  consent_date?: string | null;
+  consent_version?: string | null;
   updated_at?: string;
   version?: number;
   [key: string]: unknown;

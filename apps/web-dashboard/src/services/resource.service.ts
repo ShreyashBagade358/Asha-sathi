@@ -1,6 +1,6 @@
 import { api } from '@/lib/api'
 
-export type ResourceType = 'staff' | 'vaccines' | 'equipment'
+export type ResourceType = 'staff' | 'vaccines' | 'equipment' | 'medicines' | 'vehicles'
 
 export interface ResourceAllocation {
   id: string

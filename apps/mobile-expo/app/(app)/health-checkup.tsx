@@ -1,10 +1,12 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Screen } from '@/components/Screen';
 import { Card, Pill } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FAB } from '@/components/ui/FAB';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { StatCard } from '@/components/ui/StatCard';
 import { cx } from '@/cx';
@@ -53,9 +55,14 @@ export default function HealthCheckupScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Re-reads on focus rather than on mount alone: the New Check-up screen is
+  // pushed on top of this one, so a mount-time load would keep showing the list
+  // without the row that was just saved.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const counts = useMemo(() => {
     const next: Record<RiskFilter, number> = { all: rows.length, high: 0, medium: 0, low: 0 };
@@ -71,74 +78,87 @@ export default function HealthCheckupScreen() {
   const referred = useMemo(() => rows.reduce((n, row) => (row.referral_made === 1 ? n + 1 : n), 0), [rows]);
 
   return (
-    <Screen title={t('asha.healthCheckupTitle')} subtitle={t('asha.healthCheckupSubtitle')} back withTabBar={false}>
-      {status === 'failed' ? (
-        <EmptyState
-          icon="alertCircle"
-          title={t('common.errorTitle')}
-          description={t('common.errorMsg')}
-          action={<RetryButton label={t('common.retry')} onPress={() => void load()} />}
-        />
-      ) : (
-        <>
-          <View className="flex-row flex-wrap gap-3">
-            {/* w-[46%] + grow pins the tiles at two per row down to 320dp and
-                still fills the line, instead of a fourth tile overflowing. */}
-            <View className="w-[46%] grow">
-              <StatCard label={t('kpis.ncdScreened')} value={rows.length} icon="users" />
-            </View>
-            <View className="w-[46%] grow">
-              <StatCard label={t('modules.riskHigh')} value={counts.high} icon={RISK.high.icon} tone={RISK.high.tone} />
-            </View>
-            <View className="w-[46%] grow">
-              <StatCard
-                label={t('modules.riskMedium')}
-                value={counts.medium}
-                icon={RISK.medium.icon}
-                tone={RISK.medium.tone}
-              />
-            </View>
-            <View className="w-[46%] grow">
-              <StatCard label={t('modules.checkupReferral')} value={referred} icon="fileText" tone="secondary" />
-            </View>
-          </View>
-
-          <View className="mt-4 flex-row flex-wrap gap-2">
-            {FILTERS.map((key) => (
-              <Pill
-                key={key}
-                label={key === 'all' ? t('asha.filterAll') : t(RISK[key].labelKey)}
-                count={counts[key]}
-                active={filter === key}
-                onPress={() => setFilter(key)}
-              />
-            ))}
-          </View>
-
-          <View className="mt-4">
-            {rows.length === 0 ? (
-              status === 'loading' ? (
-                <EmptyState icon="inbox" title={t('common.noData')} />
-              ) : (
-                <EmptyState
-                  icon="activity"
-                  title={t('modules.checkupEmpty')}
-                  description={t('modules.checkupEmptyHint')}
-                />
-              )
-            ) : visible.length === 0 ? (
-              <EmptyState icon="search" title={t('common.noResults')} />
-            ) : (
-              <View className="gap-3">
-                {visible.map((row) => (
-                  <CheckupCard key={row.id} row={row} onPress={() => router.push(`/patient/${row.beneficiary_id}`)} />
-                ))}
+    <View className="flex-1">
+      <Screen
+        header="page"
+        title={t('asha.healthCheckupTitle')}
+        back
+        withTabBar={false}
+        actions={<LanguageToggle onSurface />}
+      >
+        {status === 'failed' ? (
+          <EmptyState
+            icon="alertCircle"
+            title={t('common.errorTitle')}
+            description={t('common.errorMsg')}
+            action={<RetryButton label={t('common.retry')} onPress={() => void load()} />}
+          />
+        ) : (
+          <>
+            <View className="flex-row flex-wrap gap-3">
+              {/* w-[46%] + grow pins the tiles at two per row down to 320dp and
+                  still fills the line, instead of a fourth tile overflowing. */}
+              <View className="w-[46%] grow">
+                <StatCard label={t('kpis.ncdScreened')} value={rows.length} icon="users" />
               </View>
-            )}
-          </View>
-        </>
-      )}
-    </Screen>
+              <View className="w-[46%] grow">
+                <StatCard label={t('modules.riskHigh')} value={counts.high} icon={RISK.high.icon} tone={RISK.high.tone} />
+              </View>
+              <View className="w-[46%] grow">
+                <StatCard
+                  label={t('modules.riskMedium')}
+                  value={counts.medium}
+                  icon={RISK.medium.icon}
+                  tone={RISK.medium.tone}
+                />
+              </View>
+              <View className="w-[46%] grow">
+                <StatCard label={t('modules.checkupReferral')} value={referred} icon="fileText" tone="secondary" />
+              </View>
+            </View>
+
+            <View className="mt-4 flex-row flex-wrap gap-2">
+              {FILTERS.map((key) => (
+                <Pill
+                  key={key}
+                  label={key === 'all' ? t('asha.filterAll') : t(RISK[key].labelKey)}
+                  count={counts[key]}
+                  active={filter === key}
+                  onPress={() => setFilter(key)}
+                />
+              ))}
+            </View>
+
+            <View className="mt-4">
+              {rows.length === 0 ? (
+                status === 'loading' ? (
+                  <EmptyState icon="inbox" title={t('common.noData')} />
+                ) : (
+                  <EmptyState
+                    icon="activity"
+                    title={t('modules.checkupEmpty')}
+                    description={t('modules.checkupEmptyHint')}
+                  />
+                )
+              ) : visible.length === 0 ? (
+                <EmptyState icon="search" title={t('common.noResults')} />
+              ) : (
+                <View className="gap-3">
+                  {visible.map((row) => (
+                    <CheckupCard key={row.id} row={row} onPress={() => router.push(`/patient/${row.beneficiary_id}`)} />
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+      </Screen>
+      <FAB
+        accessibilityLabel={t('asha.newCheckup')}
+        bottomOffset={24}
+        onPress={() => router.push('/new-checkup')}
+      />
+    </View>
   );
 }
 
@@ -189,7 +209,7 @@ function CheckupCard({ row, onPress }: { row: HealthCheckup; onPress: () => void
           <View className="flex-row flex-wrap gap-x-6 gap-y-2">
             {bp ? <Meta label={t('modules.checkupBp')} value={bp} /> : null}
             {row.blood_sugar_random != null ? (
-              <Meta label={t('modules.checkupSugar')} value={`${row.blood_sugar_random} mg/dl`} />
+              <Meta label={t('modules.checkupSugar')} value={`${row.blood_sugar_random} ${t('asha.unitMgDl')}`} />
             ) : null}
             {row.waist_circumference_cm != null ? (
               <Meta label={t('modules.checkupWaist')} value={`${row.waist_circumference_cm}`} />

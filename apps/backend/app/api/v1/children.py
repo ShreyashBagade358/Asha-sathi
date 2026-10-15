@@ -3,9 +3,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.beneficiary import Beneficiary
 from app.models.child import Child, GrowthRecord, HBNCVisit, HBYCVisit, Immunization
+from app.models.maternal import DeliveryOutcome
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
 from app.schemas.health import (
@@ -22,6 +23,7 @@ from app.schemas.health import (
     ImmunizationStatusUpdate,
 )
 from app.services.audit import log_action
+from app.services.child_schedule import generate_child_schedule
 
 router = APIRouter()
 
@@ -31,6 +33,21 @@ async def _get_child(db: AsyncSession, child_id: str) -> Child:
     if not child:
         raise NotFoundError("Child not found")
     return child
+
+
+async def _child_with_parents(db: AsyncSession, child: Child) -> ChildResponse:
+    """Build a ChildResponse with the mother's and father's names resolved."""
+    parent_ids = [pid for pid in (child.mother_id, child.father_id) if pid]
+    names: dict[str, str] = {}
+    if parent_ids:
+        rows = (
+            await db.execute(select(Beneficiary.id, Beneficiary.full_name).where(Beneficiary.id.in_(parent_ids)))
+        ).all()
+        names = {str(row.id): row.full_name for row in rows}
+    resp = ChildResponse.model_validate(child)
+    resp.mother_name = names.get(child.mother_id or "")
+    resp.father_name = names.get(child.father_id or "")
+    return resp
 
 
 @router.get("", response_model=PaginatedResponse[ChildResponse])
@@ -43,7 +60,8 @@ async def list_children(
     stmt = select(Child)
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(stmt.order_by(Child.created_at.desc()).offset((page - 1) * page_size).limit(page_size))
-    return paginate([ChildResponse.model_validate(c) for c in result.scalars().all()], total, page, page_size)
+    children = result.scalars().all()
+    return paginate([await _child_with_parents(db, c) for c in children], total, page, page_size)
 
 
 @router.post("", response_model=ChildResponse, status_code=201)
@@ -56,6 +74,19 @@ async def create_child(
     beneficiary = await db.get(Beneficiary, payload.beneficiary_id)
     if not beneficiary:
         raise NotFoundError("Beneficiary not found")
+    mother = await db.get(Beneficiary, payload.mother_id)
+    if not mother:
+        raise NotFoundError("Mother not found")
+    if mother.gender not in ("female", "F"):
+        raise ValidationError("Mother must be a female beneficiary")
+    if payload.father_id:
+        father = await db.get(Beneficiary, payload.father_id)
+        if not father:
+            raise NotFoundError("Father not found")
+    if payload.delivery_outcome_id:
+        outcome = await db.get(DeliveryOutcome, payload.delivery_outcome_id)
+        if not outcome:
+            raise NotFoundError("Delivery outcome not found")
     existing = (
         await db.execute(select(Child).where(Child.beneficiary_id == payload.beneficiary_id))
     ).scalar_one_or_none()
@@ -64,10 +95,11 @@ async def create_child(
     child = Child(**payload.model_dump())
     db.add(child)
     await db.flush()
+    await generate_child_schedule(db, child.id, beneficiary.date_of_birth)
     await log_action(db, user.id, "child_created", "child", child.id, new_values=payload.model_dump())
     await db.commit()
     await db.refresh(child)
-    return child
+    return await _child_with_parents(db, child)
 
 
 @router.get("/{child_id}", response_model=ChildResponse)
@@ -76,7 +108,8 @@ async def get_child(
     db: AsyncSession = Depends(get_db_session),
     user: User = Depends(get_current_user),
 ):
-    return await _get_child(db, child_id)
+    child = await _get_child(db, child_id)
+    return await _child_with_parents(db, child)
 
 
 @router.delete("/{child_id}", response_model=MessageResponse)

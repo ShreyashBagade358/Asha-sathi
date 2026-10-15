@@ -9,7 +9,8 @@ Role rules
 * ``asha``          - only households in the worker's assigned catchment
                       villages, plus households she is directly responsible for.
                       Every clinical record is reached through those households.
-* ``patient``       - only the beneficiary record matching the account's phone.
+* ``patient``       - only the beneficiary record matching the account's phone,
+                      plus (demographics only) the household it belongs to.
 * supervisor role  - unrestricted (``admin``).
 
 The scope is expressed as a set of household ids and a set of beneficiary ids
@@ -48,6 +49,12 @@ class SyncScope:
     village_ids: set[str] = field(default_factory=set)
     asha_user_id: str | None = None
     asha_phone: str | None = None
+    # A patient's own household, exposed for demographics only (head name,
+    # address, family size). Deliberately kept apart from ``household_ids``,
+    # which is a worker's catchment: reusing it would hand a patient every
+    # household-linked table the worker can see (tasks, forms, visit checks).
+    demographics: bool = False
+    patient_household_id: str | None = None
 
     @property
     def is_scoped(self) -> bool:
@@ -65,10 +72,25 @@ async def resolve_scope(db: AsyncSession, user: User) -> SyncScope:
         return SyncScope(unrestricted=True)
 
     if user.role == "patient":
-        scope = SyncScope(asha_phone=user.phone)
+        scope = SyncScope(asha_phone=user.phone, demographics=True)
+        conditions = []
+        # The durable User -> Beneficiary link first, the phone join as the
+        # fallback for accounts created before that column existed.
+        if user.beneficiary_id:
+            conditions.append(Beneficiary.id == user.beneficiary_id)
         if user.phone:
-            rows = await db.execute(select(Beneficiary.id).where(Beneficiary.phone == user.phone))
-            scope.beneficiary_ids = {r for r in rows.scalars().all() if r}
+            conditions.append(Beneficiary.phone == user.phone)
+        if not conditions:
+            return scope
+
+        from sqlalchemy import or_
+
+        rows = (await db.execute(select(Beneficiary).where(or_(*conditions)))).scalars().all()
+        scope.beneficiary_ids = {b.id for b in rows if b.id}
+        for row in rows:
+            if row.household_id:
+                scope.patient_household_id = row.household_id
+                break
         return scope
 
     # ASHA (and any future field role): scope to the assigned catchment.
@@ -82,13 +104,17 @@ async def resolve_scope(db: AsyncSession, user: User) -> SyncScope:
         villages.update(v for v in (profile.catchment_villages or []) if v)
     scope.village_ids = villages
 
+    from sqlalchemy import or_
+
     from app.models.beneficiary import Household
 
+    # Same rule as the list endpoint: a household is in scope when the ASHA
+    # owns it OR it sits in a catchment village — an OR, not an AND.
     conditions = [Household.asha_id == user.id]
     if villages:
         conditions.append(Household.village_id.in_(villages))
 
-    household_rows = await db.execute(select(Household.id).where(*conditions))
+    household_rows = await db.execute(select(Household.id).where(or_(*conditions)))
     scope.household_ids = {h for h in household_rows.scalars().all() if h}
 
     if scope.household_ids:
@@ -115,7 +141,7 @@ def can_write_entity(user: User, entity: str) -> bool:
     return True
 
 
-_NO_PATIENT_WRITE = frozenset({"households", "asha_tasks", "village_forms"})
+_NO_PATIENT_WRITE = frozenset({"households", "asha_tasks", "village_forms", "household_visit_checks"})
 
 
 def allowed_tables_for(user: User, entity: str) -> str | None:
@@ -144,9 +170,15 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
         return False  # noqa: E712 - a SQLAlchemy false predicate
 
     if link == "village":
-        if not scope.village_ids:
-            return False  # noqa: E712
-        return model.village_id.in_(scope.village_ids)
+        clauses = []
+        if scope.village_ids:
+            clauses.append(model.village_id.in_(scope.village_ids))
+        if scope.demographics and scope.patient_household_id:
+            # The patient's own household. `households` (the only table on
+            # this link) is keyed by `id`, and a patient has no village of
+            # their own in the scope.
+            clauses.append(model.id == scope.patient_household_id)
+        return or_(*clauses) if clauses else False  # noqa: E712
 
     if link == "household":
         if not scope.household_ids:
@@ -170,6 +202,13 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
             return False  # noqa: E712
         return model.asha_id == scope.asha_user_id
 
+    if link == "user_self":
+        # Notifications are addressed to a specific user (the ASHA worker).
+        # A worker sees only their own notification rows.
+        if not scope.asha_user_id:
+            return False  # noqa: E712
+        return model.user_id == scope.asha_user_id
+
     if link == "beneficiary":
         if not scope.beneficiary_ids:
             return False  # noqa: E712
@@ -181,9 +220,7 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
             return False  # noqa: E712
         from app.models.maternal import Pregnancy
 
-        return model.pregnancy_id.in_(
-            select(Pregnancy.id).where(Pregnancy.beneficiary_id.in_(scope.beneficiary_ids))
-        )
+        return model.pregnancy_id.in_(select(Pregnancy.id).where(Pregnancy.beneficiary_id.in_(scope.beneficiary_ids)))
 
     if link == "via_child":
         # Immunization / growth / HBNC / HBYC rows hang off a child.
@@ -191,9 +228,7 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
             return False  # noqa: E712
         from app.models.child import Child
 
-        return model.child_id.in_(
-            select(Child.id).where(Child.beneficiary_id.in_(scope.beneficiary_ids))
-        )
+        return model.child_id.in_(select(Child.id).where(Child.beneficiary_id.in_(scope.beneficiary_ids)))
 
     if link == "eligible_couple":
         if not scope.beneficiary_ids:
@@ -213,6 +248,15 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
                     _couple_model().wife_id.in_(scope.beneficiary_ids),
                 )
             )
+        )
+
+    if link == "via_referral":
+        # Referral follow-ups hang off the referral, which links to the
+        # beneficiary — same reach-through shape as the ANC/PNC visits.
+        if not scope.beneficiary_ids:
+            return False  # noqa: E712
+        return model.referral_id.in_(
+            select(_referral_model().id).where(_referral_model().beneficiary_id.in_(scope.beneficiary_ids))
         )
 
     if link == "asha_or_household":
@@ -239,6 +283,12 @@ def _couple_model() -> Any:
     return EligibleCouple
 
 
+def _referral_model() -> Any:
+    from app.models.referral import Referral
+
+    return Referral
+
+
 # How each sync table reaches back to the requesting user.
 _TABLE_LINKS: dict[Any, str] = {}
 
@@ -263,16 +313,19 @@ def register_links(models: dict[str, Any]) -> None:
         HBYCVisit,
         Immunization,
         NCDScreening,
+        Notification,
         PNCVisit,
         Pregnancy,
         Referral,
+        ReferralFollowup,
         VillageForm,
     )
-    from app.models.beneficiary import Beneficiary, Household
+    from app.models.beneficiary import Beneficiary, Household, HouseholdVisitCheck
 
     links: dict[str, tuple[Any, str]] = {
         "households": (Household, "village"),
         "beneficiaries": (Beneficiary, "beneficiary_self"),
+        "household_visit_checks": (HouseholdVisitCheck, "household"),
         "pregnancies": (Pregnancy, "beneficiary"),
         "anc_visits": (ANCVISIT, "via_pregnancy"),
         "pnc_visits": (PNCVisit, "via_pregnancy"),
@@ -288,8 +341,10 @@ def register_links(models: dict[str, Any]) -> None:
         "disease_cases": (DiseaseCase, "beneficiary"),
         "death_reports": (DeathReport, "beneficiary"),
         "referrals": (Referral, "beneficiary"),
+        "referral_followups": (ReferralFollowup, "via_referral"),
         "asha_tasks": (ASHATask, "asha_or_household"),
         "village_forms": (VillageForm, "asha_or_household"),
+        "notifications": (Notification, "user_self"),
     }
 
     _TABLE_LINKS.clear()

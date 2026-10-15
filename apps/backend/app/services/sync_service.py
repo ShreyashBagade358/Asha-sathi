@@ -8,12 +8,14 @@ import logging
 from datetime import UTC, date, datetime, time
 from typing import Any
 
-from sqlalchemy import Date, DateTime, Time
+from sqlalchemy import Date, DateTime, Time, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ValidationError
+from app.core.security import get_password_hash
 from app.models.base import BaseModel
 from app.models.sync import SyncDevice, SyncOperation
+from app.models.user import Role, User
 
 logger = logging.getLogger("asha.sync")
 
@@ -50,17 +52,56 @@ def _coerce_temporal(column_type: Any, value: Any) -> Any:
 def _clean_columns(model: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
     """Keep only values that map to real model columns (drops client-side fields).
 
-    Values for ``Date``/``DateTime``/``Time`` columns are coerced from the ISO
-    strings the clients send into native Python objects.
+    Keys may be either the column name or the ORM attribute name — they differ
+    for ``Beneficiary.metadata_json``, stored as the ``metadata`` column — and
+    the result is keyed by attribute name so ``model(**...)`` and
+    ``setattr(...)`` land on the actual field. Values for ``Date``/``DateTime``/
+    ``Time`` columns are coerced from the ISO strings the clients send into
+    native Python objects.
     """
-    columns = model.__table__.columns
+    mapper = model.__mapper__
+    by_key: dict[str, tuple[Any, str]] = {}
+    for prop in mapper.column_attrs:
+        for column in prop.columns:
+            by_key.setdefault(column.name, (column, prop.key))
+            by_key.setdefault(prop.key, (column, prop.key))
     cleaned: dict[str, Any] = {}
     for key, value in data.items():
-        column = columns.get(key)
-        if column is None:
+        hit = by_key.get(key)
+        if hit is None:
             continue
-        cleaned[key] = _coerce_temporal(column.type, value)
+        column, attr_key = hit
+        cleaned[attr_key] = _coerce_temporal(column.type, value)
     return cleaned
+
+
+async def _ensure_patient_login(
+    db: AsyncSession, *, phone: str, full_name: str | None, password: str, beneficiary_id: str | None = None
+) -> None:
+    """Create the patient's sign-in account on first push of their record.
+
+    Idempotent: a replayed create (or a phone that already has an account)
+    leaves the existing user untouched instead of failing the whole push —
+    except that a pre-link account (created before ``users.beneficiary_id``
+    existed) gets its durable link backfilled the first time we see it here.
+    """
+    existing = (await db.execute(select(User).where(User.phone == phone))).scalar_one_or_none()
+    if existing is not None:
+        if beneficiary_id and not existing.beneficiary_id:
+            existing.beneficiary_id = beneficiary_id
+            await db.flush()
+        return
+    db.add(
+        User(
+            role=Role.PATIENT.value,
+            phone=phone,
+            full_name=full_name,
+            hashed_password=get_password_hash(password),
+            language="hi",
+            beneficiary_id=beneficiary_id,
+        )
+    )
+    await db.flush()
 
 
 async def _record_snapshot(db: AsyncSession, record: BaseModel | None) -> dict[str, Any] | None:
@@ -151,15 +192,35 @@ async def apply_operation(
                         "record": await _record_snapshot(db, record),
                     }
                 else:
+                    # The patient's login password travels with the record:
+                    # the mobile app generates it at save time (possibly
+                    # offline), shows it once, and the account is created here
+                    # on first push. _clean_columns drops it - users keep their
+                    # own hashed_password column.
+                    login_password = data.get("password") if entity == "beneficiaries" else None
                     values = _clean_columns(model, data)
                     values.pop("created_at", None)
                     values.pop("updated_at", None)
                     values.pop("deleted_at", None)
                     values["id"] = record_id
                     values.setdefault("version", 1)
+                    # A beneficiary pushed from the field belongs to the worker
+                    # who created it - that link is what resolves the patient's
+                    # PHC. The client may send registered_by explicitly, but a
+                    # missing value must never produce an orphan record.
+                    if entity == "beneficiaries" and not values.get("registered_by"):
+                        values["registered_by"] = user_id
                     record = model(**values)
                     db.add(record)
                     await db.flush()
+                    if login_password and values.get("phone"):
+                        await _ensure_patient_login(
+                            db,
+                            phone=values["phone"],
+                            full_name=values.get("full_name"),
+                            password=login_password,
+                            beneficiary_id=record.id,
+                        )
                     result = {
                         "client_request_id": client_request_id,
                         "entity": entity,

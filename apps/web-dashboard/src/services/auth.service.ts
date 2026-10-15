@@ -69,6 +69,18 @@ export const authService = {
     return toUser(data)
   },
 
+  async sendOtp(phone: string): Promise<void> {
+    await api.post('/auth/otp/send', { phone })
+  },
+
+  async verifyOtp(phone: string, otp: string): Promise<{ tokens: TokenPair; user: User }> {
+    const { data } = await api.post<PasswordLoginResponse>('/auth/otp/verify', { phone, otp })
+    return {
+      tokens: { accessToken: data.tokens.access_token, refreshToken: data.tokens.refresh_token },
+      user: toUser(data.user),
+    }
+  },
+
   async logout(): Promise<void> {
     try {
       await api.post('/auth/logout')

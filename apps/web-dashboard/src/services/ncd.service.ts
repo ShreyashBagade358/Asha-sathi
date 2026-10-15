@@ -31,6 +31,9 @@ export interface NCDScreening {
   id: string
   beneficiaryId: string
   screeningDate: string
+  bpSystolic?: number
+  bpDiastolic?: number
+  bloodSugarRandom?: number
   cbacScore?: number
   diabetesRisk?: string
   hypertensionRisk?: string
@@ -43,6 +46,9 @@ interface RawNCDScreening {
   id: string
   beneficiary_id: string
   screening_date: string
+  bp_systolic?: number | null
+  bp_diastolic?: number | null
+  blood_sugar_random?: number | null
   cbac_score?: number | null
   diabetes_risk?: string | null
   hypertension_risk?: string | null
@@ -56,6 +62,9 @@ function mapScreening(r: RawNCDScreening): NCDScreening {
     id: r.id,
     beneficiaryId: r.beneficiary_id,
     screeningDate: r.screening_date,
+    bpSystolic: r.bp_systolic ?? undefined,
+    bpDiastolic: r.bp_diastolic ?? undefined,
+    bloodSugarRandom: r.blood_sugar_random ?? undefined,
     cbacScore: r.cbac_score ?? undefined,
     diabetesRisk: r.diabetes_risk ?? undefined,
     hypertensionRisk: r.hypertension_risk ?? undefined,
@@ -66,8 +75,15 @@ function mapScreening(r: RawNCDScreening): NCDScreening {
 }
 
 export const ncdService = {
+  async listScreenings(params: { page?: number; pageSize?: number } = {}): Promise<{ items: NCDScreening[]; total: number }> {
+    const { data } = await api.get<{ items: RawNCDScreening[]; total: number }>('/ncd', {
+      params: { page: params.page ?? 1, page_size: params.pageSize ?? 100 },
+    })
+    return { items: data.items.map(mapScreening), total: data.total }
+  },
+
   async createScreening(payload: CreateScreeningPayload): Promise<NCDScreening> {
-    const { data } = await api.post<RawNCDScreening>('/ncd/screenings', {
+    const { data } = await api.post<RawNCDScreening>('/ncd', {
       beneficiary_id: payload.beneficiaryId,
       screening_date: payload.screeningDate,
       age_above_30: payload.ageAbove30,

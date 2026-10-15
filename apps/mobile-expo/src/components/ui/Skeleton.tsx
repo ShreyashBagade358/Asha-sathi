@@ -32,6 +32,11 @@ export function Skeleton({ width = '100%', height = 16, rounded = 8, className, 
 
   return (
     <Animated.View
+      // Purely decorative shimmer: it stands in for content that has not
+      // loaded, so screen readers should skip it rather than announce an
+      // empty block.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       className={cx('bg-surface-container-high', className)}
       style={[{ width, height, borderRadius: rounded, opacity: pulse }, style]}
     />

@@ -51,6 +51,9 @@ export default function VerifyOtpScreen() {
     typeof params.devOtp === 'string' ? params.devOtp : null,
   );
   const inputs = useRef<Array<TextInput | null>>([]);
+  // One request at a time across verify + resend: `busy` only lands on the
+  // next render, so a second activation in the same tick is stopped here.
+  const inFlight = useRef(false);
 
   useEffect(() => {
     if (!phoneValid) return undefined;
@@ -81,7 +84,8 @@ export default function VerifyOtpScreen() {
   }
 
   async function resend() {
-    if (busy || !phoneValid) return;
+    if (inFlight.current || !phoneValid) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -98,21 +102,26 @@ export default function VerifyOtpScreen() {
       setError(message);
       toast(message, 'error');
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
 
   async function verify() {
+    if (inFlight.current) return;
     if (!phoneValid) return;
     if (!isOtpComplete(digits)) {
       setError(t('auth.codeRequired'));
       return;
     }
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
-      await verifyOtp(phone, otpCode(digits));
-      router.replace('/redirecting');
+      const user = await verifyOtp(phone, otpCode(digits));
+      // Straight to the role's shell - the cold-start splash behind "/" has
+      // already played for this session.
+      router.replace(user.role === 'patient' ? '/home' : '/(app)');
     } catch (err) {
       const message = authErrorMessage(err, t, t('common.verifyFailed'));
       setError(message);
@@ -121,6 +130,7 @@ export default function VerifyOtpScreen() {
       setFocusIndex(0);
       inputs.current[0]?.focus();
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }

@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
@@ -20,17 +21,20 @@ from app.models import (
     HBNCVisit,
     HBYCVisit,
     Household,
+    HouseholdVisitCheck,
     Immunization,
     NCDScreening,
+    Notification,
     PNCVisit,
     Pregnancy,
     Referral,
+    ReferralFollowup,
     VillageForm,
 )
 from app.models.audit import SyncLog
 from app.models.beneficiary import Beneficiary
 from app.models.sync import SyncOperation
-from app.models.user import User
+from app.models.user import Role, User
 from app.schemas.common import MessageResponse
 from app.schemas.other_domain import (
     DeviceRegisterRequest,
@@ -51,10 +55,12 @@ from app.services.sync_scope import (
     scope_predicate,
 )
 from app.services.sync_service import apply_operation, touch_device, upsert_batch
+from app.services.task_plan import generate_daily_plan, plan_today
 
 SYNC_TABLES: dict[str, Any] = {
     "households": Household,
     "beneficiaries": Beneficiary,
+    "household_visit_checks": HouseholdVisitCheck,
     "pregnancies": Pregnancy,
     "anc_visits": ANCVISIT,
     "pnc_visits": PNCVisit,
@@ -72,6 +78,8 @@ SYNC_TABLES: dict[str, Any] = {
     "asha_tasks": ASHATask,
     "village_forms": VillageForm,
     "referrals": Referral,
+    "referral_followups": ReferralFollowup,
+    "notifications": Notification,
 }
 
 PULL_LIMIT = 1000
@@ -218,6 +226,21 @@ async def pull_records(
     receives another tenant's PHI.
     """
     scope = await resolve_scope(db, user)
+
+    # The daily visit plan is built lazily by GET /me/tasks (the web calls it
+    # on every Tasks page load). A phone-only worker never hits that endpoint,
+    # so the plan would never exist and the app's "Today's Visits" stayed
+    # empty. Building it here — before the watermark scan — means the freshly
+    # inserted tasks carry an `updated_at` newer than the client's cursor and
+    # ride the normal pull like any other row.
+    if user.role == Role.ASHA and (payload.tables is None or "asha_tasks" in payload.tables):
+        try:
+            await generate_daily_plan(db, user.id, plan_today())
+        except IntegrityError:
+            # A concurrent tab/device built the same plan first — its commit
+            # wins, the pull below simply reads the result.
+            await db.rollback()
+
     result: dict[str, list[dict]] = {}
     tables = payload.tables or list(SYNC_TABLES.keys())
 
@@ -283,9 +306,7 @@ async def register_device(
     from app.models.sync import SyncDevice
 
     now = datetime.now(UTC)
-    row = (
-        await db.execute(select(SyncDevice).where(SyncDevice.device_id == payload.device_id))
-    ).scalar_one_or_none()
+    row = (await db.execute(select(SyncDevice).where(SyncDevice.device_id == payload.device_id))).scalar_one_or_none()
     if row is None:
         row = SyncDevice(
             device_id=payload.device_id,
@@ -367,9 +388,7 @@ async def sync_status(
     changed after their last completed pull.
     """
     last = (
-        await db.execute(
-            select(SyncLog).where(SyncLog.user_id == user.id).order_by(SyncLog.created_at.desc()).limit(1)
-        )
+        await db.execute(select(SyncLog).where(SyncLog.user_id == user.id).order_by(SyncLog.created_at.desc()).limit(1))
     ).scalar_one_or_none()
     conflicts = (
         await db.execute(

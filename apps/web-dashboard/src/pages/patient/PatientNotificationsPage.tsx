@@ -124,7 +124,7 @@ export default function PatientNotificationsPage() {
           >
             {tab.label}
             <span
-              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+              className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                 filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
               }`}
             >

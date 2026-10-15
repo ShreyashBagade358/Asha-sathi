@@ -9,7 +9,6 @@ import { Chip, chipToneColor } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { RiskStrip } from '@/components/ui/RiskStrip';
-import { useToast } from '@/components/ui/Toast';
 import {
   getPatient,
   getPatientVitals,
@@ -21,6 +20,7 @@ import {
 import { useLocalization } from '@/i18n/useLocalization';
 import { colors } from '@/theme';
 import { cx } from '@/cx';
+import { shareText } from '@/utils/share';
 
 type RecordItem = { key: string; name: string; meta: string; downloadable?: boolean };
 
@@ -43,7 +43,6 @@ export default function HealthProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useLocalization();
-  const toast = useToast();
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'missing'>('loading');
   const [patient, setPatient] = useState<PatientRow | null>(null);
@@ -63,7 +62,10 @@ export default function HealthProfileScreen() {
         setPhase('missing');
         return;
       }
-      const [latestVitals, ncdRows] = await Promise.all([getPatientVitals(row.id), listNcdScreenings(row.id)]);
+      const [latestVitals, ncdRows] = await Promise.all([
+        getPatientVitals(row.id),
+        listNcdScreenings(row.id),
+      ]);
       if (cancelled) return;
       setPatient(row);
       setVitals(latestVitals);
@@ -110,14 +112,20 @@ export default function HealthProfileScreen() {
     {
       key: 'height',
       label: t('asha.height'),
-      value: vitals?.height_cm != null ? `${vitals.height_cm} ${t('asha.unitCm')}` : t('asha.notRecorded'),
+      value:
+        vitals?.height_cm != null
+          ? `${vitals.height_cm} ${t('asha.unitCm')}`
+          : t('asha.notRecorded'),
       icon: 'activity',
       tone: 'neutral',
     },
     {
       key: 'weight',
       label: t('asha.weight'),
-      value: vitals?.weight_kg != null ? `${vitals.weight_kg} ${t('asha.unitKg')}` : t('asha.notRecorded'),
+      value:
+        vitals?.weight_kg != null
+          ? `${vitals.weight_kg} ${t('asha.unitKg')}`
+          : t('asha.notRecorded'),
       icon: 'box',
       tone: 'neutral',
     },
@@ -173,14 +181,16 @@ export default function HealthProfileScreen() {
           <View className="gap-4">
             <View className="flex-row items-center gap-4">
               <View className="h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-container">
-                <Text className="font-headline-lg text-headline-lg font-bold text-on-primary-container">
+                <Text className="font-headline-lg-bold text-headline-lg text-on-primary-container">
                   {patient.full_name.charAt(0).toUpperCase()}
                 </Text>
               </View>
               <View className="min-w-0 flex-1 gap-1">
                 <View className="flex-row flex-wrap items-center gap-2">
                   <View className="min-w-0 flex-1">
-                    <Text className="font-headline-lg text-headline-lg text-on-surface">{patient.full_name}</Text>
+                    <Text className="font-headline-lg text-headline-lg text-on-surface">
+                      {patient.full_name}
+                    </Text>
                   </View>
                   {patient.risk === 'high' ? (
                     <Chip
@@ -201,7 +211,16 @@ export default function HealthProfileScreen() {
               <Button
                 label={t('asha.downloadHealthId')}
                 icon="download"
-                onPress={() => toast.toast(t('asha.healthIdToast'), 'success')}
+                onPress={() =>
+                  void shareText(
+                    t('asha.downloadHealthId'),
+                    [
+                      patient.full_name,
+                      meta,
+                      `${t('asha.abhaId')}: ${patient.abha_id ?? t('asha.notRecorded')}`,
+                    ].join('\n'),
+                  )
+                }
               />
             </View>
           </View>
@@ -230,8 +249,20 @@ export default function HealthProfileScreen() {
             <RecordsCard
               key={section.key}
               section={section}
-              onViewAll={() => toast.toast(t('asha.viewAllToast'), 'info')}
-              onDownload={() => toast.toast(t('asha.downloadToast'), 'success')}
+              onViewAll={() => {
+                // The full record list lives on the patient detail screen, so
+                // open it rather than only claiming to in a toast.
+                if (id) router.push(`/patient/${id}`);
+              }}
+              onDownload={() =>
+                void shareText(
+                  section.title,
+                  [
+                    section.title,
+                    ...section.items.map((item) => `${item.name} — ${item.meta}`),
+                  ].join('\n'),
+                )
+              }
             />
           ))}
         </View>
@@ -270,7 +301,10 @@ function VitalCard({ tile }: { tile: VitalTile }) {
         {tile.label}
       </Text>
       <Text
-        className={cx('text-center font-headline-md text-headline-md', error ? 'text-error' : 'text-on-surface')}
+        className={cx(
+          'text-center font-headline-md text-headline-md',
+          error ? 'text-error' : 'text-on-surface',
+        )}
         numberOfLines={1}
       >
         {tile.value}
@@ -290,7 +324,11 @@ function RecordsCard({
 }) {
   const { t } = useLocalization();
   const tone =
-    section.tone === 'secondary' ? 'text-secondary' : section.tone === 'tertiary' ? 'text-tertiary' : 'text-primary';
+    section.tone === 'secondary'
+      ? 'text-secondary'
+      : section.tone === 'tertiary'
+        ? 'text-tertiary'
+        : 'text-primary';
 
   return (
     <Card>
@@ -311,7 +349,9 @@ function RecordsCard({
         </View>
 
         {section.items.length === 0 ? (
-          <Text className="font-body-md text-body-md text-on-surface-variant">{t('asha.noRecords')}</Text>
+          <Text className="font-body-md text-body-md text-on-surface-variant">
+            {t('asha.noRecords')}
+          </Text>
         ) : (
           <View>
             {section.items.map((item, index) => (
@@ -324,7 +364,9 @@ function RecordsCard({
               >
                 <View className="min-w-0 flex-1">
                   <Text className="font-body-md text-body-md text-on-surface">{item.name}</Text>
-                  <Text className="font-caption text-caption text-on-surface-variant">{item.meta}</Text>
+                  <Text className="font-caption text-caption text-on-surface-variant">
+                    {item.meta}
+                  </Text>
                 </View>
                 {item.downloadable ? (
                   <Pressable
@@ -372,7 +414,8 @@ function conditionsFrom(
 
   for (const screening of screenings) {
     if (riskFlag(screening.diabetes_risk)) add(t('asha.condDiabetes'), screening.screening_date);
-    if (riskFlag(screening.hypertension_risk)) add(t('asha.condHypertension'), screening.screening_date);
+    if (riskFlag(screening.hypertension_risk))
+      add(t('asha.condHypertension'), screening.screening_date);
     if (screening.bp_systolic !== null && screening.bp_systolic >= 140) {
       add(t('asha.condHighBp'), screening.screening_date);
     }

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { StatCard } from '@/components/ui/StatCard';
 import { tokenStore } from '@/auth/tokenStore';
+import { getQueueCounts } from '@/db/database';
 import {
   getDashboardKpis,
   listPatients,
@@ -19,7 +20,8 @@ import {
 import { useLocalization } from '@/i18n/useLocalization';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MoreButton } from '@/nav/MoreSheet';
-import { scheduleSync, subscribeOnline } from '@/sync/network';
+import { PhcDashboard } from '@/components/PhcDashboard';
+import { scheduleSync, subscribeOnline, subscribeSync } from '@/sync/network';
 import { colors } from '@/theme';
 import { cx } from '@/cx';
 import { shadow, toneClass, type Tone } from '@/theme';
@@ -62,35 +64,60 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [name, setName] = useState('');
+  const [role, setRole] = useState<string | null>(null);
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
   const [tasks, setTasks] = useState<TaskWithPatient[]>([]);
   const [risky, setRisky] = useState<PatientRow[]>([]);
   const [online, setOnline] = useState(false);
+  const [pendingSync, setPendingSync] = useState(0);
 
   const load = useCallback(async () => {
-    const [kpi, allTasks, highRisk] = await Promise.all([
+    const [kpi, allTasks, highRisk, queue] = await Promise.all([
       getDashboardKpis(),
       listTasks('all'),
       listPatients({ risk: 'high' }),
+      getQueueCounts().catch(() => ({ pending: 0, failed: 0 })),
     ]);
     setKpis(kpi);
     setTasks(allTasks);
     setRisky(highRisk);
+    setPendingSync((queue.pending ?? 0) + (queue.failed ?? 0));
   }, []);
 
   useEffect(() => {
     void (async () => {
       const user = await tokenStore.getUser();
       setName(user?.full_name?.split(' ')[0] ?? '');
+      setRole(user?.role ?? null);
     })();
     void load();
   }, [load]);
+
+  // Returning to the tab (after a form, a sync, another screen) must not show
+  // stale counts; the tab navigator keeps this screen mounted.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   // Coming back online means a push may have landed; refresh the counts.
   useEffect(() => subscribeOnline((value) => {
     setOnline(value);
     if (value) void load();
   }), [load]);
+
+  // A sync finishing while this screen is open (post-login pull, Sync Now,
+  // auto-retry) changes the numbers — reload when it lands.
+  useEffect(() => subscribeSync((result) => {
+    if (result) void load();
+  }), [load]);
+
+  // Admins land on the PHC dashboard, not the ASHA worker home; the tabs
+  // underneath stay the same because their lists are already server-scoped.
+  if (role === 'admin') {
+    return <PhcDashboard />;
+  }
 
   const hour = new Date().getHours();
   const greetingKey = hour < 12 ? 'asha.greetingMorning' : hour < 17 ? 'asha.greetingAfternoon' : 'asha.greetingEvening';
@@ -124,19 +151,31 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="gap-6 px-4 pb-28" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerClassName="gap-6 px-4 pb-28" showsVerticalScrollIndicator={false}>
         <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
+          <View className="min-w-0 flex-1 gap-1">
             <Text className="font-caption text-caption font-medium text-on-surface-variant">{today}</Text>
-            <Text className="mt-1 font-headline-lg text-headline-lg font-bold text-on-surface">
+            <Text
+              className="font-headline-lg-bold text-headline-lg text-on-surface"
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {t(greetingKey, { name: name || '—' })}
             </Text>
           </View>
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row shrink-0 items-center gap-2">
             {!online ? (
-              <View className="flex-row items-center gap-1 rounded-full border border-outline-variant bg-surface-container-high px-3 py-1.5">
-                <View className="h-2 w-2 rounded-full bg-outline" />
-                <Text className="font-caption text-caption text-on-surface-variant">{t('asha.offlineMode')}</Text>
+              <View className="flex-row items-center gap-1.5 rounded-full bg-error-container px-2.5 py-1.5">
+                <View className="h-2 w-2 rounded-full bg-error" />
+                <Text className="font-caption text-caption font-semibold text-on-error-container">
+                  {t('nav.offline')}
+                </Text>
+                {pendingSync > 0 ? (
+                  <View className="ml-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-error px-1">
+                    <Text className="text-[10px] font-bold text-white">{pendingSync}</Text>
+                  </View>
+                ) : null}
               </View>
             ) : null}
             <LanguageToggle onSurface />
@@ -145,8 +184,12 @@ export default function HomeScreen() {
         </View>
 
         <View className="gap-3">
-          {stats.map((stat) => (
-            <StatCard key={stat.label} {...stat} />
+          {[0, 2].map((start) => (
+            <View key={start} className="flex-row gap-3">
+              {stats.slice(start, start + 2).map((stat) => (
+                <StatCard key={stat.label} {...stat} />
+              ))}
+            </View>
           ))}
         </View>
 
@@ -215,9 +258,12 @@ export default function HomeScreen() {
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 pb-2">
               {risky.map((patient) => (
-                <View
+                <Pressable
                   key={patient.id}
-                  className="w-[280px] max-w-[78vw] shrink-0 overflow-hidden rounded-2xl border border-error/20 bg-error-container p-4 pl-5"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('asha.reviewNow')}
+                  onPress={() => router.push(`/patient/${patient.id}` as never)}
+                  className="w-[280px] max-w-[78vw] shrink-0 overflow-hidden rounded-2xl border border-error/20 bg-error-container p-4 pl-5 active:scale-[0.98]"
                 >
                   <View className="absolute bottom-0 left-0 top-0 w-1.5 bg-error" />
                   <View className="flex-row items-start justify-between gap-2">
@@ -236,15 +282,10 @@ export default function HomeScreen() {
                   <Text className="font-body-md text-body-md text-on-error-container/80">
                     {[patient.beneficiary_id, patient.household_hhid].filter(Boolean).join(' · ')}
                   </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('asha.reviewNow')}
-                    onPress={() => router.push(`/patient/${patient.id}` as never)}
-                    className="mt-3 w-full items-center rounded-full bg-error px-4 py-2.5 active:scale-95"
-                  >
+                  <View className="mt-3 w-full items-center rounded-full bg-error px-4 py-2.5">
                     <Text className="font-label-md text-label-md font-semibold text-white">{t('asha.reviewNow')}</Text>
-                  </Pressable>
-                </View>
+                  </View>
+                </Pressable>
               ))}
             </ScrollView>
           )}
@@ -370,11 +411,17 @@ function QuickAction({
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      className={cx('flex-1 items-center gap-2 rounded-2xl p-4 active:scale-[0.97]', className)}
+      className={cx('flex-1 items-center gap-2 rounded-2xl px-2 py-3.5 active:scale-[0.97]', className)}
       style={shadow.card}
     >
       <Icon name={icon} size={28} />
-      <Text className={cx('text-center font-label-md text-label-md font-semibold leading-tight', textClass)}>{label}</Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        className={cx('text-center font-label-sm text-label-sm font-semibold leading-tight', textClass)}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

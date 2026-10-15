@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { useAuth } from '@/hooks/useAuth'
 import { configService } from '@/services/config.service'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -47,160 +46,143 @@ export default function AddVillagePhcAdmin() {
 
   if (!phcId) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-6 pb-24 md:pb-0 overflow-y-auto">
-          <div className="max-w-md mx-auto mt-16">
-            <EmptyState title="No PHC assigned" description="Your account is not linked to a PHC yet. Contact an administrator." icon="location_off" />
-          </div>
-        </main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <EmptyState title="No PHC assigned" description="Your account is not linked to a PHC yet. Contact an administrator." icon="location_off" />
+        </div>
     )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <PhcSidebar />
-      <main className="flex-1 ml-0 md:ml-64 flex flex-col h-screen overflow-hidden pb-24 md:pb-0">
-        <header className="h-16 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-6 shrink-0 z-10">
-          <div>
-            <h2 className="text-headline-md text-on-surface flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">add_location_alt</span>
-              Village Management
-            </h2>
-            <p className="text-caption text-on-surface-variant">{user?.phcName ?? 'PHC'} · PHC village directory</p>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 pb-24 md:pb-6">
-          <div className="max-w-xl bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-outline-variant">
-              <h3 className="text-headline-md text-on-surface">Add New Village</h3>
-              <p className="text-caption text-on-surface-variant">Registers the village under this PHC's sub-center.</p>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className={labelCls}>Village name *</label>
-                <input
-                  className={inputCls}
-                  placeholder="e.g. Sarnath"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Village code</label>
-                <input
-                  className={inputCls}
-                  placeholder="Auto-generated if blank"
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Total households</label>
-                  <input
-                    className={inputCls}
-                    type="number" min={0} inputMode="numeric"
-                    placeholder="e.g. 120"
-                    value={form.households}
-                    onChange={(e) => setForm({ ...form, households: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Total population</label>
-                  <input
-                    className={inputCls}
-                    type="number" min={0} inputMode="numeric"
-                    placeholder="e.g. 540"
-                    value={form.population}
-                    onChange={(e) => setForm({ ...form, population: e.target.value })}
-                  />
-                </div>
-              </div>
-              <button
-                onClick={() => create.mutate()}
-                disabled={!form.name.trim() || create.isPending}
-                className="w-full h-12 rounded-lg bg-primary text-on-primary font-label-md font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors hover:bg-primary/90"
-              >
-                {create.isPending ? (
-                  <span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[20px]">add_location_alt</span>
-                    Add Village
-                  </>
-                )}
-              </button>
-              {create.isSuccess && (
-                <p className="text-caption text-success flex items-center gap-1 font-semibold">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  Village added successfully.
-                </p>
-              )}
-              {create.isError && (
-                <p className="text-caption text-error flex items-center gap-1 font-semibold">
-                  <span className="material-symbols-outlined text-[16px]">error</span>
-                  {getErrorMessage(create.error)}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-headline-md text-on-surface">Villages ({allVillages.length})</h3>
-              <div className="relative w-full sm:w-72">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
-                  <span className="material-symbols-outlined text-[20px]">search</span>
-                </span>
-                <input
-                  className="h-10 w-full rounded-lg border border-outline bg-surface pl-10 pr-3 text-label-sm text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="Search village or code…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-            {villages.isLoading ? (
-              <div className="p-6"><LoadingState label="Loading villages…" /></div>
-            ) : villages.isError ? (
-              <div className="p-6"><ErrorState message={getErrorMessage(villages.error)} onRetry={() => villages.refetch()} /></div>
-            ) : allVillages.length === 0 ? (
-              <div className="p-6"><EmptyState title="No villages yet" description="Add your first village above." icon="location_on" /></div>
-            ) : filteredVillages.length === 0 ? (
-              <div className="p-6"><EmptyState title="No matches" description={`No village matches “${search.trim()}”.`} icon="search_off" /></div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant/50 bg-surface-container/50">
-                      <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant">Name</th>
-                      <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant">Code</th>
-                      <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant text-right">Households</th>
-                      <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant text-right">Population</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredVillages.map((v, i) => (
-                      <tr
-                        key={v.id}
-                        className={`transition-colors hover:bg-surface-container/40 ${i < filteredVillages.length - 1 ? 'border-b border-outline-variant/40' : ''}`}
-                      >
-                        <td className="px-5 py-3 text-label-sm font-semibold text-on-surface">{v.name}</td>
-                        <td className="px-5 py-3 text-label-sm text-on-surface-variant">{v.code ?? '—'}</td>
-                        <td className="px-5 py-3 text-label-sm text-on-surface text-right">{v.totalHouseholds ?? '—'}</td>
-                        <td className="px-5 py-3 text-label-sm text-on-surface text-right">{v.totalPopulation ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+      <div className="flex flex-col gap-6">
+        <div>
         </div>
-      </main>
-    </div>
+
+        <div className="max-w-xl bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-outline-variant">
+            <h3 className="text-headline-md text-on-surface">Add New Village</h3>
+          </div>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className={labelCls}>Village name *</label>
+              <input
+                className={inputCls}
+                placeholder="e.g. Sarnath"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Village code</label>
+              <input
+                className={inputCls}
+                placeholder="Auto-generated if blank"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Total households</label>
+                <input
+                  className={inputCls}
+                  type="number" min={0} inputMode="numeric"
+                  placeholder="e.g. 120"
+                  value={form.households}
+                  onChange={(e) => setForm({ ...form, households: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Total population</label>
+                <input
+                  className={inputCls}
+                  type="number" min={0} inputMode="numeric"
+                  placeholder="e.g. 540"
+                  value={form.population}
+                  onChange={(e) => setForm({ ...form, population: e.target.value })}
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => create.mutate()}
+              disabled={!form.name.trim() || create.isPending}
+              className="w-full h-12 rounded-lg bg-primary text-on-primary font-label-md font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors hover:bg-primary/90"
+            >
+              {create.isPending ? (
+                <span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">add_location_alt</span>
+                  Add Village
+                </>
+              )}
+            </button>
+            {create.isSuccess && (
+              <p className="text-caption text-success flex items-center gap-1 font-semibold">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                Village added successfully.
+              </p>
+            )}
+            {create.isError && (
+              <p className="text-caption text-error flex items-center gap-1 font-semibold">
+                <span className="material-symbols-outlined text-[16px]">error</span>
+                {getErrorMessage(create.error)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-headline-md text-on-surface">Villages ({allVillages.length})</h3>
+            <div className="relative w-full sm:w-72">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant pointer-events-none">
+                <span className="material-symbols-outlined text-[20px]">search</span>
+              </span>
+              <input
+                className="h-10 w-full rounded-lg border border-outline bg-surface pl-10 pr-3 text-label-sm text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Search village or code…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          {villages.isLoading ? (
+            <div className="p-6"><LoadingState label="Loading villages…" /></div>
+          ) : villages.isError ? (
+            <div className="p-6"><ErrorState message={getErrorMessage(villages.error)} onRetry={() => villages.refetch()} /></div>
+          ) : allVillages.length === 0 ? (
+            <div className="p-6"><EmptyState title="No villages yet" description="Add your first village above." icon="location_on" /></div>
+          ) : filteredVillages.length === 0 ? (
+            <div className="p-6"><EmptyState title="No matches" description={`No village matches “${search.trim()}”.`} icon="search_off" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-outline-variant/50 bg-surface-container/50">
+                    <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant">Name</th>
+                    <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant">Code</th>
+                    <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant text-right">Households</th>
+                    <th className="px-5 py-2.5 text-label-md font-semibold text-on-surface-variant text-right">Population</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVillages.map((v, i) => (
+                    <tr
+                      key={v.id}
+                      className={`transition-colors hover:bg-surface-container/40 ${i < filteredVillages.length - 1 ? 'border-b border-outline-variant/40' : ''}`}
+                    >
+                      <td className="px-5 py-3 text-label-sm font-semibold text-on-surface">{v.name}</td>
+                      <td className="px-5 py-3 text-label-sm text-on-surface-variant">{v.code ?? '—'}</td>
+                      <td className="px-5 py-3 text-label-sm text-on-surface text-right">{v.totalHouseholds ?? '—'}</td>
+                      <td className="px-5 py-3 text-label-sm text-on-surface text-right">{v.totalPopulation ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
   )
 }
+

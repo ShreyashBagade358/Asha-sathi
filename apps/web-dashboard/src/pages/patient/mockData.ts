@@ -13,8 +13,14 @@ export interface PatientProfile {
   ashaWorker: string
   height: string
   weight: string
+  bmi: string
   latestBp: string
+  pulse: string
+  temperature: string
+  spo2: string
   haemoglobin: string
+  bloodSugar: string
+  waistCircumference: string
   activeConditions: string[]
   pregnant: boolean
   trimester: number

@@ -3,6 +3,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# How a household member relates to the head. One shared vocabulary across the
+# registration forms, the members list and the patient-facing family view.
+RelationshipToHead = Literal["head", "spouse", "son", "daughter", "father", "mother", "grandparent", "other"]
+
 
 class ConsentRecord(BaseModel):
     consent_given: bool = False
@@ -17,7 +21,7 @@ class HouseholdCreate(BaseModel):
     address: str | None = None
     address_local: dict[str, str] | None = None
     amenities: dict[str, Any] | None = None
-    head_name: str | None = Field(default=None, max_length=200)
+    head_name: str | None = Field(default=None, min_length=1, max_length=200)
     ward: str | None = Field(default=None, max_length=100)
     family_size: int | None = Field(default=None, ge=0, le=99)
     contact_phone: str | None = Field(default=None, max_length=15)
@@ -33,7 +37,7 @@ class HouseholdUpdate(BaseModel):
     address: str | None = None
     address_local: dict[str, str] | None = None
     amenities: dict[str, Any] | None = None
-    head_name: str | None = Field(default=None, max_length=200)
+    head_name: str | None = Field(default=None, min_length=1, max_length=200)
     ward: str | None = Field(default=None, max_length=100)
     family_size: int | None = Field(default=None, ge=0, le=99)
     contact_phone: str | None = Field(default=None, max_length=15)
@@ -92,6 +96,7 @@ class BeneficiaryCreate(BaseModel):
     occupation: str | None = None
     is_pregnant: bool = False
     is_lactating: bool = False
+    relationship_to_head: RelationshipToHead | None = None
     registration_date: date | None = None
     status: str = "active"
     # Stored on `Beneficiary.metadata_json` — the model has no dedicated
@@ -120,6 +125,7 @@ class BeneficiaryUpdate(BaseModel):
     occupation: str | None = None
     is_pregnant: bool | None = None
     is_lactating: bool | None = None
+    relationship_to_head: RelationshipToHead | None = None
     status: str | None = None
     risk: str | None = Field(default=None, max_length=32)
     notes: str | None = Field(default=None, max_length=2000)
@@ -147,6 +153,7 @@ class BeneficiaryResponse(BaseModel):
     blood_group: str | None = None
     is_pregnant: bool
     is_lactating: bool
+    relationship_to_head: str | None = None
     registration_date: date | None = None
     status: str
     created_at: datetime
@@ -164,13 +171,47 @@ class BeneficiaryPhotoResponse(BaseModel):
     photo_url: str
 
 
+class HouseholdMemberLink(BaseModel):
+    """Optional relationship when linking an existing member into a household."""
+
+    relationship_to_head: RelationshipToHead | None = None
+
+
 # ---------------------------------------------------------------------------
 # Household surveys
 # ---------------------------------------------------------------------------
+# What the ASHA observed for one family member during this visit. `concern`
+# is the only non-default value a client needs to send: every checked member
+# is recorded, so "ok" is simply "nothing to flag".
+MemberCheckResult = Literal["ok", "concern"]
+
+
+class MemberCheckCreate(BaseModel):
+    beneficiary_id: str | None = Field(default=None, max_length=36)
+    check_type: str = Field(default="general", max_length=40)
+    result: MemberCheckResult = "ok"
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class MemberCheckResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    household_id: str
+    survey_id: str | None = None
+    beneficiary_id: str | None = None
+    check_type: str
+    result: MemberCheckResult
+    notes: str | None = None
+    visited_at: date | None = None
+    created_at: datetime
+
+
 class HouseholdSurveyCreate(BaseModel):
     answers: dict[str, Any] = Field(min_length=1)
     consent_obtained: bool = False
     visited_at: date | None = None
+    member_checks: list[MemberCheckCreate] = Field(default_factory=list, max_length=100)
 
 
 class HouseholdSurveyResponse(BaseModel):
@@ -182,6 +223,7 @@ class HouseholdSurveyResponse(BaseModel):
     consent_obtained: bool
     visited_at: date | None = None
     created_at: datetime
+    member_checks: list[MemberCheckResponse] = Field(default_factory=list)
 
 
 class BeneficiarySearchParams(BaseModel):

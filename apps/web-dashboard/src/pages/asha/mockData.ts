@@ -13,6 +13,7 @@ export type PregnancyStatus = 'active' | 'delivered' | 'aborted' | 'ltf'
 
 export interface PregnancyRecord {
   id: string
+  beneficiaryId?: string
   patientName: string
   abhaId: string
   village: string

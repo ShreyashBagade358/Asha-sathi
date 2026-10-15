@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { childService } from '@/services/child.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
@@ -8,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useUIStore } from '@/stores/ui.store'
+import { vaccinationService } from '@/services/vaccination.service'
 
 function ageFromDob(iso: string): { months: number; label: string } | null {
   if (!iso) return null
@@ -16,6 +16,60 @@ function ageFromDob(iso: string): { months: number; label: string } | null {
   const now = new Date()
   const months = Math.max(0, Math.floor((now.getTime() - d.getTime()) / (30.44 * 86400000)))
   return { months, label: months >= 24 ? `${Math.floor(months / 12)} Years (${months} Months)` : `${months} Months` }
+}
+
+function formatDate(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+type DoseChip = { label: string; className: string; icon: string }
+
+const DOSE_CHIPS: Record<string, DoseChip> = {
+  given: { label: 'Given', className: 'bg-secondary-container text-on-secondary-container', icon: 'check_circle' },
+  due: { label: 'Due', className: 'bg-primary-container text-on-primary-container', icon: 'schedule' },
+  overdue: { label: 'Overdue', className: 'bg-error-container text-on-error-container', icon: 'warning' },
+  upcoming: { label: 'Upcoming', className: 'bg-surface-container-high text-on-surface-variant', icon: 'event_upcoming' },
+  skipped: { label: 'Skipped', className: 'bg-surface-container-high text-on-surface-variant', icon: 'skip_next' },
+}
+
+function doseChip(status: string): DoseChip {
+  return DOSE_CHIPS[status] ?? DOSE_CHIPS.upcoming
+}
+
+interface DoseRow {
+  key: string
+  vaccineName: string
+  doseNumber: number
+  status: string
+  date: string
+}
+
+function doseRowsFromStatusApi(byDose: { vaccine_code: string; vaccine_name: string; dose_number: number; due_date: string | null; given_date: string | null; effective_status: string; status: string }[]): DoseRow[] {
+  return byDose.map((d) => ({
+    key: `${d.vaccine_code}-${d.dose_number}`,
+    vaccineName: d.vaccine_name || d.vaccine_code,
+    doseNumber: d.dose_number,
+    status: d.effective_status || d.status,
+    date: d.given_date ?? d.due_date ?? '',
+  }))
+}
+
+function doseRowsFromImmunizations(imms: { id: string; vaccineName: string; doseNumber: number; status: string; dueDate: string; administeredDate?: string }[]): DoseRow[] {
+  const today = new Date().toISOString().slice(0, 10)
+  return imms.map((im) => {
+    let status = im.status
+    if (status === 'due' && im.dueDate && im.dueDate.slice(0, 10) < today) status = 'overdue'
+    return {
+      key: im.id,
+      vaccineName: im.vaccineName,
+      doseNumber: im.doseNumber,
+      status,
+      date: im.administeredDate ?? im.dueDate ?? '',
+    }
+  })
 }
 
 export default function ChildProfilePhcAdmin() {
@@ -36,10 +90,66 @@ export default function ChildProfilePhcAdmin() {
     enabled: !!id,
   })
 
+  const { data: vaxStatus } = useQuery({
+    queryKey: ['child-vaccination-status', id],
+    queryFn: () => vaccinationService.getChildVaccinationStatus(id ?? ''),
+    enabled: !!id,
+    retry: false,
+  })
+
   const { data: growthRecords } = useQuery({
     queryKey: ['child-growth', id],
     queryFn: () => childService.listGrowthRecords(id ?? ''),
     enabled: !!id,
+  })
+
+  const { data: hbncVisits } = useQuery({
+    queryKey: ['child-hbnc', id],
+    queryFn: () => childService.listHBNCVisits(id ?? ''),
+    enabled: !!id,
+  })
+
+  const { data: hbycVisits } = useQuery({
+    queryKey: ['child-hbyc', id],
+    queryFn: () => childService.listHBYCVisits(id ?? ''),
+    enabled: !!id,
+  })
+
+  const [homeForm, setHomeForm] = useState<'hbnc' | 'hbyc' | null>(null)
+  const [hbncForm, setHbncForm] = useState({ visitDate: '', weightGrams: '', breastfeedingStatus: 'exclusive', cordCondition: 'dry' })
+  const [hbycForm, setHbycForm] = useState({ visitDate: '', weightKg: '', heightCm: '', muacMm: '', nutritionStatus: 'normal' })
+
+  const addHbncMutation = useMutation({
+    mutationFn: () => childService.addHBNCVisit(id ?? '', {
+      visitDate: hbncForm.visitDate,
+      weightGrams: hbncForm.weightGrams ? Number(hbncForm.weightGrams) : undefined,
+      breastfeedingStatus: hbncForm.breastfeedingStatus,
+      cordCondition: hbncForm.cordCondition,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['child-hbnc', id] })
+      setHomeForm(null)
+      setHbncForm({ visitDate: '', weightGrams: '', breastfeedingStatus: 'exclusive', cordCondition: 'dry' })
+      addToast('success', 'Newborn home visit recorded.')
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
+  })
+
+  const addHbycMutation = useMutation({
+    mutationFn: () => childService.addHBYCVisit(id ?? '', {
+      visitDate: hbycForm.visitDate,
+      weightKg: hbycForm.weightKg ? Number(hbycForm.weightKg) : undefined,
+      heightCm: hbycForm.heightCm ? Number(hbycForm.heightCm) : undefined,
+      muacMm: hbycForm.muacMm ? Number(hbycForm.muacMm) : undefined,
+      nutritionStatus: hbycForm.nutritionStatus,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['child-hbyc', id] })
+      setHomeForm(null)
+      setHbycForm({ visitDate: '', weightKg: '', heightCm: '', muacMm: '', nutritionStatus: 'normal' })
+      addToast('success', 'Young child home visit recorded.')
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
   })
 
   const { data: benData } = useQuery({
@@ -50,6 +160,16 @@ export default function ChildProfilePhcAdmin() {
   const beneficiary = useMemo(() => {
     if (!child) return undefined
     return benData?.items?.find((b) => b.id === child.beneficiaryId)
+  }, [benData, child])
+
+  const mother = useMemo(() => {
+    if (!child?.motherId) return undefined
+    return benData?.items?.find((b) => b.id === child.motherId)
+  }, [benData, child])
+
+  const father = useMemo(() => {
+    if (!child?.fatherId) return undefined
+    return benData?.items?.find((b) => b.id === child.fatherId)
   }, [benData, child])
 
   const deleteMutation = useMutation({
@@ -70,48 +190,61 @@ export default function ChildProfilePhcAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-4 md:p-6 pb-24 md:pb-0 overflow-y-auto"><LoadingState label="Loading child profile…" /></main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <LoadingState label="Loading child profile…" />
+        </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-4 md:p-6 pb-24 md:pb-0 overflow-y-auto"><ErrorState message={getErrorMessage(error)} onRetry={refetch} /></main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <ErrorState message={getErrorMessage(error)} onRetry={refetch} />
+        </div>
     )
   }
 
   if (!child) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-4 md:p-6 pb-24 md:pb-0 overflow-y-auto"><EmptyState title="Child not found" icon="child_care" /></main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <EmptyState title="Child not found" icon="child_care" />
+        </div>
     )
   }
 
   const age = ageFromDob(child.dob)
-  const givenCount = (immunizations ?? []).filter((i) => i.status === 'given').length
-  const totalCount = (immunizations ?? []).length
-  const onTrack = totalCount > 0 && givenCount >= totalCount
+  const givenCount = vaxStatus?.given ?? (immunizations ?? []).filter((i) => i.status === 'given').length
+  const totalCount = vaxStatus?.total ?? (immunizations ?? []).length
+  const progressPct = vaxStatus?.progress_pct ?? (totalCount > 0 ? Math.round((givenCount / totalCount) * 100) : 0)
+  const fullyImmunized = vaxStatus ? vaxStatus.fully_immunized : totalCount > 0 && givenCount >= totalCount
+  const hasOverdue = vaxStatus ? vaxStatus.overdue > 0 : (immunizations ?? []).some((i) => i.status === 'overdue')
+  const doseRows: DoseRow[] = vaxStatus
+    ? doseRowsFromStatusApi(vaxStatus.by_dose)
+    : doseRowsFromImmunizations(immunizations ?? [])
+  const nextDue = vaxStatus?.next_due
+    ?? (() => {
+      const upcoming = (immunizations ?? [])
+        .filter((i) => i.status !== 'given' && i.dueDate)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
+      return upcoming
+        ? { vaccine_name: upcoming.vaccineName, dose_number: upcoming.doseNumber, due_date: upcoming.dueDate }
+        : null
+    })()
+  const statusPill = hasOverdue
+    ? { label: 'Overdue', className: 'bg-error-container text-on-error-container' }
+    : fullyImmunized
+      ? { label: 'On Track', className: 'bg-secondary-container text-on-secondary-container' }
+      : { label: 'In Progress', className: 'bg-tertiary-container text-on-tertiary-container' }
   const growthPhotos = (growthRecords ?? []).filter((r) => r.photoUrl)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <PhcSidebar />
-      <main className="ml-0 md:ml-64 flex-1 pb-24 px-4 md:px-6 md:pb-0 overflow-y-auto max-w-7xl mx-auto w-full flex flex-col gap-6">
+      <div className="mx-auto w-full max-w-7xl flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between gap-4 mt-4">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-surface-container-high bg-primary-container text-on-primary-container flex items-center justify-center text-2xl font-bold shrink-0">
               {(beneficiary?.name ?? 'C').charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-on-surface mb-1">{beneficiary?.name ?? 'Child'}</h1>
               <div className="flex flex-wrap items-center gap-2 text-body-md text-on-surface-variant">
                 <span>{child.gender}, {age ? age.label : '—'}</span>
                 <span className="w-1 h-1 bg-outline rounded-full"></span>
@@ -175,8 +308,12 @@ export default function ChildProfilePhcAdmin() {
           </div>
 
           <div className="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-outline-variant bg-surface-bright">
+            <div className="p-4 border-b border-outline-variant bg-surface-bright flex justify-between items-center">
               <h2 className="text-lg font-semibold text-on-surface">Vaccination</h2>
+              <Link to={`/phc/children/${id}/vaccination`} className="text-label-md text-primary hover:underline flex items-center gap-1">
+                Full schedule
+                <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+              </Link>
             </div>
             <div className="p-4 flex flex-col gap-3 flex-1 bg-surface">
               <div className="flex justify-between items-center bg-surface-bright p-3 rounded border border-outline-variant border-l-4 border-l-primary">
@@ -184,9 +321,56 @@ export default function ChildProfilePhcAdmin() {
                   <div className="text-label-md text-on-surface">Immunization Progress</div>
                   <div className="text-caption text-on-surface-variant">{totalCount > 0 ? `${givenCount} of ${totalCount} doses given` : 'No immunizations recorded'}</div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-caption font-semibold ${onTrack ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container'}`}>
-                  {onTrack ? 'On Track' : 'In Progress'}
+                <span className={`px-2 py-1 rounded-full text-caption font-semibold ${statusPill.className}`}>
+                  {statusPill.label}
                 </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-surface-container-high rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 rounded-full transition-all duration-300 ${hasOverdue ? 'bg-error' : fullyImmunized ? 'bg-secondary' : 'bg-tertiary'}`}
+                    style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
+                  />
+                </div>
+                <span className="text-caption text-on-surface-variant font-medium">{progressPct}%</span>
+              </div>
+
+              {nextDue ? (
+                <div className="flex items-center gap-2 bg-primary-container/40 border border-primary/20 rounded-lg px-3 py-2">
+                  <span className="material-symbols-outlined text-primary text-[18px]">event_upcoming</span>
+                  <div className="min-w-0">
+                    <div className="text-caption text-on-surface-variant">Next Due</div>
+                    <div className="text-label-md text-on-surface truncate">
+                      {nextDue.vaccine_name} · Dose {nextDue.dose_number} · {formatDate(nextDue.due_date)}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-1">
+                <h3 className="text-label-md text-on-surface mb-2">Dose Schedule</h3>
+                {doseRows.length === 0 ? (
+                  <p className="text-body-md text-on-surface-variant">No doses recorded yet.</p>
+                ) : (
+                  <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                    {doseRows.map((row) => {
+                      const chip = doseChip(row.status)
+                      return (
+                        <div key={row.key} className="flex items-center justify-between gap-2 bg-surface-bright border border-outline-variant/60 rounded-lg px-3 py-2">
+                          <div className="min-w-0">
+                            <div className="text-label-md text-on-surface truncate">{row.vaccineName}</div>
+                            <div className="text-caption text-on-surface-variant">Dose {row.doseNumber} · {formatDate(row.date)}</div>
+                          </div>
+                          <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-semibold ${chip.className}`}>
+                            <span className="material-symbols-outlined text-[12px]">{chip.icon}</span>
+                            {chip.label}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -201,14 +385,19 @@ export default function ChildProfilePhcAdmin() {
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="text-caption text-on-surface-variant mb-1">Mother's Name</div>
-                <div className="text-body-md text-on-surface font-semibold">{beneficiary?.name ?? '—'}</div>
+                <div className="text-body-md text-on-surface font-semibold">{child?.motherName ?? mother?.name ?? '—'}</div>
                 <div className="text-caption text-primary flex items-center gap-1 mt-0.5">
-                  <span className="material-symbols-outlined text-[14px]">call</span> {beneficiary?.phone ?? '—'}
+                  <span className="material-symbols-outlined text-[14px]">call</span> {mother?.phone ?? '—'}
                 </div>
               </div>
               <div>
                 <div className="text-caption text-on-surface-variant mb-1">Father's Name</div>
-                <div className="text-body-md text-on-surface">—</div>
+                <div className="text-body-md text-on-surface font-semibold">{child?.fatherName ?? father?.name ?? '—'}</div>
+                {father?.phone ? (
+                  <div className="text-caption text-primary flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[14px]">call</span> {father.phone}
+                  </div>
+                ) : null}
               </div>
               <div className="md:col-span-2 mt-2 pt-2 border-t border-outline-variant">
                 <div className="text-caption text-on-surface-variant mb-1">Address</div>
@@ -252,7 +441,6 @@ export default function ChildProfilePhcAdmin() {
                 <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                   <span className="material-symbols-outlined text-[36px] text-outline">photo_camera</span>
                   <p className="text-body-md text-on-surface-variant">No baby progress photos captured yet.</p>
-                  <p className="text-caption text-on-surface-variant">Photos attached to growth measurements appear here.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -268,8 +456,128 @@ export default function ChildProfilePhcAdmin() {
               )}
             </div>
           </div>
+
+          <div className="md:col-span-12 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-outline-variant bg-surface-bright flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">home_health</span>
+                Home Visits
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setHomeForm(homeForm === 'hbnc' ? null : 'hbnc')}
+                  className={`px-3 py-1.5 rounded-full text-label-md transition-opacity ${homeForm === 'hbnc' ? 'bg-primary text-on-primary' : 'bg-secondary-container text-on-secondary-container hover:opacity-90'}`}
+                >
+                  Newborn Care Visit
+                </button>
+                <button
+                  onClick={() => setHomeForm(homeForm === 'hbyc' ? null : 'hbyc')}
+                  className={`px-3 py-1.5 rounded-full text-label-md transition-opacity ${homeForm === 'hbyc' ? 'bg-primary text-on-primary' : 'bg-secondary-container text-on-secondary-container hover:opacity-90'}`}
+                >
+                  Young Child Visit
+                </button>
+              </div>
+            </div>
+            {homeForm === 'hbnc' ? (
+              <div className="p-4 border-b border-outline-variant bg-surface-container-low grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+                <label className="text-caption text-on-surface-variant">Visit date *
+                  <input type="date" value={hbncForm.visitDate} onChange={(e) => setHbncForm({ ...hbncForm, visitDate: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Weight (g)
+                  <input type="number" value={hbncForm.weightGrams} onChange={(e) => setHbncForm({ ...hbncForm, weightGrams: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" placeholder="2800" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Breastfeeding
+                  <select value={hbncForm.breastfeedingStatus} onChange={(e) => setHbncForm({ ...hbncForm, breastfeedingStatus: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface">
+                    <option value="exclusive">Exclusive</option>
+                    <option value="partial">Partial</option>
+                    <option value="none">None</option>
+                  </select>
+                </label>
+                <label className="text-caption text-on-surface-variant">Cord condition
+                  <select value={hbncForm.cordCondition} onChange={(e) => setHbncForm({ ...hbncForm, cordCondition: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface">
+                    <option value="dry">Dry</option>
+                    <option value="inflamed">Inflamed</option>
+                    <option value="discharging">Discharging</option>
+                  </select>
+                </label>
+                <button
+                  onClick={() => addHbncMutation.mutate()}
+                  disabled={!hbncForm.visitDate || addHbncMutation.isPending}
+                  className="bg-primary text-on-primary px-4 py-2 rounded-full text-label-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {addHbncMutation.isPending ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            ) : null}
+            {homeForm === 'hbyc' ? (
+              <div className="p-4 border-b border-outline-variant bg-surface-container-low grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+                <label className="text-caption text-on-surface-variant">Visit date *
+                  <input type="date" value={hbycForm.visitDate} onChange={(e) => setHbycForm({ ...hbycForm, visitDate: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Weight (kg)
+                  <input type="number" step="0.1" value={hbycForm.weightKg} onChange={(e) => setHbycForm({ ...hbycForm, weightKg: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Height (cm)
+                  <input type="number" step="0.1" value={hbycForm.heightCm} onChange={(e) => setHbycForm({ ...hbycForm, heightCm: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Mid-upper arm (mm)
+                  <input type="number" value={hbycForm.muacMm} onChange={(e) => setHbycForm({ ...hbycForm, muacMm: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface" placeholder="12" />
+                </label>
+                <label className="text-caption text-on-surface-variant">Nutrition
+                  <select value={hbycForm.nutritionStatus} onChange={(e) => setHbycForm({ ...hbycForm, nutritionStatus: e.target.value })} className="mt-1 w-full border border-outline-variant rounded-lg px-2 py-1.5 text-body-md bg-surface">
+                    <option value="normal">Normal</option>
+                    <option value="moderate_acute">Moderate acute</option>
+                    <option value="severe_acute">Severe acute</option>
+                    <option value="stunting">Stunting</option>
+                  </select>
+                </label>
+                <button
+                  onClick={() => addHbycMutation.mutate()}
+                  disabled={!hbycForm.visitDate || addHbycMutation.isPending}
+                  className="bg-primary text-on-primary px-4 py-2 rounded-full text-label-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {addHbycMutation.isPending ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            ) : null}
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-label-md text-on-surface mb-2">Newborn care visits</h3>
+                {(hbncVisits ?? []).length === 0 ? (
+                  <p className="text-body-md text-on-surface-variant">No newborn home visits yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(hbncVisits ?? []).map((v) => (
+                      <div key={v.id} className="flex items-center justify-between rounded-lg border border-outline-variant/50 bg-surface p-3">
+                        <div>
+                          <p className="text-body-md font-semibold text-on-surface">Visit {v.visit_number} · {v.visit_date}</p>
+                        </div>
+                        {v.referral_made ? <span className="bg-error-container text-on-error-container px-2 py-1 rounded text-caption">Referred</span> : <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-caption">OK</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-label-md text-on-surface mb-2">Young child visits</h3>
+                {(hbycVisits ?? []).length === 0 ? (
+                  <p className="text-body-md text-on-surface-variant">No young child home visits yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(hbycVisits ?? []).map((v) => (
+                      <div key={v.id} className="flex items-center justify-between rounded-lg border border-outline-variant/50 bg-surface p-3">
+                        <div>
+                          <p className="text-body-md font-semibold text-on-surface">Visit {v.visit_number} · {v.visit_date}</p>
+                        </div>
+                        {v.referral_made ? <span className="bg-error-container text-on-error-container px-2 py-1 rounded text-caption">Referred</span> : <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-caption">OK</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
   )
 }

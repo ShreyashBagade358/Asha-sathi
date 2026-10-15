@@ -13,7 +13,8 @@ export function useTodayTasks() {
     queryKey: ['asha', 'tasks', 'today'],
     queryFn: async () => {
       const tasks = await ashaService.listMyTasks({ date: todayISO() })
-      return tasks.map(toViewTask)
+      // Cancelled rows are duplicates the plan cleaned up — never queue them.
+      return tasks.filter((task) => task.status !== 'cancelled').map(toViewTask)
     },
   })
 

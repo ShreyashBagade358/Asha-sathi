@@ -3,20 +3,30 @@ import { useNavigate } from 'react-router-dom'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
+import { syncService } from '@/services/sync.service'
 
 export default function ConnectionErrorAshaSathi() {
   const { t } = useLocalization()
   const navigate = useNavigate()
   const { addToast } = useUIStore()
   const [checking, setChecking] = useState(false)
+  const [online, setOnline] = useState<boolean | null>(null)
 
-  const retry = () => {
+  const retry = async () => {
     setChecking(true)
-    setTimeout(() => {
-      setChecking(false)
+    setOnline(null)
+    try {
+      // Real probe: hit the sync status endpoint; success means the API is back.
+      await syncService.getStatus()
+      setOnline(true)
       addToast('success', t('asha.connectionRestored'))
       navigate('/asha/home')
-    }, 1200)
+    } catch {
+      setOnline(false)
+      addToast('error', t('asha.connectionError'))
+    } finally {
+      setChecking(false)
+    }
   }
 
   return (
@@ -35,7 +45,7 @@ export default function ConnectionErrorAshaSathi() {
             disabled={checking}
             className="flex h-touch-target w-full items-center justify-center gap-2 rounded-full bg-primary font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors duration-200 hover:bg-on-primary-fixed-variant active:scale-95 disabled:opacity-60"
           >
-            <Icon name={checking ? 'refresh' : 'refresh'} size={20} className={checking ? 'animate-spin' : ''} />
+            <Icon name="refresh" size={20} className={checking ? 'animate-spin' : ''} />
             {checking ? t('asha.checking') : t('asha.retryConnection')}
           </button>
           <button
@@ -48,8 +58,14 @@ export default function ConnectionErrorAshaSathi() {
           </button>
         </div>
         <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-high px-4 py-1">
-          <div className="h-2 w-2 rounded-full bg-outline" />
-          <span className="font-caption text-caption text-on-surface-variant">{t('asha.currentlyOffline')}</span>
+          <div className={`h-2 w-2 rounded-full ${online === false ? 'bg-error' : online === true ? 'bg-secondary' : 'bg-outline'}`} />
+          <span className="font-caption text-caption text-on-surface-variant">
+            {online === true
+              ? t('asha.connectionRestored')
+              : online === false
+                ? t('asha.connectionError')
+                : t('asha.currentlyOffline')}
+          </span>
         </div>
       </main>
     </div>

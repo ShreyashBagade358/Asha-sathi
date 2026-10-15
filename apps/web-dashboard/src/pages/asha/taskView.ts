@@ -14,6 +14,8 @@ export interface ViewTask {
   householdHhid?: string
   householdLabel: string
   carriedFrom?: string
+  /** Extra reasons folded into this stop by the plan (one visit closes all). */
+  alsoCovers: string[]
 }
 
 const TASK_TITLE: Record<string, string> = {
@@ -51,9 +53,11 @@ export function formatDay(iso?: string): string {
 export function toViewTask(task: ASHATask): ViewTask {
   const householdLabel = [task.householdHhid, task.villageName].filter(Boolean).join(' · ')
   const rawCarriedFrom = task.metadataJson?.carried_from
+  const ownTitle = TASK_TITLE[task.taskType] ?? task.taskType.replace(/_/g, ' ')
+  const alsoCovers = mergedReasonLabels(task).filter((label) => label !== ownTitle)
   return {
     id: task.id,
-    title: TASK_TITLE[task.taskType] ?? task.taskType.replace(/_/g, ' '),
+    title: ownTitle,
     subtitle: task.notes || scheduledLabel(task.scheduledTime),
     done: task.status === 'completed' || task.status === 'done',
     due: task.taskDate ?? '',
@@ -63,7 +67,22 @@ export function toViewTask(task: ASHATask): ViewTask {
     householdHhid: task.householdHhid,
     householdLabel,
     carriedFrom: typeof rawCarriedFrom === 'string' ? rawCarriedFrom : undefined,
+    alsoCovers,
   }
+}
+
+/** Titles of every reason the plan merged into this stop, deduplicated. */
+function mergedReasonLabels(task: ASHATask): string[] {
+  const raw = task.metadataJson?.reasons
+  if (!Array.isArray(raw)) return []
+  const labels = new Set<string>()
+  for (const reason of raw) {
+    if (typeof reason !== 'object' || reason === null) continue
+    const type = (reason as { task_type?: unknown }).task_type
+    if (typeof type !== 'string' || !type) continue
+    labels.add(TASK_TITLE[type] ?? type.replace(/_/g, ' '))
+  }
+  return [...labels]
 }
 
 export function toggleTaskPayload(task: ASHATask): UpdateASHATaskPayload {

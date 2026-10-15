@@ -145,7 +145,7 @@ export const dashboardService = {
     }
   },
 
-  async getStateDashboard(): Promise<StateDashboard> {
+  async getStateDashboard(stateId?: string): Promise<StateDashboard> {
     const { data } = await api.get<{
       entity: string
       name: string
@@ -153,7 +153,7 @@ export const dashboardService = {
       districtComparison?: RawPHCRow[]
       trend?: Array<{ label: string; value: number }>
       focusAreas?: RawFocusArea[]
-    }>('/dashboard/state')
+    }>('/dashboard/state', { params: stateId ? { state_id: stateId } : undefined })
     return {
       kpis: mapBundleKPIs(data.kpis),
       districtComparison: data.districtComparison ?? [],

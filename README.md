@@ -64,8 +64,6 @@ asha-sathi/
 ├── packages/                   # Shared libraries consumed by the apps
 │   ├── design-system/          # react/ (shared components) + tokens/
 │   ├── ml-common/              # ml_common/, preprocessing/, feature-engineering/, onnx-export/
-│   ├── shared-types/           # openapi/, python/, typescript/
-│   └── supabase-client/        # python/, typescript/
 ├── docs/                       # All project documentation (see docs/README.md)
 ├── postman/                    # Postman workspace globals + resources
 ├── scripts/                    # Shell/python automation (setup, seed, migrate, deploy)
@@ -168,8 +166,6 @@ apps/ml-training/
 | `design-system/react` | Shared React components (`Button`, `Card`, `DataTable`, `Sidebar`, `ASHAErrorScreen`, …) published as `asha-design-system` |
 | `design-system/tokens` | `design-tokens.json` (colour, spacing, typography) |
 | `ml-common` | `ml_common/`, `preprocessing/`, `feature-engineering/`, `onnx-export/` |
-| `shared-types` | `openapi/` spec, `python/asha_types.py`, `typescript/` |
-| `supabase-client` | Thin Supabase clients for Python and TypeScript |
 
 ### `scripts/`
 
@@ -181,7 +177,6 @@ apps/ml-training/
 | `generate-types.sh` | OpenAPI → Dart + TypeScript clients |
 | `deploy.sh` | Production compose build/push/up/status wrapper |
 | `backup.sh` | Database backup |
-| `stitch_convert.py`, `stitch_wire_nav.py` | One-off helpers for converting Stitch AI design mocks |
 
 ### `docs/`
 
@@ -363,11 +358,14 @@ All browser routes are declared in [`apps/web-dashboard/src/App.tsx`](apps/web-d
 | Route | Screen |
 | ----- | ------ |
 | `/` | `index.tsx` (splash / session bootstrap) |
-| `/login` | `login.tsx` |
+| `/login` · `/verify-otp` · `/account-recovery` · `/redirecting` | auth flow |
 | `(app)/(tabs)/` | `index` Home · `tasks` · `households` · `patients` · `sync` |
 | `(app)/health-survey` · `health-checkup` · `child-health` · `pregnancy` | clinical flows |
 | `(app)/follow-ups` · `referrals` · `notifications` · `register` · `profile` | supporting screens |
 | `(app)/patient/[id]` | patient detail |
+| `(app)/patient/[id]/profile` · `[id]/immunization` | health profile, immunization schedule |
+| `(app)/household/[id]` · `[id]/visit` | household detail, visit flow |
+| `(app)/checkup-completed` | health check-up success state |
 | `(app)/connection-error` | offline/error state |
 
 ## API surface

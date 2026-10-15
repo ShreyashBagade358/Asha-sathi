@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon, type IconName } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { notificationService } from '@/services/notification.service'
@@ -91,23 +90,18 @@ export default function NotificationsAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.notifTitle')}
-        subtitle={t('asha.notifSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.notifTitle') }]}
-        actions={
-          unreadCount > 0 ? (
-            <button
-              type="button"
-              onClick={handleMarkAll}
-              className="flex items-center gap-2 rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-container"
-            >
-              <Icon name="checkCircle" size={18} />
-              {t('asha.notifMarkAll')}
-            </button>
-          ) : null
-        }
-      />
+      {unreadCount > 0 ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleMarkAll}
+            className="flex items-center gap-2 rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-primary transition-colors hover:bg-surface-container"
+          >
+            <Icon name="checkCircle" size={18} />
+            {t('asha.notifMarkAll')}
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
@@ -123,7 +117,7 @@ export default function NotificationsAshaSathi() {
           >
             {tab.label}
             <span
-              className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+              className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                 filter === tab.key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
               }`}
             >

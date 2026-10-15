@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useTodayTasks } from '@/hooks/useTodayTasks'
-import { useAppStore } from '@/stores/app.store'
 import { notificationService } from '@/services/notification.service'
+import { householdService } from '@/services/household.service'
+import { pregnancyService } from '@/services/pregnancy.service'
+import { beneficiaryService } from '@/services/beneficiary.service'
 import { Icon, type IconName } from '@/components/common/Icons'
 
 interface Stat {
@@ -29,7 +31,7 @@ const CARE_MODULES: CareModule[] = [
   { label: 'asha.modHealthSurvey', path: '/asha/health-survey', icon: 'edit', tone: 'bg-tertiary-container text-on-tertiary-container' },
   { label: 'asha.modPregnancy', path: '/asha/pregnancy', icon: 'heart', tone: 'bg-primary-container text-on-primary-container' },
   { label: 'asha.modChildHealth', path: '/asha/child-health', icon: 'heart', tone: 'bg-secondary-container text-on-secondary-container' },
-  { label: 'asha.modVaccination', path: '/asha/patients/1/immunization', icon: 'checkCircle', tone: 'bg-tertiary-container text-on-tertiary-container' },
+  { label: 'asha.modVaccination', path: '/asha/child-health', icon: 'checkCircle', tone: 'bg-tertiary-container text-on-tertiary-container' },
   { label: 'asha.modHealthCheckup', path: '/asha/health-checkup', icon: 'activity', tone: 'bg-primary-container text-on-primary-container' },
   { label: 'asha.modReferral', path: '/asha/referrals', icon: 'fileText', tone: 'bg-secondary-container text-on-secondary-container' },
   { label: 'asha.modFollowUp', path: '/asha/follow-ups', icon: 'refresh', tone: 'bg-tertiary-container text-on-tertiary-container' },
@@ -56,9 +58,6 @@ const toneText: Record<Stat['tone'], string> = {
 export default function AshaWorkerHomeAshaSathi() {
   const { t } = useLocalization()
   const { user } = useAuth()
-  const patients = useAppStore((s) => s.patients)
-  const pregnancies = useAppStore((s) => s.pregnancies)
-  const followUps = useAppStore((s) => s.followUps)
 
   const { tasks, toggleTask } = useTodayTasks()
 
@@ -77,18 +76,37 @@ export default function AshaWorkerHomeAshaSathi() {
       return { id: n.id, title: n.title, message: n.message, time }
     })
 
+  const householdsQuery = useQuery({
+    queryKey: ['asha', 'households', 'count'],
+    queryFn: () => householdService.listHouseholds({ pageSize: 1 }),
+  })
+  const pregnanciesQuery = useQuery({
+    queryKey: ['asha', 'pregnancies', 'ongoing'],
+    queryFn: () => pregnancyService.listPregnancies({ status: 'ongoing', pageSize: 200 }),
+  })
+  const beneficiariesQuery = useQuery({
+    queryKey: ['asha', 'beneficiaries', 'count'],
+    queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 200 }),
+  })
+
   const pending = tasks.filter((x) => !x.done).length
-  const highRisk = patients.filter((p) => p.risk === 'high').length + pregnancies.filter((p) => p.risk === 'high').length
-  const visitsPlanned = followUps.filter((f) => f.status !== 'completed').length
+  const highRiskPregnancies = (pregnanciesQuery.data?.items ?? []).filter((p) => p.highRisk).length
+  const highRiskBeneficiaries = (beneficiariesQuery.data?.items ?? []).filter(
+    (b) => (b.risk ?? '').toLowerCase() === 'high',
+  ).length
+  const highRisk = highRiskPregnancies + highRiskBeneficiaries
+  const todayISO = new Date().toISOString().slice(0, 10)
+  const visitsPlanned = tasks.filter((x) => !x.done && (x.due ?? '') <= todayISO).length
+  const householdsCount = householdsQuery.data?.total ?? 0
 
   const stats: Stat[] = useMemo(
     () => [
       { label: t('asha.agenda'), value: String(visitsPlanned), hint: t('asha.visitsPlanned'), icon: 'activity', tone: 'primary' },
       { label: t('asha.pendingTasks'), value: String(pending), hint: t('asha.needAttention'), icon: 'checkCircle', tone: 'tertiary' },
-      { label: t('asha.households'), value: String(patients.length), hint: t('asha.underYourCare'), icon: 'users', tone: 'secondary' },
+      { label: t('asha.households'), value: String(householdsCount), hint: t('asha.underYourCare'), icon: 'users', tone: 'secondary' },
       { label: t('asha.highRisk'), value: String(highRisk), hint: t('asha.needMonitoring'), icon: 'alert', tone: 'error' },
     ],
-    [t, pending, highRisk, visitsPlanned, patients.length],
+    [t, pending, highRisk, visitsPlanned, householdsCount],
   )
 
   const firstName = user?.fullName?.split(' ')[0] || 'there'
@@ -179,12 +197,12 @@ export default function AshaWorkerHomeAshaSathi() {
               </div>
               <p className="mt-3 font-headline-md text-headline-md font-semibold text-on-error-container">{n.title}</p>
               <p className="font-body-md text-body-md text-on-error-container/80">{n.message}</p>
-              <button
-                type="button"
-                className="mt-3 w-full rounded-full bg-error px-4 py-2.5 font-label-md text-label-md font-semibold text-white shadow-sm transition-all hover:bg-red-800 active:scale-[0.98]"
+              <Link
+                to="/asha/notifications"
+                className="mt-3 block w-full rounded-full bg-error px-4 py-2.5 text-center font-label-md text-label-md font-semibold text-white shadow-sm transition-all hover:bg-red-800 active:scale-[0.98]"
               >
                 {t('asha.reviewNow')}
-              </button>
+              </Link>
             </div>
           ))}
           {alerts.length === 0 && (
@@ -198,39 +216,46 @@ export default function AshaWorkerHomeAshaSathi() {
       <section className="animate-fade-up">
         <h2 className="mb-3 font-headline-md text-headline-md font-semibold text-on-surface">{t('asha.todaysVisits')}</h2>
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {followUps.filter((f) => f.status === 'scheduled').map((visit) => (
-            <div
-              key={visit.id}
-              className="relative flex items-center justify-between overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 pl-5 shadow-card"
-            >
-              <span className="absolute bottom-0 left-0 top-0 w-1.5 bg-secondary" />
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-                  <Icon name="heart" size={22} />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-surface-container px-2 py-0.5 font-caption text-caption font-semibold text-on-surface-variant">
-                      {visit.type}
-                    </span>
-                    <span className="font-caption text-caption text-on-surface-variant">{visit.due}</span>
-                  </div>
-                  <p className="mt-1 font-headline-md text-headline-md font-semibold text-on-surface">{visit.patientName}</p>
-                  <p className="flex items-center gap-1 font-body-md text-body-md text-on-surface-variant">
-                    <Icon name="mapPin" size={16} />
-                    {visit.notes ?? 'Follow-up scheduled'}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label={t('asha.navigateTo', { name: visit.patientName })}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container shadow-sm transition-all hover:bg-primary hover:text-on-primary active:scale-95"
+          {tasks
+            .filter((task) => !task.done && (task.due ?? '') <= todayISO)
+            .map((visit) => (
+              <div
+                key={visit.id}
+                className="relative flex items-center justify-between overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 pl-5 shadow-card"
               >
-                <Icon name="activity" size={22} />
-              </button>
+                <span className="absolute bottom-0 left-0 top-0 w-1.5 bg-secondary" />
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+                    <Icon name="heart" size={22} />
+                  </span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-surface-container px-2 py-0.5 font-caption text-caption font-semibold text-on-surface-variant">
+                        {visit.title}
+                      </span>
+                      <span className="font-caption text-caption text-on-surface-variant">{visit.due}</span>
+                    </div>
+                    <p className="mt-1 font-headline-md text-headline-md font-semibold text-on-surface">{visit.householdLabel || '—'}</p>
+                    <p className="flex items-center gap-1 font-body-md text-body-md text-on-surface-variant">
+                      <Icon name="mapPin" size={16} />
+                      {visit.subtitle || visit.householdHhid || '—'}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to={visit.householdId ? `/asha/households/${visit.householdId}` : '/asha/tasks'}
+                  aria-label={t('asha.navigateTo', { name: visit.householdLabel })}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container shadow-sm transition-all hover:bg-primary hover:text-on-primary active:scale-95"
+                >
+                  <Icon name="activity" size={22} />
+                </Link>
+              </div>
+            ))}
+          {tasks.filter((task) => !task.done && (task.due ?? '') <= todayISO).length === 0 && (
+            <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 text-center font-body-md text-body-md text-on-surface-variant">
+              {t('asha.noTasksHint')}
             </div>
-          ))}
+          )}
         </div>
       </section>
 

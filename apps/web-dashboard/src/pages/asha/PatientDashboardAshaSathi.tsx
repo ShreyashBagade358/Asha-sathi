@@ -1,22 +1,34 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
-import { useASHAStore } from '@/stores/asha.store'
+import { beneficiaryService } from '@/services/beneficiary.service'
 import { Icon, type IconName } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { LoadingState } from '@/components/common/LoadingState'
+import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { beneficiaryToPatient } from '@/pages/asha/patientView'
 import type { RiskLevel } from '@/pages/asha/mockData'
 
+import { RISK_CHIP } from '@/lib/risk';
+
 const riskChip: Record<RiskLevel, { label: string; cls: string; icon: IconName }> = {
-  low: { label: 'asha.riskLowLabel', cls: 'bg-secondary-container text-on-secondary-container', icon: 'checkCircle' },
-  medium: { label: 'asha.riskMediumLabel', cls: 'bg-[#FF8C00]/15 text-[#B34E00]', icon: 'alert' },
-  high: { label: 'asha.riskHighLabel', cls: 'bg-error-container text-on-error-container', icon: 'alert' },
+  low: { label: RISK_CHIP.low.labelKey, cls: RISK_CHIP.low.cls, icon: RISK_CHIP.low.icon },
+  medium: { label: RISK_CHIP.medium.labelKey, cls: RISK_CHIP.medium.cls, icon: RISK_CHIP.medium.icon },
+  high: { label: RISK_CHIP.high.labelKey, cls: RISK_CHIP.high.cls, icon: RISK_CHIP.high.icon },
 }
 
 export default function PatientDashboardAshaSathi() {
   const { t } = useLocalization()
-  const patients = useASHAStore((s) => s.patients)
   const [query, setQuery] = useState('')
   const [risk, setRisk] = useState<'all' | RiskLevel>('all')
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['beneficiaries', 'all'],
+    queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
+  })
+
+  const patients = useMemo(() => (data?.items ?? []).map(beneficiaryToPatient), [data])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -39,14 +51,8 @@ export default function PatientDashboardAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.patientsTitle')}
-        subtitle={t('asha.patientsSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaPatients') }]}
-      />
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-md">
+        <div class="relative flex-1 sm:max-w-md">
           <Icon name="search" size={18} className="absolute inset-y-0 left-3.5 my-auto text-on-surface-variant" />
           <input
             value={query}
@@ -54,6 +60,7 @@ export default function PatientDashboardAshaSathi() {
             placeholder={t('asha.patientSearchPlaceholder')}
             className="h-touch-target w-full rounded-lg border border-outline bg-surface-container-lowest pl-10 pr-4 text-on-surface transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
+          {}
         </div>
         <div className="flex gap-2">
           {(['all', 'high', 'medium', 'low'] as const).map((key) => (
@@ -67,7 +74,7 @@ export default function PatientDashboardAshaSathi() {
             >
               {key === 'all' ? t('asha.filterAll') : t(riskChip[key].label)}
               <span
-                className={`rounded-full px-1.5 text-[11px] font-bold leading-4 ${
+                className={`rounded-full px-1.5 text-label-sm font-bold leading-4 ${
                   risk === key ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-variant text-on-surface-variant'
                 }`}
               >
@@ -78,11 +85,32 @@ export default function PatientDashboardAshaSathi() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest py-12 text-center shadow-card">
-          <Icon name="users" size={32} className="text-outline" />
-          <p className="font-body-md text-body-md text-on-surface-variant">{t('common.noResults')}</p>
-        </div>
+      {isLoading ? (
+        <LoadingState label={t('common.loading')} />
+      ) : isError ? (
+        <ErrorState message={getErrorMessage(error)} onRetry={() => refetch()} />
+      ) : filtered.length === 0 ? (
+        patients.length === 0 ? (
+          <EmptyState
+            icon="group"
+            title={t('asha.noPatients')}
+            description={t('asha.noPatientsHint')}
+            action={
+              <Link
+                to="/asha/patients/new"
+                className="mt-2 inline-flex h-touch-target items-center gap-2 rounded-full bg-primary px-6 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
+              >
+                <Icon name="plus" size={18} />
+                {t('asha.addPatient')}
+              </Link>
+            }
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest py-12 text-center shadow-card">
+            <Icon name="users" size={32} className="text-outline" />
+            <p className="font-body-md text-body-md text-on-surface-variant">{t('common.noResults')}</p>
+          </div>
+        )
       ) : (
         <div className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card">
           {filtered.map((patient, index) => (
@@ -99,7 +127,7 @@ export default function PatientDashboardAshaSathi() {
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 font-label-md text-label-md font-semibold text-on-surface">
                   {patient.name}
-                  {patient.pregnant ? (
+                  {patient.pregnant && patient.trimester ? (
                     <span className="rounded-full bg-secondary-container px-2 py-0.5 font-caption text-caption text-on-secondary-container">
                       {patient.trimester}
                     </span>

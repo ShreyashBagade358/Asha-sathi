@@ -30,6 +30,27 @@ class Household(BaseModel):
     abha_consent: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class HouseholdVisitCheck(BaseModel):
+    """One family member's status recorded during a household visit.
+
+    The offline sync layer writes these directly, so the three link columns are
+    bare strings with no FK: a push that arrives before (or without) the rows
+    it references must not fail the batch. Rows created by
+    `POST /households/{id}/survey` do carry a real `survey_id`.
+    """
+
+    __tablename__ = "household_visit_checks"
+
+    household_id: Mapped[str] = mapped_column(String(36), index=True)
+    survey_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    beneficiary_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    check_type: Mapped[str] = mapped_column(String(40), default="general", index=True)
+    result: Mapped[str] = mapped_column(String(20), default="ok")
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    visited_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+
 class HouseholdSurvey(BaseModel):
     """One administered household survey.
 
@@ -74,6 +95,11 @@ class Beneficiary(BaseModel):
 
     is_pregnant: Mapped[bool] = mapped_column(Boolean, default=False)
     is_lactating: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # How this member relates to the household head (`head`, `spouse`, `son`,
+    # ...). Nullable: rows created before this existed, and pushes from older
+    # clients, simply carry no relationship.
+    relationship_to_head: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     registration_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     registered_by: Mapped[str | None] = mapped_column(String(36), nullable=True)

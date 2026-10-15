@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore } from '@/stores/app.store'
 import { Icon } from '@/components/common/Icons'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
@@ -55,9 +54,14 @@ export default function ImmunizationScheduleAshaSathi() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
   const queryClient = useQueryClient()
-  const patients = useAppStore((s) => s.patients)
   const { id } = useParams<{ id: string }>()
   const [childId, setChildId] = useState('')
+
+  const beneficiaryQuery = useQuery({
+    queryKey: ['beneficiary', id],
+    queryFn: () => beneficiaryService.getBeneficiary(id ?? ''),
+    enabled: Boolean(id),
+  })
 
   const childrenQuery = useQuery({
     queryKey: ['children', 'all'],
@@ -69,7 +73,9 @@ export default function ImmunizationScheduleAshaSathi() {
   })
   const childOptions = childrenQuery.data?.items ?? []
   const benMap = new Map((beneficiariesQuery.data?.items ?? []).map((b) => [b.id, b]))
-  const activeChildId = childId || childOptions[0]?.id || ''
+  // Prefer the child linked to the patient this page was opened for.
+  const linkedChild = childOptions.find((c) => c.beneficiary_id === beneficiaryQuery.data?.beneficiary.id)
+  const activeChildId = childId || linkedChild?.id || ''
 
   const immunizationQuery = useQuery({
     queryKey: ['immunizations', activeChildId],
@@ -79,7 +85,7 @@ export default function ImmunizationScheduleAshaSathi() {
 
   const doses = (immunizationQuery.data ?? []).map(toDose)
 
-  const patient = patients.find((p) => p.id === id) ?? patients[0]
+  const patient = beneficiaryQuery.data?.beneficiary
   const patientName = patient?.name ?? '—'
   const patientAbhaId = patient?.abhaId ?? '—'
 

@@ -25,9 +25,7 @@ def _phone() -> str:
     return "6" + "".join(str(int(uuid.uuid4().hex[i], 16) % 10) for i in range(9))
 
 
-async def _seed_beneficiary(
-    client, headers, household_id: str | None = None
-) -> dict:
+async def _seed_beneficiary(client, headers, household_id: str | None = None) -> dict:
     resp = await client.post(
         "/api/v1/beneficiaries",
         headers=headers,
@@ -66,9 +64,7 @@ async def test_household_and_beneficiary_crud(client, auth_headers):
     assert r.status_code == 200 and r.json()["asha_id"] == hh["asha_id"]
 
     # UPDATE
-    r = await client.put(
-        f"/api/v1/households/{hh['id']}", headers=headers, json={"address": "2 Main Rd"}
-    )
+    r = await client.put(f"/api/v1/households/{hh['id']}", headers=headers, json={"address": "2 Main Rd"})
     assert r.status_code == 200 and r.json()["address"] == "2 Main Rd"
 
     # CREATE beneficiary linked to household
@@ -87,9 +83,7 @@ async def test_household_and_beneficiary_crud(client, auth_headers):
     assert any(m["id"] == b["id"] for m in r.json()["items"])
 
     # UPDATE beneficiary
-    r = await client.put(
-        f"/api/v1/beneficiaries/{b['id']}", headers=headers, json={"full_name": "CRUD Test Updated"}
-    )
+    r = await client.put(f"/api/v1/beneficiaries/{b['id']}", headers=headers, json={"full_name": "CRUD Test Updated"})
     assert r.status_code == 200 and r.json()["full_name"] == "CRUD Test Updated"
 
     # SOFT DELETE beneficiary -> status inactive (still readable)
@@ -98,11 +92,17 @@ async def test_household_and_beneficiary_crud(client, auth_headers):
     r = await client.get(f"/api/v1/beneficiaries/{b['id']}", headers=headers)
     assert r.status_code == 200 and r.json()["status"] == "inactive"
 
-    # HARD DELETE household
+    # DELETE household is refused while members are linked (no silent orphans)
     r = await client.delete(f"/api/v1/households/{hh['id']}", headers=headers)
+    assert r.status_code == 409, r.text
+
+    # force=true unlinks the members, then deletes the household
+    r = await client.delete(f"/api/v1/households/{hh['id']}?force=true", headers=headers)
     assert r.status_code == 200
     r = await client.get(f"/api/v1/households/{hh['id']}", headers=headers)
     assert r.status_code == 404
+    r = await client.get(f"/api/v1/beneficiaries/{b['id']}", headers=headers)
+    assert r.status_code == 200 and r.json()["household_id"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -127,9 +127,7 @@ async def test_pregnancy_lifecycle_crud(client, auth_headers):
     r = await client.get(f"/api/v1/pregnancies/{preg['id']}", headers=headers)
     assert r.status_code == 200 and r.json()["risk_level"] == "high"
 
-    r = await client.put(
-        f"/api/v1/pregnancies/{preg['id']}", headers=headers, json={"risk_level": "medium"}
-    )
+    r = await client.put(f"/api/v1/pregnancies/{preg['id']}", headers=headers, json={"risk_level": "medium"})
     assert r.status_code == 200 and r.json()["risk_level"] == "medium"
 
     # ANC visit increments anc_count and sets last_anc_date
@@ -196,17 +194,30 @@ async def test_pregnancy_lifecycle_crud(client, auth_headers):
 async def test_child_health_crud(client, auth_headers, db_session):
     headers = await auth_headers(phone="9876543210", role="asha")
     b = await _seed_beneficiary(client, headers)
+    mother = await _seed_beneficiary(client, headers)
 
     r = await client.post(
         "/api/v1/children",
         headers=headers,
-        json={"beneficiary_id": b["id"], "birth_weight_grams": 2750, "gestation_weeks": 38},
+        json={"beneficiary_id": b["id"], "mother_id": mother["id"], "birth_weight_grams": 2750, "gestation_weeks": 38},
     )
     assert r.status_code == 201, r.text
     child = r.json()
+    assert child["mother_id"] == mother["id"]
+    assert child["mother_name"] == mother["full_name"]
+    assert child["father_id"] is None
+
+    # Missing mother is rejected
+    r = await client.post(
+        "/api/v1/children",
+        headers=headers,
+        json={"beneficiary_id": _uid(), "birth_weight_grams": 2750},
+    )
+    assert r.status_code == 422
 
     r = await client.get(f"/api/v1/children/{child['id']}", headers=headers)
     assert r.status_code == 200
+    assert r.json()["mother_id"] == mother["id"]
 
     # Immunization create + status update
     r = await client.post(
@@ -272,9 +283,7 @@ async def test_eligible_couple_crud(client, auth_headers):
     assert r.status_code == 201, r.text
     ec = r.json()
 
-    r = await client.put(
-        f"/api/v1/eligible-couples/{ec['id']}", headers=headers, json={"current_method": "condom"}
-    )
+    r = await client.put(f"/api/v1/eligible-couples/{ec['id']}", headers=headers, json={"current_method": "condom"})
     assert r.status_code == 200 and r.json()["current_method"] == "condom"
 
     r = await client.post(
@@ -336,9 +345,7 @@ async def test_referral_lifecycle(client, auth_headers):
     assert r.status_code == 200 and len(r.json()) == 1
 
     # Update outcome
-    r = await client.put(
-        f"/api/v1/referrals/{ref['id']}", headers=headers, json={"outcome": "recovered"}
-    )
+    r = await client.put(f"/api/v1/referrals/{ref['id']}", headers=headers, json={"outcome": "recovered"})
     assert r.status_code == 200 and r.json()["outcome"] == "recovered"
 
     # Hard delete
@@ -438,9 +445,7 @@ async def test_asha_directory_crud_admin_only(client, auth_headers):
     r = await client.get(f"/api/v1/ashas/{new_asha['asha_id']}", headers=admin)
     assert r.status_code == 200
 
-    r = await client.patch(
-        f"/api/v1/ashas/{new_asha['asha_id']}", headers=admin, json={"name": "CRUD ASHA Renamed"}
-    )
+    r = await client.patch(f"/api/v1/ashas/{new_asha['asha_id']}", headers=admin, json={"name": "CRUD ASHA Renamed"})
     assert r.status_code == 200
 
     # an ASHA may read the list (scoped to their own PHC) but nothing else here
@@ -520,9 +525,7 @@ async def test_notifications_crud_and_broadcast_guard(client, auth_headers):
         "/api/v1/notifications/broadcast", headers=admin, json={"title": "PHC Bulletin", "message": "Meeting at 10am"}
     )
     assert r.status_code == 200, r.text
-    r = await client.post(
-        "/api/v1/notifications/broadcast", headers=asha_headers, json={"title": "x", "message": "y"}
-    )
+    r = await client.post("/api/v1/notifications/broadcast", headers=asha_headers, json={"title": "x", "message": "y"})
     assert r.status_code == 403
 
     # reminder schedule
@@ -612,9 +615,7 @@ async def test_sanitize_and_audit_admin_gated(client, auth_headers):
     assert r.status_code == 200
     assert r.json()["beneficiaries_total"] >= 0
 
-    r = await client.post(
-        "/api/v1/sanitize/fix", headers=admin, json={"actions": ["fix_beneficiary_phones"]}
-    )
+    r = await client.post("/api/v1/sanitize/fix", headers=admin, json={"actions": ["fix_beneficiary_phones"]})
     assert r.status_code == 200 and r.json()["success"] is True
 
     r = await client.get("/api/v1/audit/logs", headers=admin)
@@ -751,10 +752,14 @@ async def test_inactive_user_rejected(db_session, client, auth_headers):
 
 async def test_child_requires_existing_beneficiary(client, auth_headers):
     headers = await auth_headers(phone="9876543210", role="asha")
+    mother = await _seed_beneficiary(client, headers)
     r = await client.post(
-        "/api/v1/children", headers=headers, json={"beneficiary_id": _uid(), "birth_weight_grams": 2500}
+        "/api/v1/children",
+        headers=headers,
+        json={"beneficiary_id": _uid(), "mother_id": mother["id"], "birth_weight_grams": 2500},
     )
     assert r.status_code == 404
+
 
 # ---------------------------------------------------------------------------
 # Regression: payloads the web forms actually send used to 422
@@ -945,9 +950,7 @@ async def test_household_update_leaves_unset_demographics_alone(client, auth_hea
     assert r.status_code == 201, r.text
     hh = r.json()
 
-    r = await client.put(
-        f"/api/v1/households/{hh['id']}", headers=headers, json={"address": "4 Park St"}
-    )
+    r = await client.put(f"/api/v1/households/{hh['id']}", headers=headers, json={"address": "4 Park St"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["address"] == "4 Park St"
@@ -961,10 +964,10 @@ async def test_household_demographics_optional(client, auth_headers):
     r = await client.post(
         "/api/v1/households",
         headers=headers,
-        json={"hhid": f"TEST-DEM3-{_uid().upper()}", "village_id": _uid()},
+        json={"hhid": f"TEST-DEM3-{_uid().upper()}", "village_id": _uid(), "head_name": "Test Head"},
     )
     assert r.status_code == 201, r.text
-    assert r.json()["head_name"] is None
+    assert r.json()["head_name"] == "Test Head"
     assert r.json()["family_size"] is None
 
 

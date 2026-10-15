@@ -9,6 +9,25 @@ export interface ReferralListParams {
   pageSize?: number
 }
 
+export interface ReferralFollowupAll {
+  id: string
+  referralId: string
+  beneficiaryId: string
+  reason: string
+  referralStatus: string
+  followupDate: string | null
+  beneficiaryStatus: string | null
+  treatmentCompliance: string | null
+  notes: string | null
+}
+
+export interface RecordFollowupPayload {
+  followupDate: string
+  beneficiaryStatus?: string
+  treatmentCompliance?: string
+  notes?: string
+}
+
 export interface CreateReferralPayload {
   beneficiaryId: string
   referralType?: string
@@ -104,5 +123,42 @@ export const referralService = {
 
   async deleteReferral(id: string): Promise<void> {
     await api.delete(`/referrals/${id}`)
+  },
+
+  /** Every referral follow-up with its referral row, in one call (no N+1). */
+  async listAllFollowups(): Promise<ReferralFollowupAll[]> {
+    const { data } = await api.get<
+      Array<{
+        id: string
+        referral_id: string
+        beneficiary_id: string
+        reason: string | null
+        referral_status: string
+        followup_date: string | null
+        beneficiary_status: string | null
+        treatment_compliance: string | null
+        notes: string | null
+      }>
+    >('/referrals/followups/all')
+    return data.map((f) => ({
+      id: f.id,
+      referralId: f.referral_id,
+      beneficiaryId: f.beneficiary_id,
+      reason: f.reason ?? '',
+      referralStatus: f.referral_status,
+      followupDate: f.followup_date ?? null,
+      beneficiaryStatus: f.beneficiary_status ?? null,
+      treatmentCompliance: f.treatment_compliance ?? null,
+      notes: f.notes ?? null,
+    }))
+  },
+
+  async recordReferralFollowup(referralId: string, payload: RecordFollowupPayload): Promise<void> {
+    await api.post(`/referrals/${referralId}/followups`, {
+      followup_date: payload.followupDate,
+      beneficiary_status: payload.beneficiaryStatus,
+      treatment_compliance: payload.treatmentCompliance,
+      notes: payload.notes,
+    })
   },
 }

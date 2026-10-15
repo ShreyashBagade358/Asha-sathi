@@ -46,7 +46,7 @@ export default function AshaPerformance() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="ASHA Performance & Activity" subtitle="Monitor field worker metrics and reporting compliance." />
+      <PageHeader title="ASHA Performance & Activity" />
 
       <div className="flex flex-wrap items-center gap-3">
         <input

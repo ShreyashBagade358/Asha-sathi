@@ -8,16 +8,18 @@ from app.api.deps import get_current_user, get_db_session
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.beneficiary import Beneficiary
 from app.models.referral import Referral, ReferralFollowup
-from app.models.user import User
+from app.models.user import Role, User
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
 from app.schemas.other_domain import (
     ReferralCreate,
+    ReferralFollowupAllResponse,
     ReferralFollowupCreate,
     ReferralFollowupResponse,
     ReferralResponse,
     ReferralUpdate,
 )
 from app.services.audit import log_action
+from app.services.sync_scope import resolve_scope
 
 router = APIRouter()
 
@@ -46,9 +48,44 @@ async def list_referrals(
         stmt = stmt.where(Referral.referral_type == referral_type)
     if beneficiary_id:
         stmt = stmt.where(Referral.beneficiary_id == beneficiary_id)
+    if user.role == Role.ASHA.value:
+        # ASHAs see only referrals raised for their own people — the same
+        # beneficiary set the sync scope gives the mobile app.
+        scope = await resolve_scope(db, user)
+        stmt = stmt.where(Referral.beneficiary_id.in_(scope.beneficiary_ids or set()))
     total = (await db.execute(select(func.count()).select_from(stmt.order_by(None).subquery()))).scalar_one()
     result = await db.execute(stmt.order_by(Referral.created_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return paginate([ReferralResponse.model_validate(r) for r in result.scalars().all()], total, page, page_size)
+
+
+@router.get("/followups/all", response_model=list[ReferralFollowupAllResponse])
+async def list_all_referral_followups(
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Every referral follow-up with its referral row, in one call.
+
+    The ASHA follow-up page previously made one GET per referral (N+1);
+    this returns the flat list instead, scoped for ASHA-role callers.
+    """
+    stmt = (
+        select(ReferralFollowup, Referral)
+        .join(Referral, Referral.id == ReferralFollowup.referral_id)
+        .order_by(ReferralFollowup.followup_date)
+    )
+    if user.role == Role.ASHA.value:
+        scope = await resolve_scope(db, user)
+        stmt = stmt.where(Referral.beneficiary_id.in_(scope.beneficiary_ids or set()))
+    rows = (await db.execute(stmt)).all()
+    return [
+        ReferralFollowupAllResponse(
+            **ReferralFollowupResponse.model_validate(fu).model_dump(),
+            beneficiary_id=ref.beneficiary_id,
+            reason=ref.reason,
+            referral_status=ref.status,
+        )
+        for fu, ref in rows
+    ]
 
 
 @router.post("", response_model=ReferralResponse, status_code=201)

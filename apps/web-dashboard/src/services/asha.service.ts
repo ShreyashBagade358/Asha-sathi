@@ -34,6 +34,8 @@ export interface CreateASHPayload {
   name: string
   phone: string
   village?: string
+  /** PHC id — used when the chosen PHC has no villages yet. */
+  phc?: string
   email?: string
   date_of_birth?: string
   gender?: 'female' | 'male' | 'other'
@@ -241,6 +243,7 @@ export const ashaService = {
       name: payload.name,
       phone: payload.phone,
       village: payload.village,
+      phc: payload.phc || undefined,
       email: payload.email || undefined,
       date_of_birth: payload.date_of_birth || undefined,
       gender: payload.gender || undefined,

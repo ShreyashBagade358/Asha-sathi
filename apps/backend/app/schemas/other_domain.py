@@ -491,6 +491,14 @@ class ReferralFollowupResponse(BaseModel):
     notes: str | None = None
 
 
+class ReferralFollowupAllResponse(ReferralFollowupResponse):
+    """One follow-up row plus the referral it belongs to, for list views."""
+
+    beneficiary_id: str
+    reason: str | None = None
+    referral_status: str
+
+
 # ---------------------------------------------------------------------------
 # AI
 # ---------------------------------------------------------------------------

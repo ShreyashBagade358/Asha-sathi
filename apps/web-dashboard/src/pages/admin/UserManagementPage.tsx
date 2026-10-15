@@ -2,9 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from '
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ASHAButton, ASHACard, ASHAInput, StatusChip } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
-import { usePermissions } from '@/hooks/usePermissions'
 import { useUIStore } from '@/stores/ui.store'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { DataTable, type Column } from '@/components/common/DataTable'
 import { Icon } from '@/components/common/Icons'
 import { getErrorMessage } from '@/components/common/ErrorState'
@@ -14,7 +12,7 @@ import { configService } from '@/services/config.service'
 import { SearchableSelect } from '@/components/common/SearchableSelect'
 import type { Role } from '@/types'
 
-const ROLES: Role[] = ['asha', 'admin', 'patient']
+const ROLES: Role[] = ['asha', 'patient']
 const PAGE_SIZE = 10
 const selectCls =
   'h-touch w-full rounded-md border border-outline bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none focus:border-primary'
@@ -36,7 +34,6 @@ interface FormValues {
 
 export default function UserManagementPage() {
   const { t } = useLocalization()
-  const { can } = usePermissions()
   const { addToast } = useUIStore()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
@@ -167,16 +164,6 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('nav.userManagement')}
-        subtitle={t('super.usersSubtitle')}
-        breadcrumbs={[{ label: t('nav.dashboard'), to: '/super/users' }]}
-        actions={
-          can('users:manage') ? (
-            <ASHAButton fullWidth={false} icon={<Icon name="plus" size={16} />} onClick={() => setShowCreate(true)} label={t('super.createUser')} />
-          ) : undefined
-        }
-      />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-64 flex-1">
@@ -198,6 +185,14 @@ export default function UserManagementPage() {
             ))}
           </select>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant active:scale-[0.98]"
+        >
+          <span className="material-symbols-outlined text-[18px]">person_add</span>
+          {t('super.createUser')}
+        </button>
       </div>
 
       <DataTable

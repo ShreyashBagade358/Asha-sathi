@@ -3,7 +3,7 @@ from app.models.admin import PHC, Block, District, State, SubCenter, Village
 from app.models.ai import AIPrediction
 from app.models.audit import AuditLog, SyncLog
 from app.models.base import BaseModel
-from app.models.beneficiary import Beneficiary, Household, HouseholdSurvey
+from app.models.beneficiary import Beneficiary, Household, HouseholdSurvey, HouseholdVisitCheck
 from app.models.child import Child, GrowthRecord, HBNCVisit, HBYCVisit, Immunization
 from app.models.config import AppConfig
 from app.models.death import DeathReport
@@ -45,6 +45,7 @@ __all__ = [
     "HealthRecord",
     "Household",
     "HouseholdSurvey",
+    "HouseholdVisitCheck",
     "Immunization",
     "IncentiveClaim",
     "MalariaCase",

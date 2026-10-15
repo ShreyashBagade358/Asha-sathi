@@ -63,6 +63,7 @@ class UserResponse(BaseModel):
     phc_id: str | None = None
     state_name: str | None = None
     district_name: str | None = None
+    block_name: str | None = None
     phc_name: str | None = None
 
 
@@ -144,6 +145,9 @@ class ASHACreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     phone: str = Field(pattern=r"^\d{10}$")
     village: str | None = None
+    # PHC by id or name — used when the chosen PHC has no villages yet.
+    # A village always wins: the PHC is then derived from it.
+    phc: str | None = None
     status: str = "active"
     email: EmailStr | None = None
     date_of_birth: date | None = None

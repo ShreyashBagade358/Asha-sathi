@@ -34,6 +34,7 @@ interface RawUser {
   phc_id?: string | null
   state_name?: string | null
   district_name?: string | null
+  block_name?: string | null
   phc_name?: string | null
 }
 
@@ -57,6 +58,7 @@ export const profileService = {
       districtId: data.district_id ?? undefined,
       districtName: data.district_name ?? undefined,
       blockId: data.block_id ?? undefined,
+      blockName: data.block_name ?? undefined,
       phcId: data.phc_id ?? undefined,
       phcName: data.phc_name ?? undefined,
       active: data.is_active ?? true,

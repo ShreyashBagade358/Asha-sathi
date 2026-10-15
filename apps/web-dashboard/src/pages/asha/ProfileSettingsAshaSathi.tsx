@@ -4,7 +4,6 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { useUIStore } from '@/stores/ui.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { profileService } from '@/services/profile.service'
@@ -129,12 +128,6 @@ export default function ProfileSettingsAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.profileTitle')}
-        subtitle={t('asha.profileSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.profileTitle') }]}
-      />
-
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-card">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-headline-md font-bold text-on-primary">
           {(fullName.charAt(0) || '?').toUpperCase()}

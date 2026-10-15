@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { useUIStore } from '@/stores/ui.store'
 import { Icon, type IconName } from '@/components/common/Icons'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { householdService } from '@/services/household.service'
@@ -28,6 +29,7 @@ export default function HouseholdVisitSurveyAshaSathi() {
   const [water, setWater] = useState(false)
   const [toilet, setToilet] = useState(false)
   const [fever, setFever] = useState<'yes' | 'no' | ''>('')
+  const [checks, setChecks] = useState<Record<string, 'ok' | 'concern'>>({})
 
   const householdQuery = useQuery({
     queryKey: ['household', id],
@@ -56,6 +58,10 @@ export default function HouseholdVisitSurveyAshaSathi() {
           ...(fever ? { recent_fever: fever } : {}),
         },
         visitedAt: new Date().toISOString().slice(0, 10),
+        memberChecks: members.map((member) => ({
+          beneficiaryId: member.id,
+          result: checks[member.id] ?? 'ok',
+        })),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['asha', 'tasks'] })
@@ -127,33 +133,65 @@ export default function HouseholdVisitSurveyAshaSathi() {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <p className="col-span-full font-caption text-caption text-on-surface-variant">
+                {t('asha.memberChecksHint')}
+              </p>
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-card"
+                  className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-card"
                 >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`flex h-touch-target w-touch-target items-center justify-center rounded-full ${
-                        member.isPregnant
-                          ? 'bg-tertiary-container text-on-tertiary-container'
-                          : 'bg-surface-container-high text-primary'
-                      }`}
-                    >
-                      <Icon name={memberIcon(member)} size={20} />
-                    </span>
-                    <div>
-                      <h4 className="font-body-md text-body-md font-bold text-on-surface">{member.fullName}</h4>
-                      <p className="font-caption text-caption text-on-surface-variant">
-                        {member.gender ?? '—'}, {memberAge(member.ageYears, member.ageMonths)}
-                      </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`flex h-touch-target w-touch-target items-center justify-center rounded-full ${
+                          member.isPregnant
+                            ? 'bg-tertiary-container text-on-tertiary-container'
+                            : 'bg-surface-container-high text-primary'
+                        }`}
+                      >
+                        <Icon name={memberIcon(member)} size={20} />
+                      </span>
+                      <div>
+                        <h4 className="font-body-md text-body-md font-bold text-on-surface">{member.fullName}</h4>
+                        <p className="font-caption text-caption text-on-surface-variant">
+                          {member.gender ?? '—'}, {memberAge(member.ageYears, member.ageMonths)}
+                        </p>
+                      </div>
                     </div>
+                    {member.isPregnant ? (
+                      <span className="rounded-full bg-tertiary-container px-3 py-1 font-caption text-caption text-on-tertiary-container">
+                        {t('asha.highRisk')}
+                      </span>
+                    ) : null}
                   </div>
-                  {member.isPregnant ? (
-                    <span className="rounded-full bg-tertiary-container px-3 py-1 font-caption text-caption text-on-tertiary-container">
-                      {t('asha.highRisk')}
-                    </span>
-                  ) : null}
+                  <div className="flex gap-2">
+                    {(['ok', 'concern'] as const).map((result) => {
+                      const selected = (checks[member.id] ?? 'ok') === result
+                      return (
+                        <label key={result} className="flex-1 cursor-pointer">
+                          <input
+                            className="peer sr-only"
+                            name={`check-${member.id}`}
+                            type="radio"
+                            checked={selected}
+                            onChange={() => setChecks((prev) => ({ ...prev, [member.id]: result }))}
+                          />
+                          <div
+                            className={`flex h-touch-target w-full items-center justify-center rounded-xl border py-3 text-center font-label-md text-label-md transition-all peer-checked:font-bold ${
+                              selected
+                                ? result === 'ok'
+                                  ? 'border-primary bg-primary-container text-on-primary-container'
+                                  : 'border-error bg-error-container text-on-error-container'
+                                : 'border-outline-variant text-on-surface-variant'
+                            }`}
+                          >
+                            {result === 'ok' ? t('asha.checkOk') : t('asha.checkConcern')}
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
@@ -243,16 +281,7 @@ export default function HouseholdVisitSurveyAshaSathi() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
 
-      <div className="flex items-center gap-2">
-        <Link
-          to="/asha/households"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high active:scale-95"
-          aria-label={t('common.back')}
-        >
-          <Icon name="chevronLeft" size={22} />
-        </Link>
-        <h1 className="font-headline-lg text-headline-lg font-bold text-primary">{t('asha.householdVisit')}</h1>
-      </div>
+      <PageHeader title={t('asha.householdVisit')} />
 
       {body}
     </div>

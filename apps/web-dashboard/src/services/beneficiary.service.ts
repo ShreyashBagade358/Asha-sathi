@@ -1,73 +1,71 @@
-import { api } from '@/lib/api'
-import type {
-  ANCVisit,
-  Beneficiary,
-  Child,
-  Immunization,
-  Paginated,
-  Pregnancy,
-} from '@/types'
+import { api } from '@/lib/api';
+import type { ANCVisit, Beneficiary, Child, Immunization, Paginated, Pregnancy } from '@/types';
 
-export type BeneficiaryStatus = 'pregnant' | 'postnatal' | 'child' | 'eligible'
+export type BeneficiaryStatus = 'pregnant' | 'postnatal' | 'child' | 'eligible';
 
 export interface BeneficiaryListParams {
-  search?: string
-  village?: string
-  status?: BeneficiaryStatus | 'all'
-  hasAbha?: boolean
-  page?: number
-  pageSize?: number
+  search?: string;
+  village?: string;
+  phcId?: string;
+  status?: BeneficiaryStatus | 'all';
+  hasAbha?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface BeneficiaryTimeline {
-  beneficiary: Beneficiary
-  pregnancies: Pregnancy[]
-  ancVisits: ANCVisit[]
-  children: Child[]
-  immunizations: Immunization[]
+  beneficiary: Beneficiary;
+  pregnancies: Pregnancy[];
+  ancVisits: ANCVisit[];
+  children: Child[];
+  immunizations: Immunization[];
 }
 
 export interface CreateBeneficiaryPayload {
-  name: string
-  abhaId?: string
-  dob?: string
-  gender?: 'male' | 'female' | 'other'
-  phone?: string
-  village?: string
-  householdId?: string
-  maritalStatus?: string
-  bloodGroup?: string
-  isPregnant?: boolean
-  isLactating?: boolean
-  risk?: string
-  notes?: string
+  name: string;
+  abhaId?: string;
+  dob?: string;
+  gender?: 'male' | 'female' | 'other';
+  phone?: string;
+  village?: string;
+  householdId?: string;
+  /** How this member relates to the household head (family linking). */
+  relationshipToHead?: string;
+  maritalStatus?: string;
+  bloodGroup?: string;
+  isPregnant?: boolean;
+  isLactating?: boolean;
+  risk?: string;
+  notes?: string;
 }
 
 interface RawBeneficiary {
-  id: string
-  beneficiary_id: string
-  household_id?: string | null
-  abha_id?: string | null
-  full_name: string
-  gender?: string | null
-  date_of_birth?: string | null
-  phone?: string | null
-  marital_status?: string | null
-  is_pregnant?: boolean
-  status?: string
-  created_at?: string
-  village?: string | null
-  village_id?: string | null
-  asha_id?: string | null
-  risk?: string | null
-  notes?: string | null
-  photo_url?: string | null
+  id: string;
+  beneficiary_id: string;
+  household_id?: string | null;
+  abha_id?: string | null;
+  full_name: string;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  age_years?: number | null;
+  blood_group?: string | null;
+  phone?: string | null;
+  marital_status?: string | null;
+  is_pregnant?: boolean;
+  status?: string;
+  created_at?: string;
+  village?: string | null;
+  village_id?: string | null;
+  asha_id?: string | null;
+  risk?: string | null;
+  notes?: string | null;
+  photo_url?: string | null;
 }
 
-interface TimelineEvent {
-  type: string
-  date: string
-  record: Record<string, unknown>
+export interface TimelineEvent {
+  type: string;
+  date: string;
+  record: Record<string, unknown>;
 }
 
 function mapBeneficiary(r: RawBeneficiary): Beneficiary {
@@ -76,25 +74,36 @@ function mapBeneficiary(r: RawBeneficiary): Beneficiary {
     abhaId: r.abha_id ?? undefined,
     name: r.full_name,
     dob: r.date_of_birth ?? r.created_at ?? '',
-    gender: r.gender === 'male' ? 'male' : r.gender === 'transgender' ? 'transgender' : 'female',
+    gender: r.gender === 'male' ? 'male' : r.gender === 'transgender' ? 'transgender' : r.gender === 'female' ? 'female' : 'other',
     phone: r.phone ?? undefined,
     village: r.village ?? '',
     phcId: '',
     ashaId: r.asha_id ?? undefined,
+    householdId: r.household_id ?? undefined,
+    bloodGroup: r.blood_group ?? undefined,
+    ageYears: r.age_years ?? undefined,
     maritalStatus:
-      r.marital_status === 'unmarried' ? 'unmarried' : r.marital_status === 'widowed' ? 'widowed' : r.marital_status === 'divorced' ? 'divorced' : r.marital_status ? 'married' : undefined,
+      r.marital_status === 'unmarried'
+        ? 'unmarried'
+        : r.marital_status === 'widowed'
+          ? 'widowed'
+          : r.marital_status === 'divorced'
+            ? 'divorced'
+            : r.marital_status
+              ? 'married'
+              : undefined,
     isPregnant: r.is_pregnant ?? false,
     risk: r.risk ?? undefined,
     notes: r.notes ?? undefined,
     photoUrl: r.photo_url ?? undefined,
     createdAt: r.created_at ?? '',
-  }
+  };
 }
 
 function mapTimelinePregnancy(id: string, r: Record<string, unknown>): Pregnancy {
-  const num = (k: string): number => Number(r[k]) || 0
-  const level = String(r.risk_level ?? 'low')
-  const factors = (r.risk_factors as Record<string, unknown> | null | undefined) ?? {}
+  const num = (k: string): number => Number(r[k]) || 0;
+  const level = String(r.risk_level ?? 'low');
+  const factors = (r.risk_factors as Record<string, unknown> | null | undefined) ?? {};
   return {
     id: String(r.id ?? ''),
     beneficiaryId: id,
@@ -102,13 +111,22 @@ function mapTimelinePregnancy(id: string, r: Record<string, unknown>): Pregnancy
     edd: String(r.edd ?? ''),
     gravida: num('gravida'),
     para: num('parity'),
-    status: r.status === 'delivered' ? 'delivered' : r.status === 'aborted' ? 'aborted' : r.status === 'ltf' ? 'ltf' : 'ongoing',
+    status:
+      r.status === 'delivered'
+        ? 'delivered'
+        : r.status === 'aborted'
+          ? 'aborted'
+          : r.status === 'ltf'
+            ? 'ltf'
+            : 'ongoing',
     highRisk: level !== 'low' || Object.keys(factors).length > 0,
     hrpLevel: level === 'high' ? 'high' : level === 'medium' ? 'medium' : undefined,
-    complications: Array.isArray(r.complications) ? (r.complications as string[]) : Object.keys(factors),
+    complications: Array.isArray(r.complications)
+      ? (r.complications as string[])
+      : Object.keys(factors),
     registeredAt: String(r.created_at ?? r.registered_at ?? ''),
     registeredBy: r.registered_by ? String(r.registered_by) : undefined,
-  }
+  };
 }
 
 function mapTimelineANC(id: string, r: Record<string, unknown>): ANCVisit {
@@ -128,29 +146,34 @@ function mapTimelineANC(id: string, r: Record<string, unknown>): ANCVisit {
     hrpFlag: !!r.hrp_flag,
     attendedBy: r.attended_by ? String(r.attended_by) : undefined,
     facility: r.facility_id ? String(r.facility_id) : undefined,
-  }
+  };
 }
 
 function mapTimelineChild(id: string, r: Record<string, unknown>): Child {
-  const deliveryType = r.delivery_type === 'c-section' ? 'c-section' : r.delivery_type === 'assisted' ? 'assisted' : 'normal'
-  const place = String(r.place_of_birth ?? '')
+  const deliveryType =
+    r.delivery_type === 'c-section'
+      ? 'c-section'
+      : r.delivery_type === 'assisted'
+        ? 'assisted'
+        : 'normal';
+  const place = String(r.place_of_birth ?? '');
   return {
     id: String(r.id ?? ''),
     beneficiaryId: id,
     name: String(r.child_name ?? 'Child'),
     dob: String(r.created_at ?? ''),
-    gender: r.gender === 'male' ? 'male' : r.gender === 'transgender' ? 'transgender' : 'female',
+    gender: r.gender === 'male' ? 'male' : r.gender === 'transgender' ? 'transgender' : r.gender === 'female' ? 'female' : 'other',
     birthWeightKg: r.birth_weight_grams != null ? Number(r.birth_weight_grams) / 1000 : undefined,
     gestationalAgeWeeks: r.gestation_weeks != null ? Number(r.gestation_weeks) : undefined,
     deliveryType,
     bornAtFacility: place === 'facility' || place === 'hospital' || place === 'private_hospital',
     ashaId: r.asha_id ? String(r.asha_id) : undefined,
     phcId: '',
-  }
+  };
 }
 
 function mapTimelineImmunization(id: string, r: Record<string, unknown>): Immunization {
-  const status = String(r.status ?? 'due')
+  const status = String(r.status ?? 'due');
   return {
     id: String(r.id ?? ''),
     childId: String(r.child_id ?? id),
@@ -159,54 +182,87 @@ function mapTimelineImmunization(id: string, r: Record<string, unknown>): Immuni
     doseNumber: Number(r.dose_number) || 1,
     dueDate: String(r.due_date ?? ''),
     administeredDate: r.given_date ? String(r.given_date) : undefined,
-    status: status === 'given' ? 'given' : status === 'overdue' ? 'overdue' : status === 'skipped' ? 'skipped' : 'due',
+    status:
+      status === 'given'
+        ? 'given'
+        : status === 'overdue'
+          ? 'overdue'
+          : status === 'skipped'
+            ? 'skipped'
+            : 'due',
     administeredAt: r.given_date ? String(r.given_date) : undefined,
     facility: r.facility_id ? String(r.facility_id) : undefined,
-  }
+  };
 }
 
 interface RawBeneficiaryPage {
-  items: RawBeneficiary[]
-  total: number
-  page: number
-  page_size: number
-  total_pages: number
+  items: RawBeneficiary[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export const beneficiaryService = {
+  async getStats(): Promise<{ total: number; pregnant: number; villages: string[]; phcs: { id: string; name: string }[] }> {
+    const { data } = await api.get('/beneficiaries/stats')
+    return data
+  },
+
   async listBeneficiaries(params: BeneficiaryListParams = {}): Promise<Paginated<Beneficiary>> {
     const { data } = await api.get<RawBeneficiaryPage>('/beneficiaries', {
       params: {
         q: params.search || undefined,
         village: params.village || undefined,
+        phc_id: params.phcId || undefined,
         status: params.status === 'all' ? undefined : params.status,
         has_abha: params.hasAbha,
         page: params.page ?? 1,
         page_size: params.pageSize ?? 10,
       },
-    })
+    });
     return {
       items: (data.items ?? []).map(mapBeneficiary),
       total: data.total,
       page: data.page,
       pageSize: data.page_size,
       totalPages: data.total_pages,
-    }
+    };
+  },
+
+  /** `GET /beneficiaries/{id}` — a single beneficiary, no timeline. */
+  async getBeneficiaryById(id: string): Promise<Beneficiary> {
+    const { data } = await api.get<RawBeneficiary>(`/beneficiaries/${id}`);
+    return mapBeneficiary(data);
   },
 
   async getBeneficiary(id: string): Promise<BeneficiaryTimeline> {
     const [{ data: ben }, { data: timeline }] = await Promise.all([
       api.get<RawBeneficiary>(`/beneficiaries/${id}`),
       api.get<{ beneficiary_id: string; events: TimelineEvent[] }>(`/beneficiaries/${id}/timeline`),
-    ])
-    const events = timeline?.events ?? []
+    ]);
+    const events = timeline?.events ?? [];
     return {
       beneficiary: mapBeneficiary(ben),
-      pregnancies: events.filter((e) => e.type === 'Pregnancy').map((e) => mapTimelinePregnancy(id, e.record)),
-      ancVisits: events.filter((e) => e.type === 'ANCVISIT').map((e) => mapTimelineANC(id, e.record)),
+      pregnancies: events
+        .filter((e) => e.type === 'Pregnancy')
+        .map((e) => mapTimelinePregnancy(id, e.record)),
+      ancVisits: events
+        .filter((e) => e.type === 'ANCVISIT')
+        .map((e) => mapTimelineANC(id, e.record)),
       children: events.filter((e) => e.type === 'Child').map((e) => mapTimelineChild(id, e.record)),
-      immunizations: events.filter((e) => e.type === 'Immunization').map((e) => mapTimelineImmunization(id, e.record)),
-    }
+      immunizations: events
+        .filter((e) => e.type === 'Immunization')
+        .map((e) => mapTimelineImmunization(id, e.record)),
+    };
+  },
+
+  /** Full visit + check-up history — every event the ASHA records, oldest first. */
+  async getTimeline(id: string): Promise<TimelineEvent[]> {
+    const { data } = await api.get<{ beneficiary_id: string; events: TimelineEvent[] }>(
+      `/beneficiaries/${id}/timeline`,
+    );
+    return data?.events ?? [];
   },
 
   async createBeneficiary(payload: CreateBeneficiaryPayload): Promise<Beneficiary> {
@@ -218,6 +274,7 @@ export const beneficiaryService = {
       gender: payload.gender,
       phone: payload.phone,
       household_id: payload.householdId,
+      relationship_to_head: payload.relationshipToHead || undefined,
       marital_status: payload.maritalStatus,
       blood_group: payload.bloodGroup,
       is_pregnant: payload.isPregnant ?? false,
@@ -225,42 +282,69 @@ export const beneficiaryService = {
       village: payload.village || undefined,
       risk: payload.risk || undefined,
       notes: payload.notes?.trim() || undefined,
-    })
-    return mapBeneficiary(data)
+    });
+    return mapBeneficiary(data);
   },
 
-
   async deleteBeneficiary(id: string): Promise<void> {
-    await api.delete(`/beneficiaries/${id}`)
+    await api.delete(`/beneficiaries/${id}`);
   },
 
   /** `POST /beneficiaries/{id}/photo` — multipart, returns the public photo URL. */
   async uploadPhoto(beneficiaryId: string, file: File): Promise<string> {
-    const form = new FormData()
-    form.append('file', file)
-    const { data } = await api.post<{ photo_url: string }>(`/beneficiaries/${beneficiaryId}/photo`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return data.photo_url
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await api.post<{ photo_url: string }>(
+      `/beneficiaries/${beneficiaryId}/photo`,
+      form,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      },
+    );
+    return data.photo_url;
   },
 
   exportCSV(rows: Beneficiary[], filename = 'beneficiaries.csv'): void {
-    const header = ['ID', 'Name', 'ABHA', 'DOB', 'Gender', 'Phone', 'Village', 'Pregnant', 'Has Child', 'Created At']
+    const header = [
+      'ID',
+      'Name',
+      'ABHA',
+      'DOB',
+      'Gender',
+      'Phone',
+      'Village',
+      'Pregnant',
+      'Has Child',
+      'Created At',
+    ];
     const lines = rows.map((b) =>
-      [b.id, b.name, b.abhaId ?? '', b.dob.slice(0, 10), b.gender, b.phone ?? '', b.village, b.isPregnant ? 'yes' : 'no', b.hasChild ? 'yes' : 'no', b.createdAt.slice(0, 10)].map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','),
-    )
-    downloadCsv([header.join(','), ...lines].join('\n'), filename)
+      [
+        b.id,
+        b.name,
+        b.abhaId ?? '',
+        b.dob.slice(0, 10),
+        b.gender,
+        b.phone ?? '',
+        b.village,
+        b.isPregnant ? 'yes' : 'no',
+        b.hasChild ? 'yes' : 'no',
+        b.createdAt.slice(0, 10),
+      ]
+        .map((cell) => `"${String(cell).replaceAll('"', '""')}"`)
+        .join(','),
+    );
+    downloadCsv([header.join(','), ...lines].join('\n'), filename);
   },
-}
+};
 
 export function downloadCsv(content: string, filename: string): void {
-  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

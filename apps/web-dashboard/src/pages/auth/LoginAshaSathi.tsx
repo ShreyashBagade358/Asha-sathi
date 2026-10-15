@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { clearRememberedPhone, readRememberedPhone, writeRememberedPhone } from '@/lib/api'
 
 type LoginRole = 'health-worker' | 'patient' | 'phc-admin'
 
@@ -22,8 +23,9 @@ export default function LoginAshaSathi() {
   const navigate = useNavigate()
   const { isAuthenticated, isHydrating, signIn } = useAuth()
   const [role, setRole] = useState<LoginRole>('health-worker')
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(() => readRememberedPhone() ?? '')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(() => !!readRememberedPhone())
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +58,11 @@ export default function LoginAshaSathi() {
     setLoading(true)
     try {
       await signIn(digits, password)
+      if (rememberMe) {
+        writeRememberedPhone(digits)
+      } else {
+        clearRememberedPhone()
+      }
       navigate('/dashboard', { replace: true })
     } catch (err) {
       // The API deliberately returns the same message for an unknown phone and
@@ -71,7 +78,7 @@ export default function LoginAshaSathi() {
     <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[1.1fr_1fr]">
       <section
         aria-hidden
-        className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-primary to-on-primary-fixed lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-on-primary"
+        className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-primary to-on-primary-fixed-variant lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-on-primary"
       >
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-primary-container opacity-40 blur-3xl" />
         <div className="pointer-events-none absolute bottom-10 -left-16 h-64 w-64 rounded-full bg-tertiary-container opacity-30 blur-3xl" />
@@ -244,6 +251,18 @@ export default function LoginAshaSathi() {
                     </span>
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer items-center gap-2 select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary/30"
+                  />
+                  <span className="font-caption text-caption text-on-surface-variant">Remember me</span>
+                </label>
               </div>
 
               {error && (

@@ -210,6 +210,9 @@ class MicroBirthPlanResponse(BaseModel):
 
 class ChildCreate(BaseModel):
     beneficiary_id: str
+    mother_id: str
+    father_id: str | None = None
+    delivery_outcome_id: str | None = None
     birth_registration_no: str | None = None
     birth_weight_grams: int | None = None
     birth_length_cm: float | None = None
@@ -227,6 +230,11 @@ class ChildResponse(BaseModel):
 
     id: str
     beneficiary_id: str
+    mother_id: str | None = None
+    father_id: str | None = None
+    delivery_outcome_id: str | None = None
+    mother_name: str | None = None
+    father_name: str | None = None
     birth_registration_no: str | None = None
     birth_weight_grams: int | None = None
     gestation_weeks: int | None = None

@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import Boolean, Date, Float, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -12,6 +12,17 @@ class Child(BaseModel):
     __tablename__ = "children"
 
     beneficiary_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    # Family links: the mother is mandatory at the API layer (a child cannot be
+    # registered without her), the father is optional. Both are bare string FKs
+    # like the sync layer uses elsewhere — a push that references a beneficiary
+    # row created moments later must not fail the batch.
+    mother_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    father_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    # Set when the child was born from a delivery recorded in this system —
+    # joins the child to the mother's DeliveryOutcome row.
+    delivery_outcome_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("delivery_outcomes.id"), nullable=True, index=True
+    )
     birth_registration_no: Mapped[str | None] = mapped_column(String(64), nullable=True)
     birth_weight_grams: Mapped[int | None]
     birth_length_cm: Mapped[float | None] = mapped_column(Float, nullable=True)

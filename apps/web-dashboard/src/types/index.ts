@@ -7,7 +7,7 @@ export interface User {
   phone: string
   email?: string
   language?: string
-  stateId: string
+  stateId?: string
   stateName?: string
   districtId?: string
   districtName?: string
@@ -23,7 +23,7 @@ export interface User {
   lastLoginAt?: string
 }
 
-export type Gender = 'male' | 'female' | 'transgender'
+export type Gender = 'male' | 'female' | 'transgender' | 'other'
 export type MaritalStatus = 'unmarried' | 'married' | 'widowed' | 'divorced'
 
 export interface Beneficiary {
@@ -37,6 +37,9 @@ export interface Beneficiary {
   phcId: string
   ashaId?: string
   anmId?: string
+  householdId?: string
+  bloodGroup?: string
+  ageYears?: number
   maritalStatus?: MaritalStatus
   bpl?: boolean
   isPregnant?: boolean
@@ -62,6 +65,7 @@ export interface Pregnancy {
   highRisk: boolean
   hrpLevel?: 'low' | 'medium' | 'high'
   complications: string[]
+  ancCount?: number
   registeredAt: string
   registeredBy?: string
   deliveredAt?: string
@@ -88,6 +92,10 @@ export interface ANCVisit {
 export interface Child {
   id: string
   beneficiaryId: string
+  motherId?: string
+  fatherId?: string
+  motherName?: string
+  fatherName?: string
   name: string
   dob: string
   gender: Gender

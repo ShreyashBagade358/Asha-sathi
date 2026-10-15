@@ -11,6 +11,12 @@ import { colors } from '@/theme';
  * for, so the app surfaces it in the top bar instead. It is the one control that
  * must stay reachable from every screen, hence its own component rather than
  * inline markup.
+ *
+ * The two hints are deliberately NOT t(...) calls: each is written in the
+ * language the button would switch *to* (a Hindi UI says "Switch to English",
+ * an English UI says "हिंदी में बदलें"), so reading them from the current
+ * locale would announce the switch in the wrong language. The visible label
+ * ("EN" / "हिं") is the same convention.
  */
 export function LanguageToggle({ onSurface = false }: { onSurface?: boolean }) {
   const { locale, toggleLanguage } = useLocalization();

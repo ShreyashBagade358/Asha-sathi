@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { PhcSidebar } from '@/components/layout/PhcSidebar'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { childService } from '@/services/child.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
@@ -180,26 +179,22 @@ export default function GrowthNutritionMonitoringPhcAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-6 pb-24 md:pb-0 overflow-y-auto"><LoadingState label="Loading nutrition data…" /></main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <LoadingState label="Loading nutrition data…" />
+        </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="flex h-screen overflow-hidden bg-surface">
-        <PhcSidebar />
-        <main className="flex-1 ml-0 md:ml-64 p-6 pb-24 md:pb-0 overflow-y-auto"><ErrorState message={getErrorMessage(error)} onRetry={refetch} /></main>
-      </div>
+        <div className="flex items-center justify-center py-24">
+          <ErrorState message={getErrorMessage(error)} onRetry={refetch} />
+        </div>
     )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      <PhcSidebar />
-      <main className="flex-1 ml-0 md:ml-64 p-6 md:p-8 max-w-[1440px] mx-auto pb-24 md:pb-0 overflow-y-auto flex flex-col">
+      <div className="mx-auto w-full max-w-[1440px] flex flex-col gap-6">
         {children.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-14 text-center">
             <span className="material-symbols-outlined text-[36px] text-on-surface-variant">monitor_weight</span>
@@ -354,7 +349,7 @@ export default function GrowthNutritionMonitoringPhcAdmin() {
                         <XAxis dataKey="label" tick={{ fill: '#3e4949', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#bdc9c8' }} />
                         <YAxis tick={{ fill: '#3e4949', fontSize: 12 }} tickLine={false} axisLine={false} width={44} />
                         <Tooltip contentStyle={{ borderRadius: 8, borderColor: '#e2e3e1' }} />
-                        <Line type="monotone" dataKey="value" stroke="#006565" strokeWidth={2.5} dot={{ r: 3, fill: '#006565', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                        <Line type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={2.5} dot={{ r: 3, fill: '#4F46E5', strokeWidth: 0 }} activeDot={{ r: 5 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
@@ -444,7 +439,6 @@ export default function GrowthNutritionMonitoringPhcAdmin() {
             </div>
           </>
         )}
-      </main>
-    </div>
+      </div>
   )
 }

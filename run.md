@@ -70,6 +70,15 @@ Phone	Password	Role
 8010867650	Samruddhi@123	asha worker (Samruddhi Gore)
 9604522015	Namrata@123	patient (Namrata Belwekar)
 
+
+The user wants maternal patient credentials to test, and wants to run the Expo Go app. Let me find a maternal patient credential from the seeded data. From earlier, the seeded patients include:
+
+- Sunita Deshmukh (9822045602 / Pat@56027033) - pregnant, 18 weeks
+- Priyanka Jadhav (9822045606 / Pat@5606ab29) - pregnant, 30 weeks
+- Kavita Shinde (9822045610 / Pat@56104b4a) - pregnant, 5 weeks
+- Meena Pawar (9822045604 / Pat@5604a7e9) - postnatal
+
+
 Where each role lands after login:
 
 - `asha` → `/asha/home`

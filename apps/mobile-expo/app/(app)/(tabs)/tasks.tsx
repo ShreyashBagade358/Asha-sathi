@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { DailyPlanCard, formatDay, type ViewTask } from '@/components/asha/DailyPlanCard';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { PageHeader, Pill } from '@/components/ui/Card';
@@ -18,7 +19,7 @@ import {
 import { useLocalization } from '@/i18n/useLocalization';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MoreButton } from '@/nav/MoreSheet';
-import { scheduleSync } from '@/sync/network';
+import { scheduleSync, subscribeSync } from '@/sync/network';
 import { cx } from '@/cx';
 import { colors } from '@/theme';
 
@@ -102,14 +103,30 @@ export default function TasksScreen() {
   const [filter, setFilter] = useState<TaskFilter>('pending');
   const [tasks, setTasks] = useState<TaskWithPatient[]>([]);
   const [selected, setSelected] = useState<TaskWithPatient | null>(null);
+  // The list starts empty, so rendering straight into the empty state flashed
+  // "no tasks" on every open. Follow the follow-ups/notifications pattern:
+  // loading, then either rows or a retryable failure.
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   const load = useCallback(async () => {
-    setTasks(await listTasks('all'));
+    try {
+      setTasks(await listTasks('all'));
+      setStatus('ready');
+    } catch {
+      // A failed read must not leave a previous list pretending it is current.
+      setTasks([]);
+      setStatus('failed');
+    }
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A sync landing while open (post-login pull, Sync Now) changes the list.
+  useEffect(() => subscribeSync((result) => {
+    if (result) void load();
+  }), [load]);
 
   const view = useMemo(() => tasks.map((task) => toViewTask(task, t)), [tasks, t]);
 
@@ -140,19 +157,45 @@ export default function TasksScreen() {
 
   const selectedTask = selected ? toViewTask(selected, t) : null;
 
+  const header = (
+    <PageHeader
+      title={t('asha.tasksTitle')}
+      actions={
+        <>
+          <LanguageToggle onSurface />
+          <MoreButton />
+        </>
+      }
+    />
+  );
+
+  // Both statuses render the header so the page does not jump, but neither
+  // reaches the list: an empty `tasks` array otherwise reads as "no tasks
+  // today" for the whole first paint.
+  if (status !== 'ready') {
+    return (
+      <View className="flex-1 bg-background">
+        <ScrollView className="flex-1" contentContainerClassName="px-4 pb-28" showsVerticalScrollIndicator={false}>
+          {header}
+          {status === 'failed' ? (
+            <EmptyState
+              icon="alertCircle"
+              title={t('common.errorTitle')}
+              description={t('common.errorMsg')}
+              action={<Button label={t('common.retry')} onPress={() => void load()} />}
+            />
+          ) : (
+            <EmptyState icon="inbox" title={t('common.loading')} />
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="px-4 pb-28" showsVerticalScrollIndicator={false}>
-        <PageHeader
-          title={t('asha.tasksTitle')}
-          subtitle={t('asha.tasksSubtitle')}
-          actions={
-            <>
-              <LanguageToggle onSurface />
-              <MoreButton />
-            </>
-          }
-        />
+      <ScrollView className="flex-1" contentContainerClassName="px-4 pb-28" showsVerticalScrollIndicator={false}>
+        {header}
 
         <DailyPlanCard tasks={view} />
 

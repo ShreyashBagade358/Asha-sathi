@@ -1,3 +1,4 @@
+import { todayIso } from '../utils/date';
 import { enqueue, getDatabase } from './database';
 import { TABLES, type TableName } from './tables';
 
@@ -47,7 +48,14 @@ export async function upsertRows(table: TableName, records: Array<Record<string,
     `ON CONFLICT(id) DO UPDATE SET ${updates}`;
 
   await db.withTransactionAsync(async () => {
-    for (const record of records) {
+    for (const raw of records) {
+      // The server serialises the JSON column as `metadata_json`, but the
+      // local asha_tasks column is `metadata`. Without this alias the pulled
+      // value lands on `undefined` and is stored as null.
+      const record =
+        raw['metadata'] === undefined && raw['metadata_json'] !== undefined
+          ? { ...raw, metadata: raw['metadata_json'] }
+          : raw;
       await db.runAsync(statement, ...pick(record, columns));
     }
   });
@@ -73,6 +81,9 @@ export type Pregnancy = {
 export type Child = {
   id: string;
   beneficiary_id: string;
+  mother_id: string | null;
+  father_id: string | null;
+  delivery_outcome_id: string | null;
   birth_registration_no: string | null;
   birth_weight_grams: number | null;
   birth_length_cm: number | null;
@@ -184,6 +195,8 @@ export type PatientRow = {
   abha_id: string | null;
   full_name: string;
   gender: string | null;
+  /** `b.*` already carries these; only the display rows (child form meta) need them. */
+  date_of_birth: string | null;
   age_years: number | null;
   age_months: number | null;
   phone: string | null;
@@ -191,7 +204,13 @@ export type PatientRow = {
   /** Denormalised from the households join so list rows can show the HHID. */
   household_hhid: string | null;
   status: string | null;
-  /** Derived from pregnancies / NCD screenings, since the server has no risk column on beneficiaries. */
+  blood_group: string | null;
+  photo_url: string | null;
+  /**
+   * Higher of the clinically derived level (pregnancies / NCD screenings) and
+   * the intake assessment stored in beneficiaries.metadata_json.risk, so a
+   * patient flagged urgent at registration shows as high risk immediately.
+   */
   risk: RiskLevel;
   risk_reason: string | null;
   updated_at: string | null;
@@ -310,25 +329,113 @@ export async function getPatient(id: string): Promise<PatientRow | null> {
 }
 
 function toPatientRow(row: Record<string, unknown>): PatientRow {
+  const metadata = parseMetadata(row.metadata_json);
+  const derivedRisk = RISK_BY_SCORE[Number(row.risk_score ?? 0)] ?? 'low';
+  const intakeRisk = normalizeRisk(metadata?.risk);
+  const risk = riskRank(intakeRisk) > riskRank(derivedRisk) ? intakeRisk : derivedRisk;
+  const derivedReason =
+    // `risk_reason` is an alias, not a column, so an unselected row reports
+    // `undefined` rather than `null`; `==` catches both before String() would
+    // turn a missing value into the literal text "undefined".
+    row.risk_reason == null ? null : String(row.risk_reason);
   return {
     id: String(row.id),
     beneficiary_id: row.beneficiary_id === null || row.beneficiary_id === undefined ? null : String(row.beneficiary_id),
     abha_id: row.abha_id === null || row.abha_id === undefined ? null : String(row.abha_id),
     full_name: String(row.full_name ?? ''),
     gender: row.gender === null ? null : String(row.gender),
+    date_of_birth: row.date_of_birth == null ? null : String(row.date_of_birth),
     age_years: row.age_years === null ? null : Number(row.age_years),
     age_months: row.age_months === null ? null : Number(row.age_months),
     phone: row.phone === null ? null : String(row.phone),
     household_id: row.household_id === null ? null : String(row.household_id),
     household_hhid: row.household_hhid === null || row.household_hhid === undefined ? null : String(row.household_hhid),
     status: row.status === null ? null : String(row.status),
-    risk: RISK_BY_SCORE[Number(row.risk_score ?? 0)] ?? 'low',
-    // `risk_reason` is an alias, not a column, so an unselected row reports
-    // `undefined` rather than `null`; `==` catches both before String() would
-    // turn a missing value into the literal text "undefined".
-    risk_reason: row.risk_reason == null ? null : String(row.risk_reason),
+    blood_group: row.blood_group == null ? null : String(row.blood_group),
+    photo_url: row.photo_url == null ? null : String(row.photo_url),
+    risk,
+    risk_reason: derivedReason ?? (risk === intakeRisk && intakeRisk !== 'low' ? 'Flagged at intake' : null),
     updated_at: row.updated_at == null ? null : String(row.updated_at),
   };
+}
+
+/**
+ * Search local beneficiaries by name / mobile / ABHA ID — the "search
+ * existing" half of the link-member flow. Offline by design: everything
+ * synced down lives in SQLite, so the field lookup needs no signal.
+ */
+export async function searchBeneficiariesLocal(
+  term: string,
+  opts: { excludeHouseholdId?: string; limit?: number } = {},
+): Promise<PatientRow[]> {
+  const db = await getDatabase();
+  const like = `%${term.trim()}%`;
+  const exclude = opts.excludeHouseholdId ?? '';
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM beneficiaries
+      WHERE COALESCE(status, 'active') != 'inactive'
+        AND (full_name LIKE ? OR phone LIKE ? OR abha_id LIKE ?)
+        AND COALESCE(household_id, '') != ?
+      ORDER BY full_name
+      LIMIT ?`,
+    like,
+    like,
+    like,
+    exclude,
+    opts.limit ?? 8,
+  );
+  return rows.map(toPatientRow);
+}
+
+/**
+ * Link an existing beneficiary into a household. Offline-first like every
+ * other write: the local row's household_id flips now and an `update`
+ * rides the outbox, so the link lands on the server after the next push.
+ */
+export async function updateBeneficiaryHouseholdLocal(
+  beneficiaryId: string,
+  householdId: string,
+): Promise<void> {
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    const row = await db.getFirstAsync<{ version: number | null }>(
+      'SELECT version FROM beneficiaries WHERE id = ?',
+      beneficiaryId,
+    );
+    const now = new Date().toISOString();
+    await db.runAsync(
+      'UPDATE beneficiaries SET household_id = ?, updated_at = ? WHERE id = ?',
+      householdId,
+      now,
+      beneficiaryId,
+    );
+    await enqueue({
+      clientRequestId: `link-beneficiary-${beneficiaryId}`,
+      entity: 'beneficiaries',
+      operation: 'update',
+      recordId: beneficiaryId,
+      version: row?.version ?? 1,
+      data: { id: beneficiaryId, household_id: householdId, updated_at: now },
+    });
+  });
+}
+
+/** beneficiaries.metadata_json is stored as text; ignore anything unparseable. */
+function parseMetadata(value: unknown): { risk?: unknown } | null {
+  if (typeof value !== 'string' || !value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? (parsed as { risk?: unknown }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeRisk(value: unknown): RiskLevel {
+  const v = String(value ?? '').toLowerCase();
+  if (v === 'high' || v === 'high_risk') return 'high';
+  if (v === 'medium' || v === 'moderate') return 'medium';
+  return 'low';
 }
 
 export async function listPregnancies(beneficiaryId?: string): Promise<Pregnancy[]> {
@@ -407,6 +514,56 @@ export async function markImmunizationGiven(row: ImmunizationDetail, givenDate: 
   });
 }
 
+export type VaccinationSummary = {
+  total: number;
+  given: number;
+  due: number;
+  overdue: number;
+  next_due: { vaccine_name: string | null; dose_number: number | null; due_date: string } | null;
+};
+
+/**
+ * Roll a child's immunization rows into the counts the Child Health list shows.
+ *
+ * The per-dose status is re-derived from the due date rather than trusted from
+ * the stored `status` column, because a row left as `due` after its day passes
+ * is overdue in the field even though the server never sent an update — the
+ * same rule deriveDoseStatus applies on the schedule screen. `next_due` is the
+ * earliest dose that is still outstanding, whether it is due now or late.
+ */
+export async function getVaccinationSummary(childId: string): Promise<VaccinationSummary> {
+  const rows = await listImmunizations(childId);
+  const today = todayIso();
+  let given = 0;
+  let due = 0;
+  let overdue = 0;
+  let nextDue: VaccinationSummary['next_due'] = null;
+  for (const row of rows) {
+    const dueDay = row.due_date == null ? null : row.due_date.slice(0, 10);
+    const effective =
+      row.status === 'given' || row.given_date
+        ? 'given'
+        : row.status === 'overdue' || (row.status === 'due' && dueDay != null && dueDay < today)
+          ? 'overdue'
+          : row.status === 'skipped'
+            ? 'skipped'
+            : 'due';
+    if (effective === 'given') given++;
+    else if (effective === 'overdue') overdue++;
+    else if (effective === 'due') due++;
+    if (effective !== 'given' && row.due_date != null && dueDay != null) {
+      if (!nextDue || dueDay < nextDue.due_date.slice(0, 10)) {
+        nextDue = {
+          vaccine_name: row.vaccine_name ?? row.vaccine_code,
+          dose_number: row.dose_number,
+          due_date: row.due_date,
+        };
+      }
+    }
+  }
+  return { total: rows.length, given, due, overdue, next_due: nextDue };
+}
+
 export async function listGrowthRecords(childId?: string): Promise<GrowthRecord[]> {
   const db = await getDatabase();
   if (childId) {
@@ -452,16 +609,39 @@ export async function listPregnanciesWithPatient(): Promise<PregnancyWithPatient
   );
 }
 
-export type ChildWithParent = Child & { patient_name: string | null; household_hhid: string | null };
+/**
+ * `id` is null while the child exists only as a locally registered
+ * beneficiary: registration writes `beneficiaries`, never `children`.
+ */
+export type ChildWithParent = Omit<Child, 'id'> & {
+  id: string | null;
+  patient_name: string | null;
+  household_hhid: string | null;
+};
 
+/**
+ * Child-aged beneficiaries for the Child Health list, joined to their child
+ * record and household.
+ *
+ * Driving this off `children` alone hid every locally registered child, since
+ * register only inserts into `beneficiaries`. The age test is the household
+ * card's under-5 counter with a date-of-birth fallback, because a locally
+ * registered row carries a DOB and no age columns until the server pull lands.
+ */
 export async function listChildrenWithParent(): Promise<ChildWithParent[]> {
   const db = await getDatabase();
   return db.getAllAsync<ChildWithParent>(
-    `SELECT c.*, b.full_name AS patient_name, h.hhid AS household_hhid
-       FROM children c
-       LEFT JOIN beneficiaries b ON b.id = c.beneficiary_id
+    `SELECT c.id, b.id AS beneficiary_id, c.birth_registration_no, c.birth_weight_grams,
+            c.birth_length_cm, c.gestation_weeks, c.delivery_type, c.place_of_birth, c.created_at,
+            b.full_name AS patient_name, h.hhid AS household_hhid
+       FROM beneficiaries b
+       LEFT JOIN children c ON c.beneficiary_id = b.id
        LEFT JOIN households h ON h.id = b.household_id
-      ORDER BY c.created_at DESC`,
+      WHERE (b.age_years IS NOT NULL AND b.age_years < 5)
+         OR (b.age_years IS NULL AND b.age_months IS NOT NULL AND b.age_months < 60)
+         OR (b.age_years IS NULL AND b.age_months IS NULL AND b.date_of_birth IS NOT NULL
+             AND date('now') < date(b.date_of_birth, '+5 years'))
+      ORDER BY COALESCE(c.created_at, b.updated_at) DESC`,
   );
 }
 
@@ -477,11 +657,78 @@ export async function listReferralsWithPatient(): Promise<ReferralWithPatient[]>
   );
 }
 
+export type ReferralFollowupRow = {
+  id: string;
+  referral_id: string;
+  followup_date: string | null;
+  conducted_by: string | null;
+  beneficiary_status: string | null;
+  treatment_compliance: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+/** Follow-ups recorded for one referral, newest due date first. */
+export async function listReferralFollowups(referralId: string): Promise<ReferralFollowupRow[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<ReferralFollowupRow>(
+    `SELECT id, referral_id, followup_date, conducted_by, beneficiary_status,
+            treatment_compliance, notes, created_at
+       FROM referral_followups
+      WHERE referral_id = ?
+      ORDER BY COALESCE(followup_date, '') DESC`,
+    referralId,
+  );
+}
+
+/** Local commit for a referral follow-up recorded in the field (offline-first). */
+export async function insertLocalReferralFollowup(input: {
+  id: string;
+  referralId: string;
+  followupDate: string;
+  conductedBy: string | null;
+  beneficiaryStatus: string | null;
+  treatmentCompliance: string | null;
+  notes: string | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO referral_followups
+       (id, referral_id, followup_date, conducted_by, beneficiary_status,
+        treatment_compliance, complications, further_referral, notes,
+        created_at, updated_at, version)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?, ?, ?, 1)
+     ON CONFLICT(id) DO UPDATE SET
+       followup_date = excluded.followup_date,
+       beneficiary_status = excluded.beneficiary_status,
+       treatment_compliance = excluded.treatment_compliance,
+       notes = excluded.notes,
+       updated_at = excluded.updated_at`,
+    input.id,
+    input.referralId,
+    input.followupDate,
+    input.conductedBy,
+    input.beneficiaryStatus,
+    input.treatmentCompliance,
+    input.notes,
+    now,
+    now,
+  );
+}
+
 export type TaskFilter = 'pending' | 'done' | 'all';
 
 export type TaskWithPatient = AshaTask & { patient_name: string | null; household_hhid: string | null };
 
-/** Tasks joined to their subject, which is what every task list row renders. */
+/**
+ * Tasks joined to their subject, which is what every task list row renders.
+ *
+ * `all` means every row the worker can act on, not every row in the table:
+ * cancelled tasks are duplicates the plan cleaned up (the web drops them in
+ * useTodayTasks before they ever reach the list), so leaving them in inflated
+ * the All count and the pending/done split underneath it.
+ */
 export async function listTasks(filter: TaskFilter = 'all'): Promise<TaskWithPatient[]> {
   const db = await getDatabase();
   const where =
@@ -489,7 +736,7 @@ export async function listTasks(filter: TaskFilter = 'all'): Promise<TaskWithPat
       ? `WHERE t.status IS NULL OR t.status NOT IN ('completed', 'done', 'cancelled')`
       : filter === 'done'
         ? `WHERE t.status IN ('completed', 'done')`
-        : '';
+        : `WHERE t.status IS NULL OR t.status <> 'cancelled'`;
 
   return db.getAllAsync<TaskWithPatient>(
     `SELECT t.*, b.full_name AS patient_name, h.hhid AS household_hhid
@@ -578,7 +825,7 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
     return Number(row?.value ?? 0);
   };
 
-  const [todayAgenda, pendingTasks, households, highRisk] = await Promise.all([
+  const [todayAgenda, pendingTasks, households, highRiskPregnancies, highRiskBeneficiaries] = await Promise.all([
     scalar(
       `SELECT COUNT(*) AS value FROM asha_tasks
         WHERE COALESCE(task_date, '') <= ?
@@ -595,9 +842,21 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
         WHERE LOWER(risk_level) IN ('high','high_risk')
           AND (status IS NULL OR status NOT IN ('delivered','aborted','closed'))`,
     ),
+    // The web's KPI is high-risk pregnancies PLUS high-risk beneficiaries
+    // (AshaWorkerHomeAshaSathi.tsx), where a beneficiary's own level is the
+    // intake annotation stored in beneficiaries.metadata_json.risk - the same
+    // value listPatients ranks as `intakeRisk`. One flat COUNT over the local
+    // table, so it stays offline-safe; json_valid() keeps a malformed metadata
+    // blob from failing the whole KPI read.
+    scalar(
+      `SELECT COUNT(*) AS value FROM beneficiaries
+        WHERE LOWER(COALESCE(json_extract(
+                 CASE WHEN json_valid(metadata_json) THEN metadata_json END, '$.risk'), ''))
+              IN ('high','high_risk')`,
+    ),
   ]);
 
-  return { todayAgenda, pendingTasks, households, highRisk };
+  return { todayAgenda, pendingTasks, households, highRisk: highRiskPregnancies + highRiskBeneficiaries };
 }
 
 export type HouseholdMember = {
@@ -606,6 +865,7 @@ export type HouseholdMember = {
   gender: string | null;
   age_years: number | null;
   age_months: number | null;
+  relationship_to_head: string | null;
   /** True when this member is the patient whose detail screen is open. */
   isSubject: boolean;
 };
@@ -614,7 +874,7 @@ export type HouseholdMember = {
 export async function listHouseholdMembers(householdId: string, subjectId: string): Promise<HouseholdMember[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<Record<string, unknown>>(
-    `SELECT id, full_name, gender, age_years, age_months
+    `SELECT id, full_name, gender, age_years, age_months, relationship_to_head
        FROM beneficiaries
       WHERE household_id = ?
       ORDER BY age_years DESC, full_name ASC`,
@@ -626,6 +886,10 @@ export async function listHouseholdMembers(householdId: string, subjectId: strin
     gender: row.gender === null ? null : String(row.gender),
     age_years: row.age_years === null ? null : Number(row.age_years),
     age_months: row.age_months === null ? null : Number(row.age_months),
+    relationship_to_head:
+      row.relationship_to_head === null || row.relationship_to_head === undefined
+        ? null
+        : String(row.relationship_to_head),
     isSubject: String(row.id) === subjectId,
   }));
 }
@@ -786,12 +1050,43 @@ export async function listFollowUps(): Promise<FollowUp[]> {
 
 export type AppNotification = {
   id: string;
-  kind: 'overdue' | 'due' | 'referral' | 'immunization';
+  kind: 'overdue' | 'due' | 'referral' | 'immunization' | 'patient_update';
   title: string;
   body: string | null;
   date: string | null;
   severity: 'high' | 'medium' | 'low';
+  /**
+   * Beneficiary the row points at, when it has one - an immunization alert can
+   * therefore open the child's immunization schedule instead of stopping at
+   * "there is something to look at".
+   */
+  patient_id?: string | null;
 };
+
+/**
+ * Read server-synced notifications (e.g. "patient updated their profile")
+ * from the local `notifications` table. These arrive via the sync pull and
+ * are merged with the locally-derived clinical alerts on the Notifications
+ * screen.
+ */
+export async function listServerNotifications(): Promise<AppNotification[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{
+    id: string;
+    type: string;
+    title: string;
+    message: string | null;
+    created_at: string | null;
+  }>('SELECT id, type, title, message, created_at FROM notifications ORDER BY created_at DESC LIMIT 100');
+  return rows.map((row) => ({
+    id: row.id,
+    kind: (row.type === 'patient_profile_updated' ? 'patient_update' : 'due') as AppNotification['kind'],
+    title: row.title,
+    body: row.message,
+    date: row.created_at,
+    severity: 'medium' as const,
+  }));
+}
 
 /**
  * Notifications are derived from the synced tables rather than read from a
@@ -835,8 +1130,8 @@ export async function buildNotifications(): Promise<AppNotification[]> {
     today,
   );
 
-  const immunizations = await db.getAllAsync<{ id: string; vaccine_name: string | null; due_date: string | null; patient_name: string | null }>(
-    `SELECT i.id, i.vaccine_name, i.due_date, b.full_name AS patient_name
+  const immunizations = await db.getAllAsync<{ id: string; vaccine_name: string | null; due_date: string | null; patient_name: string | null; patient_id: string | null }>(
+    `SELECT i.id, i.vaccine_name, i.due_date, b.full_name AS patient_name, b.id AS patient_id
        FROM immunizations i
        LEFT JOIN children c ON c.id = i.child_id
        LEFT JOIN beneficiaries b ON b.id = c.beneficiary_id
@@ -879,6 +1174,7 @@ export async function buildNotifications(): Promise<AppNotification[]> {
       body: r.patient_name,
       date: r.due_date,
       severity: 'low' as const,
+      patient_id: r.patient_id,
     })),
   ];
 }
@@ -1088,6 +1384,56 @@ export async function setFollowUpDone(row: FollowUp, done: boolean): Promise<voi
   });
 }
 
+/**
+ * Move one merged follow-up to a new date.
+ *
+ * Same local + outbox contract as setFollowUpDone: the column that carries the
+ * deadline (`asha_tasks.task_date` / `referrals.followup_date`) and the server
+ * copy are written together, so a date changed in a village with no signal is
+ * not lost. The idempotency key carries the new date because the server
+ * replays an already-processed `client_request_id` instead of re-applying it —
+ * a second reschedule under a fixed key would silently keep the first date.
+ */
+export async function setFollowUpDate(row: FollowUp, nextDate: string): Promise<void> {
+  const db = await getDatabase();
+  const id = row.id.slice(row.id.indexOf(':') + 1);
+
+  if (row.kind === 'task') {
+    const task = await db.getFirstAsync<AshaTask>('SELECT * FROM asha_tasks WHERE id = ?', id);
+    if (!task) return;
+    const { version, ...fields } = task;
+
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('UPDATE asha_tasks SET task_date = ? WHERE id = ?', nextDate, id);
+      await enqueue({
+        clientRequestId: `reschedule-task-${id}-${nextDate}`,
+        entity: 'asha_tasks',
+        operation: 'update',
+        recordId: id,
+        version,
+        data: { ...fields, task_date: nextDate },
+      });
+    });
+    return;
+  }
+
+  const current = await db.getFirstAsync<Record<string, unknown>>('SELECT * FROM referrals WHERE id = ?', id);
+  if (!current) return;
+  const { version, ...fields } = current;
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE referrals SET followup_date = ? WHERE id = ?', nextDate, id);
+    await enqueue({
+      clientRequestId: `reschedule-referral-${id}-${nextDate}`,
+      entity: 'referrals',
+      operation: 'update',
+      recordId: id,
+      version: Number(version ?? 1),
+      data: { ...fields, followup_date: nextDate },
+    });
+  });
+}
+
 // --- Notification read state ------------------------------------------------
 
 /**
@@ -1099,6 +1445,25 @@ export async function setFollowUpDone(row: FollowUp, done: boolean): Promise<voi
  * entity, which is exactly the scope a UI-only flag wants.
  */
 const READ_NOTIFICATIONS_KEY = 'read_notifications';
+
+/**
+ * Fired after the read set changes, so the bell badge can recompute without
+ * waiting for a sync or a foreground transition. The badge lives on other
+ * screens (useShellChrome), which have no way to observe this table otherwise.
+ */
+type ReadListener = () => void;
+const readListeners = new Set<ReadListener>();
+
+export function subscribeNotificationRead(listener: ReadListener): () => void {
+  readListeners.add(listener);
+  return () => {
+    readListeners.delete(listener);
+  };
+}
+
+function emitNotificationRead(): void {
+  for (const listener of [...readListeners]) listener();
+}
 
 async function readNotificationIds(): Promise<Set<string>> {
   const db = await getDatabase();
@@ -1131,24 +1496,36 @@ export async function getReadNotificationIds(): Promise<Set<string>> {
 
 export async function setNotificationRead(id: string, read: boolean): Promise<void> {
   const ids = await readNotificationIds();
+  const wasRead = ids.has(id);
   if (read) ids.add(id);
   else ids.delete(id);
+  if (ids.has(id) === wasRead) return;
   await writeNotificationIds(ids);
+  emitNotificationRead();
 }
 
 export async function setAllNotificationsRead(ids: readonly string[]): Promise<void> {
   const read = await readNotificationIds();
-  for (const id of ids) read.add(id);
+  let changed = false;
+  for (const id of ids) {
+    if (!read.has(id)) {
+      read.add(id);
+      changed = true;
+    }
+  }
+  if (!changed) return;
   await writeNotificationIds(read);
+  emitNotificationRead();
 }
 
 // --- Household field flow --------------------------------------------------
 //
 // The assigned-households list, the household detail page and the visit survey
 // all read from local SQLite so they work with no signal at all. Everything a
-// card renders is derived here rather than stored: the server's `head_name` and
-// village name are not in the local `households` DDL (see src/db/tables.ts), so
-// the head is the oldest adult member and the location falls back to `address`.
+// card renders is derived here rather than stored: the village name is not in
+// the local `households` DDL (see src/db/tables.ts), so the location falls
+// back to `address`, and the head is the oldest adult member when neither the
+// members nor the registration-time `head_name` know one.
 
 export type HouseholdCard = {
   id: string;
@@ -1170,10 +1547,10 @@ const ACTIVE_PREGNANCY = `(p.status IS NULL OR p.status NOT IN ('delivered','abo
 
 const HOUSEHOLD_CARD_SQL = `
   SELECT h.id, h.hhid, h.address, h.village_id,
-         (SELECT b.full_name FROM beneficiaries b
+         COALESCE((SELECT b.full_name FROM beneficiaries b
            WHERE b.household_id = h.id
            ORDER BY (b.age_years IS NULL), b.age_years DESC, b.full_name ASC
-           LIMIT 1) AS head_name,
+           LIMIT 1), h.head_name) AS head_name,
          (SELECT COUNT(*) FROM beneficiaries b
            WHERE b.household_id = h.id) AS members,
          (SELECT COUNT(DISTINCT b.id) FROM beneficiaries b
@@ -1234,6 +1611,7 @@ export type HouseholdMemberCard = {
   age_years: number | null;
   age_months: number | null;
   phone: string | null;
+  relationship_to_head: string | null;
   is_pregnant: number;
   risk_level: string | null;
   edd: string | null;
@@ -1243,6 +1621,7 @@ export async function listHouseholdMemberCards(householdId: string): Promise<Hou
   const db = await getDatabase();
   const rows = await db.getAllAsync<Record<string, unknown>>(
     `SELECT b.id, b.full_name, b.gender, b.age_years, b.age_months, b.phone,
+            b.relationship_to_head,
             (SELECT COUNT(*) FROM pregnancies p
               WHERE p.beneficiary_id = b.id AND ${ACTIVE_PREGNANCY}) AS is_pregnant,
             (SELECT p.risk_level FROM pregnancies p
@@ -1263,6 +1642,10 @@ export async function listHouseholdMemberCards(householdId: string): Promise<Hou
     age_years: row.age_years === null || row.age_years === undefined ? null : Number(row.age_years),
     age_months: row.age_months === null || row.age_months === undefined ? null : Number(row.age_months),
     phone: row.phone === null || row.phone === undefined ? null : String(row.phone),
+    relationship_to_head:
+      row.relationship_to_head === null || row.relationship_to_head === undefined
+        ? null
+        : String(row.relationship_to_head),
     is_pregnant: Number(row.is_pregnant ?? 0),
     risk_level: row.risk_level === null || row.risk_level === undefined ? null : String(row.risk_level),
     edd: row.edd === null || row.edd === undefined ? null : String(row.edd),
@@ -1348,18 +1731,23 @@ export async function insertLocalHousehold(input: {
   ashaId: string;
   address: string | null;
   consentGiven: boolean;
+  headName: string | null;
+  /** Amenities captured at registration — stored as a JSON object like the server's JSON column. */
+  amenities?: Record<string, boolean> | null;
 }): Promise<void> {
   const db = await getDatabase();
   const updatedAt = new Date().toISOString();
   await db.runAsync(
-    `INSERT INTO households (id, hhid, village_id, asha_id, address, consent_given, version, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    `INSERT INTO households (id, hhid, village_id, asha_id, address, consent_given, head_name, amenities, version, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
      ON CONFLICT(id) DO UPDATE SET
        hhid = excluded.hhid,
        village_id = excluded.village_id,
        asha_id = excluded.asha_id,
        address = excluded.address,
        consent_given = excluded.consent_given,
+       head_name = excluded.head_name,
+       amenities = excluded.amenities,
        updated_at = excluded.updated_at`,
     input.id,
     input.hhid,
@@ -1367,6 +1755,8 @@ export async function insertLocalHousehold(input: {
     input.ashaId,
     input.address,
     input.consentGiven ? 1 : 0,
+    input.headName,
+    input.amenities ? JSON.stringify(input.amenities) : null,
     updatedAt,
   );
 }
@@ -1447,4 +1837,191 @@ export async function getPatientVitals(beneficiaryId: string): Promise<PatientVi
     bp_systolic: screening?.bp_systolic ?? anc?.bp_systolic ?? null,
     bp_diastolic: screening?.bp_diastolic ?? anc?.bp_diastolic ?? null,
   };
+}
+
+/**
+ * Local create for a check-up recorded on the New Check-up screen.
+ *
+ * Offline-first like the other module forms: SQLite commits first and the
+ * caller enqueues the matching outbox entry, so the reading is on the device
+ * the moment the ASHA taps save and uploads whenever the network allows.
+ *
+ * The screening questions (`tobacco_use`, `known_diabetes`, …) are NOT NULL on
+ * both the local table and the server model but are not asked by this vitals
+ * form, so they take the same defaults the server model declares rather than a
+ * fabricated answer.
+ */
+export async function insertLocalNcdScreening(input: {
+  id: string;
+  beneficiaryId: string;
+  screeningDate: string;
+  bpSystolic: number | null;
+  bpDiastolic: number | null;
+  bloodSugarRandom: number | null;
+  recordedBy?: string | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO ncd_screenings
+       (id, beneficiary_id, screening_date, age_above_30, tobacco_use, alcohol_use,
+        physical_activity, family_history_diabetes, family_history_hypertension,
+        family_history_cancer, known_diabetes, known_hypertension, known_cancer,
+        bp_systolic, bp_diastolic, blood_sugar_random, referral_made, recorded_by,
+        created_at, updated_at, version)
+     VALUES (?, ?, ?, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?, ?, 1)`,
+    input.id,
+    input.beneficiaryId,
+    input.screeningDate,
+    input.bpSystolic,
+    input.bpDiastolic,
+    input.bloodSugarRandom,
+    input.recordedBy ?? null,
+    now,
+    now,
+  );
+}
+
+// --- Module form creates ----------------------------------------------------
+//
+// Pregnancy, child and referral registration write the same way the check-up
+// form does: SQLite commits first and the caller enqueues the matching outbox
+// row, so the record exists on the device immediately and uploads whenever the
+// network allows. Columns the form does not ask for take the defaults the
+// server model declares, so the local row and the pushed row match.
+
+/**
+ * Local create for a pregnancy registered from the Pregnancy Tracking screen.
+ *
+ * `anc_count`, `risk_level` and `status` are NOT NULL locally and get the same
+ * defaults the server's PregnancyCreate applies. Trimester/week are not stored:
+ * the server model has no such column, so they are derived from lmp/edd at read
+ * time rather than collected and dropped by `_clean_columns`.
+ */
+export async function insertLocalPregnancy(input: {
+  id: string;
+  beneficiaryId: string;
+  lmp: string | null;
+  edd: string | null;
+  riskLevel: string;
+  riskFactors: Record<string, unknown> | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO pregnancies
+       (id, beneficiary_id, lmp, edd, risk_level, risk_factors, anc_count, status,
+        created_at, updated_at, version)
+     VALUES (?, ?, ?, ?, ?, ?, 0, 'ongoing', ?, ?, 1)
+     ON CONFLICT(id) DO UPDATE SET
+       beneficiary_id = excluded.beneficiary_id,
+       lmp = excluded.lmp,
+       edd = excluded.edd,
+       risk_level = excluded.risk_level,
+       risk_factors = excluded.risk_factors,
+       updated_at = excluded.updated_at`,
+    input.id,
+    input.beneficiaryId,
+    input.lmp,
+    input.edd,
+    input.riskLevel,
+    input.riskFactors ? JSON.stringify(input.riskFactors) : null,
+    now,
+    now,
+  );
+}
+
+/**
+ * Local create for a child registered from the Child Health screen.
+ *
+ * The mother is a bare-string link (required at the API layer, nullable in the
+ * schema) so a push whose mother row arrives in the same batch still lands; the
+ * father is optional. Name, date of birth, household and village belong to the
+ * child's `beneficiaries` row, which the form selects rather than creates.
+ */
+export async function insertLocalChild(input: {
+  id: string;
+  beneficiaryId: string;
+  motherId: string;
+  fatherId: string | null;
+  birthWeightGrams: number | null;
+  birthLengthCm: number | null;
+  gestationWeeks: number | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO children
+       (id, beneficiary_id, mother_id, father_id, birth_weight_grams, birth_length_cm,
+        gestation_weeks, created_at, updated_at, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+     ON CONFLICT(id) DO UPDATE SET
+       beneficiary_id = excluded.beneficiary_id,
+       mother_id = excluded.mother_id,
+       father_id = excluded.father_id,
+       birth_weight_grams = excluded.birth_weight_grams,
+       birth_length_cm = excluded.birth_length_cm,
+       gestation_weeks = excluded.gestation_weeks,
+       updated_at = excluded.updated_at`,
+    input.id,
+    input.beneficiaryId,
+    input.motherId,
+    input.fatherId,
+    input.birthWeightGrams,
+    input.birthLengthCm,
+    input.gestationWeeks,
+    now,
+    now,
+  );
+}
+
+/**
+ * Local create for a referral raised from the Referrals screen.
+ *
+ * `referral_type`, `urgency`, `status` and `followup_required` are NOT NULL on
+ * the local table; they take the server model's defaults ('general' is what the
+ * web form sends, 'initiated' is Referral.status's default — the web maps that
+ * back to its "Pending" tab, as does the referrals list here).
+ */
+export async function insertLocalReferral(input: {
+  id: string;
+  beneficiaryId: string;
+  referralType: string;
+  urgency: string;
+  reason: string | null;
+  referredFromId: string | null;
+  referredFromFacilityId: string | null;
+  referredToFacilityId: string | null;
+  initiatedAt: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT INTO referrals
+       (id, beneficiary_id, referral_type, urgency, reason, referred_from_id,
+        referred_from_facility_id, referred_to_facility_id, status, initiated_at,
+        followup_required, created_at, updated_at, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'initiated', ?, 0, ?, ?, 1)
+     ON CONFLICT(id) DO UPDATE SET
+       beneficiary_id = excluded.beneficiary_id,
+       referral_type = excluded.referral_type,
+       urgency = excluded.urgency,
+       reason = excluded.reason,
+       referred_from_id = excluded.referred_from_id,
+       referred_from_facility_id = excluded.referred_from_facility_id,
+       referred_to_facility_id = excluded.referred_to_facility_id,
+       initiated_at = excluded.initiated_at,
+       updated_at = excluded.updated_at`,
+    input.id,
+    input.beneficiaryId,
+    input.referralType,
+    input.urgency,
+    input.reason,
+    input.referredFromId,
+    input.referredFromFacilityId,
+    input.referredToFacilityId,
+    input.initiatedAt,
+    now,
+    now,
+  );
 }

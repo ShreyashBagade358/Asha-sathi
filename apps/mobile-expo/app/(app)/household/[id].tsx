@@ -18,15 +18,19 @@ import {
   getHouseholdCard,
   listHouseholdMemberCards,
   listHouseholdVisitRecords,
+  searchBeneficiariesLocal,
+  updateBeneficiaryHouseholdLocal,
   type HouseholdCard,
   type HouseholdMemberCard,
   type HouseholdVisitRecord,
+  type PatientRow,
 } from '@/db/clinical';
 import { enqueue, insertLocalBeneficiary } from '@/db/database';
 import { useLocalization } from '@/i18n/useLocalization';
 import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
 import { colors } from '@/theme';
 import { cx } from '@/cx';
+import { relationshipLabel, relationshipOptions } from '@/utils/relationship';
 
 type Status = 'loading' | 'ready' | 'missing' | 'failed';
 
@@ -77,8 +81,39 @@ export default function HouseholdDetailScreen() {
   const [gender, setGender] = useState('female');
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // "Search existing" mode of the add-member modal: find the person by
+  // ABHA ID / name / phone first, then link them in instead of duplicating.
+  const [memberMode, setMemberMode] = useState<'new' | 'search'>('new');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<PatientRow[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (memberMode !== 'search' || searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setSearching(true);
+        try {
+          const rows = await searchBeneficiariesLocal(searchTerm, { excludeHouseholdId: id });
+          if (!cancelled) setSearchResults(rows);
+        } finally {
+          if (!cancelled) setSearching(false);
+        }
+      })();
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [memberMode, searchTerm, id]);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -132,6 +167,7 @@ export default function HouseholdDetailScreen() {
         id: memberId,
         beneficiary_id: `BEN-${memberId.slice(-8).toUpperCase()}`,
         household_id: id,
+        relationship_to_head: relationship || null,
         abha_id: null,
         full_name: name.trim(),
         gender,
@@ -148,6 +184,7 @@ export default function HouseholdDetailScreen() {
         dateOfBirth: '',
         phone: phone.trim(),
         ageYears: data.age_years,
+        relationshipToHead: relationship || null,
       });
       await enqueue({
         clientRequestId: `create-beneficiary-${memberId}`,
@@ -161,8 +198,29 @@ export default function HouseholdDetailScreen() {
       setName('');
       setAge('');
       setPhone('');
+      setRelationship('');
       setShowAdd(false);
       toast.toast(t('asha.patientSavedToast'), 'success');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.errorMsg'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function linkExisting(person: PatientRow) {
+    if (!id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await updateBeneficiaryHouseholdLocal(person.id, id);
+      if (isCurrentlyOnline()) scheduleSync(300);
+      setSearchTerm('');
+      setSearchResults([]);
+      setShowAdd(false);
+      setMemberMode('new');
+      toast.toast(t('asha.linkHouseholdSaved'), 'success');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.errorMsg'));
@@ -254,13 +312,17 @@ export default function HouseholdDetailScreen() {
                 {members.map((member, index) => {
                   const level = String(member.risk_level ?? '').toLowerCase();
                   const chip = RISK_CHIP[level];
+                  const relation = member.relationship_to_head
+                    ? `${relationshipLabel(member.relationship_to_head, t)} · `
+                    : '';
                   return (
                     <ListRow
                       key={member.id}
+                      onPress={() => router.push(`/patient/${member.id}`)}
                       avatar={<Icon name={member.is_pregnant > 0 ? 'heart' : 'users'} size={20} />}
                       avatarTone={member.is_pregnant > 0 ? 'tertiary' : level.startsWith('high') ? 'error' : 'primary'}
                       title={member.full_name}
-                      subtitle={`${genderLabel(member.gender, t)}, ${ageLabel(member, t('asha.ageYearsShort'), t('asha.ageMonthsShort'))}`}
+                      subtitle={`${relation}${genderLabel(member.gender, t)}, ${ageLabel(member, t('asha.ageYearsShort'), t('asha.ageMonthsShort'))}`}
                       meta={member.edd ? `${t('asha.edd')}: ${member.edd}` : undefined}
                       right={
                         member.is_pregnant > 0 ? (
@@ -324,55 +386,145 @@ export default function HouseholdDetailScreen() {
         />
       </View>
 
-      <Modal visible={showAdd} onClose={() => setShowAdd(false)} title={t('asha.addFamilyMember')}>
+      <Modal
+        visible={showAdd}
+        onClose={() => {
+          setShowAdd(false);
+          setMemberMode('new');
+          setSearchTerm('');
+          setSearchResults([]);
+        }}
+        title={t('asha.addFamilyMember')}
+      >
         <View className="gap-3">
-          <TextField
-            label={`${t('asha.fullName')} *`}
-            value={name}
-            onChangeText={setName}
-            placeholder={t('asha.legalNamePlaceholder')}
-            autoCapitalize="words"
-          />
-          <SelectField
-            label={t('asha.gender')}
-            value={gender}
-            onChange={setGender}
-            placeholder={t('asha.selectGender')}
-            options={[
-              { label: t('asha.female'), value: 'female' },
-              { label: t('asha.male'), value: 'male' },
-              { label: t('asha.other'), value: 'other' },
-            ]}
-          />
-          <TextField
-            label={t('asha.age')}
-            value={age}
-            onChangeText={(next) => setAge(next.replace(/\D/g, '').slice(0, 3))}
-            keyboardType="number-pad"
-            placeholder="0"
-          />
-          <TextField
-            label={t('asha.mobileNumber')}
-            value={phone}
-            onChangeText={(next) => setPhone(next.replace(/\D/g, '').slice(0, 10))}
-            keyboardType="phone-pad"
-            errorText={phone && !/^\d{10}$/.test(phone) ? t('asha.errPhoneRequired') : undefined}
-          />
-          {error ? (
-            <Text className="font-body-md text-body-md text-on-error-container">{error}</Text>
-          ) : null}
-          <View className="flex-row gap-3">
-            <Button label={t('common.cancel')} variant="ghost" shape="pill" onPress={() => setShowAdd(false)} />
-            <Button
-              label={t('common.save')}
-              icon="check"
-              shape="pill"
-              loading={saving}
-              disabled={saving || !name.trim()}
-              onPress={() => void addMember()}
-              className="flex-1"
-            />
+          <View className="flex-row gap-2 rounded-full bg-surface-container-high p-1">
+            {(['search', 'new'] as const).map((mode) => (
+              <Pressable
+                key={mode}
+                accessibilityRole="button"
+                onPress={() => {
+                  setMemberMode(mode);
+                  setSearchTerm('');
+                  setSearchResults([]);
+                }}
+                className={cx(
+                  'h-9 flex-1 items-center justify-center rounded-full',
+                  memberMode === mode ? 'bg-surface' : null,
+                )}
+              >
+                <Text
+                  className={cx(
+                    'font-label-md text-label-md font-semibold',
+                    memberMode === mode ? 'text-primary' : 'text-on-surface-variant',
+                  )}
+                >
+                  {mode === 'search' ? t('asha.linkExisting') : t('asha.addMemberNew')}
+                </Text>
+              </Pressable>
+            ))}
           </View>
+
+          {memberMode === 'search' ? (
+            <View className="gap-3">
+              <TextField
+                label={t('asha.searchExistingHint')}
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder={t('asha.searchExistingPlaceholder')}
+                autoCapitalize="none"
+              />
+              {searching ? (
+                <Text className="p-2 font-body-md text-body-md text-on-surface-variant">
+                  {t('common.loading')}
+                </Text>
+              ) : searchTerm.trim().length >= 2 && searchResults.length === 0 ? (
+                <Text className="rounded-lg border border-dashed border-outline-variant p-3 font-body-md text-body-md text-on-surface-variant">
+                  {t('asha.noPatientFound')}
+                </Text>
+              ) : (
+                searchResults.map((person, index) => (
+                  <ListRow
+                    key={person.id}
+                    onPress={() => void linkExisting(person)}
+                    avatar={<Icon name="users" size={20} />}
+                    title={person.full_name}
+                    subtitle={
+                      [person.abha_id, person.phone].filter(Boolean).join(' · ') ||
+                      t('common.notRecorded')
+                    }
+                    right={<Icon name="plus" size={20} color={colors.primary} />}
+                    divider
+                    isLast={index === searchResults.length - 1}
+                  />
+                ))
+              )}
+              {error ? (
+                <Text className="font-body-md text-body-md text-on-error-container">{error}</Text>
+              ) : null}
+            </View>
+          ) : (
+            <View className="gap-3">
+              <TextField
+                label={`${t('asha.fullName')} *`}
+                value={name}
+                onChangeText={setName}
+                placeholder={t('asha.legalNamePlaceholder')}
+                autoCapitalize="words"
+              />
+              <SelectField
+                label={t('asha.gender')}
+                value={gender}
+                onChange={setGender}
+                placeholder={t('asha.selectGender')}
+                options={[
+                  { label: t('asha.female'), value: 'female' },
+                  { label: t('asha.male'), value: 'male' },
+                  { label: t('asha.other'), value: 'other' },
+                ]}
+              />
+              <SelectField
+                label={t('asha.relationshipToHead')}
+                value={relationship}
+                onChange={setRelationship}
+                placeholder={t('asha.relationshipPlaceholder')}
+                options={relationshipOptions(t)}
+              />
+              <TextField
+                label={t('asha.age')}
+                value={age}
+                onChangeText={(next) => setAge(next.replace(/\D/g, '').slice(0, 3))}
+                keyboardType="number-pad"
+                placeholder="0"
+              />
+              <TextField
+                label={t('asha.mobileNumber')}
+                value={phone}
+                onChangeText={(next) => setPhone(next.replace(/\D/g, '').slice(0, 10))}
+                keyboardType="phone-pad"
+                errorText={phone && !/^\d{10}$/.test(phone) ? t('asha.errPhoneRequired') : undefined}
+              />
+              {error ? (
+                <Text className="font-body-md text-body-md text-on-error-container">{error}</Text>
+              ) : null}
+              <View className="flex-row gap-3">
+                <Button
+                  label={t('common.cancel')}
+                  variant="ghost"
+                  shape="pill"
+                  onPress={() => setShowAdd(false)}
+                />
+                <Button
+                  label={t('common.save')}
+                  icon="check"
+                  shape="pill"
+                  loading={saving}
+                  disabled={saving || !name.trim()}
+                  onPress={() => void addMember()}
+                  className="flex-1"
+                />
+              </View>
+            </View>
+          )}
         </View>
       </Modal>
     </Screen>

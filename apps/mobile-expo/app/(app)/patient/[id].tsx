@@ -6,21 +6,27 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SelectField } from '@/components/ui/Field';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { Screen } from '@/components/Screen';
+import { useToast } from '@/components/ui/Toast';
 import {
   getHouseholdAddress,
   getPatient,
   listAncVisits,
   listChildren,
   listHouseholdMembers,
+  listHouseholdsWithCounts,
   listImmunizations,
   listNcdScreenings,
   listPregnancies,
   listReferrals,
+  updateBeneficiaryHouseholdLocal,
   type AncVisit,
   type Child,
   type HouseholdMember,
+  type HouseholdWithCounts,
   type NcdScreening,
   type PatientRow,
   type Pregnancy,
@@ -28,7 +34,9 @@ import {
   type RiskLevel,
 } from '@/db/clinical';
 import { useLocalization } from '@/i18n/useLocalization';
+import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
 import { cx } from '@/cx';
+import { relationshipLabel } from '@/utils/relationship';
 
 type Translate = ReturnType<typeof useLocalization>['t'];
 
@@ -107,6 +115,38 @@ export default function PatientDetailScreen() {
   const [vaccination, setVaccination] = useState<VaccinationData | null>(null);
   const [referrals, setReferrals] = useState<Referral[] | null>(null);
 
+  // Link this (unattached) patient into one of the worker's households.
+  const toast = useToast();
+  const [showLink, setShowLink] = useState(false);
+  const [linkHouseholdId, setLinkHouseholdId] = useState('');
+  const [householdOptions, setHouseholdOptions] = useState<HouseholdWithCounts[]>([]);
+  const [linking, setLinking] = useState(false);
+
+  async function openLink() {
+    setShowLink(true);
+    setHouseholdOptions(await listHouseholdsWithCounts());
+  }
+
+  async function linkToHousehold() {
+    if (!patient || !linkHouseholdId) return;
+    setLinking(true);
+    try {
+      await updateBeneficiaryHouseholdLocal(patient.id, linkHouseholdId);
+      if (isCurrentlyOnline()) scheduleSync(300);
+      const row = await getPatient(patient.id);
+      if (row) {
+        const home = row.household_id ? await getHouseholdAddress(row.household_id) : null;
+        setPatient(row);
+        setAddress(home);
+      }
+      setShowLink(false);
+      setLinkHouseholdId('');
+      toast.toast(t('asha.linkHouseholdSaved'), 'success');
+    } finally {
+      setLinking(false);
+    }
+  }
+
   useEffect(() => {
     if (!id) {
       setMissing(true);
@@ -179,6 +219,10 @@ export default function PatientDetailScreen() {
       }
 
       if (tab === 'maternal') {
+        if ((patient.gender ?? '').trim().toLowerCase() === 'male') {
+          setMaternal({ pregnancy: null, ancVisits: [] });
+          return;
+        }
         const pregnancies = await listPregnancies(patient.id);
         const pregnancy = pregnancies.find((p) => !CLOSED_STATUSES.includes(p.status)) ?? pregnancies[0] ?? null;
         const ancVisits = pregnancy ? await listAncVisits(pregnancy.id) : [];
@@ -219,6 +263,16 @@ export default function PatientDetailScreen() {
 
   const historyRows = useMemo(() => buildHistory(t, history), [t, history]);
 
+  // Maternal/pregnancy care only applies to women; keep the tab (and its data
+  // reads) off male patients entirely. Unknown gender still gets the tab —
+  // an empty pregnancy record says "not pregnant" rather than nothing.
+  const showMaternal = (patient?.gender ?? '').trim().toLowerCase() !== 'male';
+  const tabs = showMaternal ? TABS : TABS.filter((key) => key !== 'maternal');
+
+  useEffect(() => {
+    if (!showMaternal && tab === 'maternal') setTab('summary');
+  }, [showMaternal, tab]);
+
   if (missing || !patient) {
     return (
       <Screen title={t('nav.patientDetails')} back withTabBar={false}>
@@ -252,7 +306,8 @@ export default function PatientDetailScreen() {
             </View>
             <View className="flex-1 gap-2">
               <Fact label={t('asha.age')} value={ageOf(patient, t('asha.ageYearsUnit'), t('asha.ageMonthsUnit'))} />
-              <Fact label={t('asha.gender')} value={patient.gender ?? t('asha.notRecorded')} />
+              <Fact label={t('asha.gender')} value={formatGender(patient.gender, t)} />
+              {patient.blood_group ? <Fact label={t('asha.bloodGroup')} value={patient.blood_group} /> : null}
               <Fact label={t('asha.primaryLanguage')} value={t('asha.hindi')} />
               <Text className="font-caption text-caption text-on-surface-variant">
                 {[
@@ -316,7 +371,18 @@ export default function PatientDetailScreen() {
           <SectionTitle icon="users" title={t('asha.householdMembers')} />
           <Card>
             {!patient.household_id ? (
-              <Text className="p-5 font-body-md text-body-md text-on-surface-variant">{t('asha.patientNoHousehold')}</Text>
+              <View className="gap-3 p-5">
+                <Text className="font-body-md text-body-md text-on-surface-variant">
+                  {t('asha.patientNoHousehold')}
+                </Text>
+                <Button
+                  label={t('asha.linkToHousehold')}
+                  icon="plus"
+                  variant="secondary"
+                  shape="rounded"
+                  onPress={() => void openLink()}
+                />
+              </View>
             ) : summary.members.length === 0 ? (
               <Text className="p-5 font-body-md text-body-md text-on-surface-variant">{t('asha.noMembersRecorded')}</Text>
             ) : (
@@ -324,13 +390,16 @@ export default function PatientDetailScreen() {
                 {summary.members.map((member) => {
                   const meta =
                     [
-                      member.gender,
+                      member.relationship_to_head
+                        ? relationshipLabel(member.relationship_to_head, t)
+                        : null,
+                      formatGender(member.gender, t),
                       member.age_years !== null ? `${member.age_years} ${t('asha.ageYearsUnit')}` : null,
                     ]
                       .filter(Boolean)
                       .join(' · ') || t('asha.notRecorded');
-                  return (
-                    <View key={member.id} className="relative flex-row items-center gap-2 overflow-hidden rounded-lg border border-outline-variant p-3">
+                  const row = (
+                    <View className="relative flex-row items-center gap-2 overflow-hidden rounded-lg border border-outline-variant p-3">
                       {member.isSubject ? <View className="absolute bottom-0 left-0 top-0 w-1 bg-secondary" /> : null}
                       <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-container">
                         <Text className="font-label-md text-label-md font-bold text-primary">
@@ -343,6 +412,20 @@ export default function PatientDetailScreen() {
                       </View>
                       {member.isSubject ? <Icon name="checkCircle" size={18} /> : <Icon name="chevronRight" size={18} />}
                     </View>
+                  );
+                  // The subject row already belongs to the open screen; every
+                  // other member opens their own profile.
+                  return member.isSubject || !member.id ? (
+                    <View key={member.id}>{row}</View>
+                  ) : (
+                    <Pressable
+                      key={member.id}
+                      accessibilityRole="button"
+                      onPress={() => router.push(`/patient/${member.id}`)}
+                      className="active:opacity-70"
+                    >
+                      {row}
+                    </Pressable>
                   );
                 })}
               </View>
@@ -369,8 +452,8 @@ export default function PatientDetailScreen() {
                   <View className={cx('mt-1.5 h-2 w-2 shrink-0 rounded-full', row.urgent ? 'bg-error' : 'bg-secondary')} />
                   <View className="flex-1">
                     <View className="flex-row items-start justify-between gap-2">
-                      <Text className="font-body-md text-body-md font-semibold text-on-surface">{row.title}</Text>
-                      <Text className="font-caption text-caption text-on-surface-variant">{formatDate(row.date)}</Text>
+                      <Text className="flex-1 font-body-md text-body-md font-semibold text-on-surface">{row.title}</Text>
+                      <Text className="shrink-0 font-caption text-caption text-on-surface-variant">{formatDate(row.date)}</Text>
                     </View>
                     {row.note ? <Text className="font-caption text-caption text-on-surface-variant">{row.note}</Text> : null}
                   </View>
@@ -394,20 +477,18 @@ export default function PatientDetailScreen() {
         ) : (
           <>
             <View className="gap-3">
-              <View className="flex-row gap-3">
+              <View className="flex-row flex-wrap gap-3">
                 <Metric label={t('asha.lmp')} value={formatDate(maternal.pregnancy.lmp)} />
                 <Metric label={t('asha.edd')} value={formatDate(maternal.pregnancy.edd)} />
                 <Metric label={t('asha.ancVisits')} value={`${maternal.pregnancy.anc_count} / 8`} />
-              </View>
-              <View className="flex-row gap-3">
                 <Metric
-                  label={t('asha.gravidaPara')}
+                  label={t('asha.gravidaParaLabel')}
                   value={t('asha.gravidaPara', {
                     gravida: maternal.pregnancy.gravida ?? '—',
                     para: maternal.pregnancy.parity ?? '—',
                   })}
                 />
-                <Metric label={t('asha.pregnancyStatus')} value={maternal.pregnancy.status} />
+                <Metric label={t('asha.pregnancyStatus')} value={titleCase(maternal.pregnancy.status)} />
                 <Metric label={t('asha.riskLevel')} value={riskLabel(maternal.pregnancy.risk_level, t)} />
               </View>
             </View>
@@ -474,8 +555,13 @@ export default function PatientDetailScreen() {
                     <Text className="font-caption text-caption text-on-surface-variant">{row.child}</Text>
                   </View>
                   <View className={cx('rounded-full px-2.5 py-1', row.given ? 'bg-secondary-container' : 'bg-surface-container')}>
-                    <Text className="font-caption text-caption font-semibold text-on-surface-variant">
-                      {row.given ?? row.due ?? '—'}
+                    <Text
+                      className={cx(
+                        'font-caption text-caption font-semibold',
+                        row.given ? 'text-on-secondary-container' : 'text-on-surface-variant',
+                      )}
+                    >
+                      {formatDate(row.given ?? row.due)}
                     </Text>
                   </View>
                 </View>
@@ -510,10 +596,10 @@ export default function PatientDetailScreen() {
                   <Icon name="chevronRight" size={18} />
                   <View className="flex-1">
                     <View className="flex-row items-start justify-between gap-2">
-                      <Text className="font-body-md text-body-md font-semibold text-on-surface">
+                      <Text className="flex-1 font-body-md text-body-md font-semibold text-on-surface">
                         {referral.referral_type || t('asha.refToUnspecified')}
                       </Text>
-                      <Text className="font-caption text-caption text-on-surface-variant">{formatDate(referral.initiated_at)}</Text>
+                      <Text className="shrink-0 font-caption text-caption text-on-surface-variant">{formatDate(referral.initiated_at)}</Text>
                     </View>
                     <Text className="font-body-md text-body-md text-on-surface-variant">
                       {referral.reason || t('asha.notRecorded')}
@@ -532,8 +618,18 @@ export default function PatientDetailScreen() {
 
   return (
     <Screen title={patient.full_name} subtitle={patient.beneficiary_id ?? undefined} back withTabBar={false} scroll={false}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row border-b border-outline-variant">
-        {TABS.map((key) => (
+      {/*
+        RN ScrollView defaults to flexGrow: 1, so as siblings these two would
+        split the screen 50/50 and stretch the tab strip into a huge blank
+        band. Pin the strip to its content height and let only the body grow.
+      */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="flex-none border-b border-outline-variant"
+        contentContainerClassName="px-1"
+      >
+        {tabs.map((key) => (
           <TabButton
             key={key}
             active={tab === key}
@@ -543,9 +639,52 @@ export default function PatientDetailScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerClassName="gap-5 px-4 pb-8" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerClassName="gap-5 px-4 pb-8" showsVerticalScrollIndicator={false}>
         {body}
       </ScrollView>
+
+      <Modal
+        visible={showLink}
+        onClose={() => {
+          setShowLink(false);
+          setLinkHouseholdId('');
+        }}
+        title={t('asha.linkHouseholdTitle')}
+      >
+        <View className="gap-3">
+          <SelectField
+            label={t('asha.selectHousehold')}
+            value={linkHouseholdId}
+            onChange={setLinkHouseholdId}
+            placeholder={t('asha.selectHousehold')}
+            searchable
+            options={householdOptions.map((household) => ({
+              label: [household.hhid, household.address].filter(Boolean).join(' — ') || household.id,
+              value: household.id,
+            }))}
+          />
+          <View className="flex-row gap-3">
+            <Button
+              label={t('common.cancel')}
+              variant="ghost"
+              shape="pill"
+              onPress={() => {
+                setShowLink(false);
+                setLinkHouseholdId('');
+              }}
+            />
+            <Button
+              label={t('common.save')}
+              icon="check"
+              shape="pill"
+              loading={linking}
+              disabled={linking || !linkHouseholdId}
+              onPress={() => void linkToHousehold()}
+              className="flex-1"
+            />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -638,7 +777,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-1 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
+    <View className="min-w-[150px] flex-1 rounded-lg border border-outline-variant/50 bg-surface-container p-4">
       <Text className="font-caption text-caption text-on-surface-variant" numberOfLines={1}>
         {label}
       </Text>
@@ -692,6 +831,19 @@ function riskLabel(value: string | null, t: Translate): string {
   if (v === 'medium' || v === 'moderate') return t('asha.riskMediumLabel');
   if (!v) return t('asha.notRecorded');
   return t('asha.riskLowLabel');
+}
+
+/** Stored gender/status are lowercase ('female', 'ongoing'); show them properly cased. */
+function titleCase(value: string | null): string {
+  if (!value) return '—';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatGender(value: string | null, t: Translate): string {
+  const v = (value ?? '').trim().toLowerCase();
+  if (v === 'female') return t('asha.female');
+  if (v === 'male') return t('asha.male');
+  return value || t('asha.notRecorded');
 }
 
 /**

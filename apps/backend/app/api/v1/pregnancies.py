@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.models.beneficiary import Beneficiary
 from app.models.maternal import ANCVISIT, DeliveryOutcome, MicroBirthPlan, PNCVisit, Pregnancy
 from app.models.user import User
@@ -64,6 +64,8 @@ async def create_pregnancy(
     beneficiary = await db.get(Beneficiary, payload.beneficiary_id)
     if not beneficiary:
         raise NotFoundError("Beneficiary not found")
+    if (beneficiary.gender or "").strip().lower() not in ("female", "f"):
+        raise ValidationError("Pregnancy can only be registered for a female beneficiary")
     pregnancy = Pregnancy(**payload.model_dump())
     db.add(pregnancy)
     beneficiary.is_pregnant = True

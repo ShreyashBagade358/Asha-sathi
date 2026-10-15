@@ -1,4 +1,43 @@
 import { api } from '@/lib/api'
+import { isAxiosError } from 'axios'
+
+export interface VaccinationScheduleEntry {
+  vaccine_code: string
+  vaccine_name: string
+  dose: number
+  age: string
+  age_months: number
+  route: string
+  site: string
+}
+
+export interface VaccinationSchedule {
+  schedule: VaccinationScheduleEntry[]
+  source: string
+  updated_at: string
+}
+
+export interface ChildVaccinationStatusDose {
+  vaccine_code: string
+  vaccine_name: string
+  dose_number: number
+  due_date: string | null
+  given_date: string | null
+  status: string
+  effective_status: string
+}
+
+export interface ChildVaccinationStatus {
+  total: number
+  given: number
+  due: number
+  overdue: number
+  progress_pct: number
+  fully_immunized: boolean
+  overall_status: string
+  next_due: { vaccine_code: string; vaccine_name: string; dose_number: number; due_date: string } | null
+  by_dose: ChildVaccinationStatusDose[]
+}
 
 export interface VaccinationDose {
   id: string
@@ -66,5 +105,29 @@ export const vaccinationService = {
       dueDate: d.due_date ?? '',
       status: d.status ?? 'due',
     }))
+  },
+
+  async getSchedule(): Promise<VaccinationSchedule> {
+    const { data } = await api.get<{
+      schedule: VaccinationScheduleEntry[]
+      source: string
+      updated_at: string
+    }>('/vaccination/schedule')
+    return {
+      schedule: data.schedule ?? [],
+      source: data.source ?? '',
+      updated_at: data.updated_at ?? '',
+    }
+  },
+
+  async getChildVaccinationStatus(childId: string): Promise<ChildVaccinationStatus | null> {
+    try {
+      const { data } = await api.get<ChildVaccinationStatus>(`/vaccination/children/${childId}/vaccination-status`)
+      return data
+    } catch (err) {
+      // Endpoint may not be deployed yet (404) — callers should fall back to listImmunizations.
+      if (isAxiosError(err) && err.response?.status === 404) return null
+      throw err
+    }
   },
 }

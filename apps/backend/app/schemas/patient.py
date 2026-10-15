@@ -3,6 +3,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.beneficiary import RelationshipToHead
+
 _BLOOD_GROUPS = {"A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"}
 
 
@@ -13,7 +15,13 @@ class PatientRegistrationRequest(BaseModel):
     gender: Literal["male", "female", "other"]
     abha_id: str = Field(min_length=4, max_length=64)
     village: str | None = Field(default=None, max_length=100)
+    # Geography recorded at intake (mirrors the mobile form's required
+    # state / district selects); stored on Beneficiary.metadata_json.
+    state: str | None = Field(default=None, max_length=100)
+    district: str | None = Field(default=None, max_length=100)
     household_id: str | None = Field(default=None, max_length=64)
+    # Relationship of this patient to the household head (family linking).
+    relationship_to_head: RelationshipToHead | None = None
     blood_group: str | None = Field(default=None, max_length=10)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     # Intake annotations. Persisted on `Beneficiary.metadata_json` (keys
@@ -59,9 +67,16 @@ class PregnancySummary(BaseModel):
 class PatientVitals(BaseModel):
     height_cm: float | None = None
     weight_kg: float | None = None
+    bmi: float | None = None
     bp_systolic: int | None = None
     bp_diastolic: int | None = None
+    pulse: int | None = None
+    temperature: float | None = None
+    spo2: int | None = None
     hemoglobin: float | None = None
+    blood_sugar_random: float | None = None
+    waist_circumference_cm: float | None = None
+    blood_group: str | None = None
 
 
 class PatientProfileUpdate(BaseModel):
@@ -94,6 +109,42 @@ class PatientProfileUpdate(BaseModel):
     previous_preterm: bool | None = None
     previous_stillbirth: bool | None = None
     multiple_pregnancy: bool | None = None
+
+
+class PatientHouseholdMember(BaseModel):
+    """One family member as the signed-in patient may see them.
+
+    Demographics only — no phone, ABHA id or clinical history: the family view
+    answers "who lives here", not "what is wrong with them".
+    """
+
+    id: str
+    full_name: str
+    gender: str | None = None
+    age_years: int | None = None
+    age_months: int | None = None
+    # Plain str, not `RelationshipToHead`: a row written by an older client can
+    # carry a value outside the vocabulary, and a family view must not 500 on it.
+    relationship_to_head: str | None = None
+    marital_status: str | None = None
+    is_pregnant: bool = False
+    is_lactating: bool = False
+    is_self: bool = False
+
+
+class PatientHouseholdResponse(BaseModel):
+    """The patient's own household: its demographics plus the family roll."""
+
+    id: str
+    hhid: str
+    head_name: str | None = None
+    ward: str | None = None
+    address: str | None = None
+    village: str | None = None
+    family_size: int | None = None
+    contact_phone: str | None = None
+    member_count: int = 0
+    members: list[PatientHouseholdMember] = Field(default_factory=list)
 
 
 class PatientProfileResponse(BaseModel):
@@ -130,3 +181,23 @@ class PatientProfileResponse(BaseModel):
     active_conditions: list[str] = Field(default_factory=list)
     pregnancy: PregnancySummary | None = None
     vitals: PatientVitals | None = None
+
+
+class AppointmentRequestCreate(BaseModel):
+    """Patient-initiated appointment request, delivered as an ASHA task."""
+
+    reason: str = Field(min_length=2, max_length=200)
+    preferred_date: date
+    preferred_time: str | None = Field(default=None, max_length=20)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class AppointmentRequestResponse(BaseModel):
+    id: str
+    reason: str
+    preferred_date: date
+    preferred_time: str | None = None
+    notes: str | None = None
+    status: str
+    asha_worker_name: str | None = None
+    created_at: str | None = None

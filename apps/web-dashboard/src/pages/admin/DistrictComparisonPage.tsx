@@ -2,26 +2,38 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ASHACard } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
+import { useAuth } from '@/hooks/useAuth'
 import { dashboardService } from '@/services/dashboard.service'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { configService } from '@/services/config.service'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 import { ComparisonChart } from '@/components/charts/ComparisonChart'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { Icon } from '@/components/common/Icons'
 
 const INDICATORS = [
-  { key: 'anc4', label: 'ANC4+', color: '#006565' },
-  { key: 'institutional', label: 'Institutional Deliveries', color: '#156820' },
-  { key: 'immunization', label: 'Immunization', color: '#ac3509' },
-  { key: 'ncd', label: 'NCD Screening', color: '#76d6d5' },
+  { key: 'anc4', label: 'ANC4+', color: '#4F46E5' },
+  { key: 'institutional', label: 'Institutional Deliveries', color: '#10B981' },
+  { key: 'immunization', label: 'Immunization', color: '#F59E0B' },
+  { key: 'ncd', label: 'NCD Screening', color: '#10B981' },
 ]
 
 export default function DistrictComparisonPage() {
   const { t } = useLocalization()
+  const { user } = useAuth()
+  const [statePick, setStatePick] = useState('')
   const [selected, setSelected] = useState<string[]>(['anc4', 'immunization'])
+  const effectiveStateId = user?.stateId || statePick
+
+  const statesQuery = useQuery({
+    queryKey: ['config', 'states'],
+    queryFn: () => configService.getStates(),
+    enabled: !user?.stateId,
+  })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['state-dashboard', 'comparison'],
-    queryFn: () => dashboardService.getStateDashboard(),
+    queryKey: ['state-dashboard', effectiveStateId],
+    queryFn: () => dashboardService.getStateDashboard(effectiveStateId || undefined),
+    enabled: Boolean(effectiveStateId),
   })
 
   const toggleIndicator = (key: string) => {
@@ -33,27 +45,45 @@ export default function DistrictComparisonPage() {
     [selected],
   )
 
-  const chartData = useMemo(
-    () =>
-      (data?.districtComparison ?? []).map(
-        (row): Record<string, string | number> => ({
-          label: row.phcName,
-          ...row.values,
-        }),
-      ),
-    [data],
-  )
+  const chartData = useMemo(() => {
+    const rows = (data?.districtComparison ?? []).map(
+      (row): Record<string, string | number> => ({
+        label: row.phcName,
+        ...row.values,
+      }),
+    )
+    const filtered = rows.filter((row) => selected.some((k) => Number(row[k]) > 0))
+    filtered.sort((a, b) => {
+      const sumA = selected.reduce((s, k) => s + Number(a[k] ?? 0), 0)
+      const sumB = selected.reduce((s, k) => s + Number(b[k] ?? 0), 0)
+      return sumB - sumA
+    })
+    return filtered.slice(0, 15)
+  }, [data, selected])
 
   if (isLoading) return <LoadingSpinner fullPage />
 
+  if (!effectiveStateId) {
+    return (
+      <div className="mx-auto max-w-md rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+        <h2 className="text-headline-sm text-on-surface mb-4">Select State</h2>
+        <SearchableSelect
+          id="dc_state"
+          label="State *"
+          options={(statesQuery.data ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
+          showCode
+          value={statePick}
+          onChange={setStatePick}
+          placeholder="Select state"
+          loading={statesQuery.isLoading}
+          loadingLabel="Loading states…"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('nav.districtComparison')}
-        subtitle={t('state.comparisonSubtitle')}
-        breadcrumbs={[{ label: t('nav.dashboard'), to: '/state/dashboard' }, { label: t('nav.districtComparison') }]}
-      />
-
       <ASHACard title={t('district.compareIndicators')}>
         <div className="flex flex-wrap gap-2">
           {INDICATORS.map((ind) => {
@@ -76,7 +106,13 @@ export default function DistrictComparisonPage() {
       </ASHACard>
 
       <ASHACard title={t('charts.districtWise')}>
-        <ComparisonChart data={chartData} xKey="label" series={chartSeries} height={360} />
+        {chartData.length > 0 ? (
+          <ComparisonChart data={chartData} xKey="label" series={chartSeries} height={360} />
+        ) : (
+          <p className="py-10 text-center text-body-md text-on-surface-variant">
+            No comparison data yet — no district has recorded values for the selected indicators.
+          </p>
+        )}
       </ASHACard>
 
       <ASHACard title={t('charts.phcComparison')}>

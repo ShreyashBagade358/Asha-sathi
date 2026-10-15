@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ASHAButton, ASHACard, StatusChip, type StatusChipVariant } from 'asha-design-system'
 import { useLocalization } from '@/hooks/useLocalization'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { Icon } from '@/components/common/Icons'
 import { getErrorMessage } from '@/components/common/ErrorState'
 import { systemService, type SystemStatus } from '@/services/system.service'
@@ -61,20 +60,15 @@ export default function DeploymentPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('nav.deployment')}
-        subtitle={t('super.deploymentSubtitle')}
-        breadcrumbs={[{ label: t('nav.dashboard'), to: '/super/users' }, { label: t('nav.deployment') }]}
-        actions={
-          <ASHAButton
-            variant="outline"
-            fullWidth={false}
-            icon={<Icon name="refresh" size={16} />}
-            onClick={() => statusQuery.refetch()}
-            label={t('common.syncNow')}
-          />
-        }
-      />
+      <div className="flex justify-end">
+        <ASHAButton
+          variant="outline"
+          fullWidth={false}
+          icon={<Icon name="refresh" size={16} />}
+          onClick={() => statusQuery.refetch()}
+          label={t('common.syncNow')}
+        />
+      </div>
 
       {statusQuery.isPending ? (
         <ASHACard title={t('nav.deployment')}>

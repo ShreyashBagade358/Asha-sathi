@@ -40,7 +40,9 @@ export function Tabs({ tabs, active, onChange, className }: TabsProps) {
             accessibilityState={{ selected: tab.key === active }}
             onPress={() => onChange(tab.key)}
             className={cx(
-              'shrink-0 border-b-2 pb-2',
+              // pt-4 pb-2 puts the hit area at 44pt (label-md is a 20px
+              // line); the indicator stays 8px under the label.
+              'shrink-0 border-b-2 pt-4 pb-2',
               'font-label-md text-label-md font-semibold',
               tab.key === active ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant',
             )}

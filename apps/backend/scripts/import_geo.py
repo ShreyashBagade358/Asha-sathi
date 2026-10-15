@@ -68,7 +68,7 @@ def ensure_csv() -> Path:
     tmp = CSV_PATH.with_suffix(".part")
     curl = shutil.which("curl")
     if curl:
-        subprocess.run([curl, "-sSL", "--fail", "-o", str(tmp), DATA_URL], check=True)
+        subprocess.run([curl, "-sSL", "--fail", "-o", str(tmp), DATA_URL], check=True)  # noqa: S603
     else:  # macOS system Python often has no SSL roots
         context = ssl._create_unverified_context()  # noqa: S323 - public dataset URL
         urllib.request.urlretrieve(DATA_URL, tmp, context=context)  # noqa: S310
@@ -294,7 +294,7 @@ async def polish_names(session: AsyncSession) -> None:
     for table in ("states", "districts", "blocks", "villages"):
         result = await session.execute(
             text(
-                f"UPDATE {table} SET name = {expr} "
+                f"UPDATE {table} SET name = {expr} "  # noqa: S608
                 "WHERE name = upper(name) AND name <> initcap(lower(name))"
             )
         )
@@ -304,7 +304,7 @@ async def polish_names(session: AsyncSession) -> None:
     for table in ("states", "districts", "blocks", "villages"):
         result = await session.execute(
             text(
-                f"UPDATE {table} SET name = replace(replace(replace(name, ' And ', ' and '), "
+                f"UPDATE {table} SET name = replace(replace(replace(name, ' And ', ' and '), "  # noqa: S608
                 f"' Of ', ' of '), ' The ', ' the ') WHERE {small}"
             )
         )

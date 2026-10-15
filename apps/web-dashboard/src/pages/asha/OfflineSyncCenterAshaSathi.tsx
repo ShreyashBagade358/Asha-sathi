@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -36,12 +35,6 @@ export default function OfflineSyncCenterAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5">
-      <PageHeader
-        title={t('asha.syncCenterTitle')}
-        subtitle={t('asha.syncCenterSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('nav.ashaSync') }]}
-      />
-
       {isLoading ? (
         <LoadingState label={t('asha.syncing')} />
       ) : isError ? (

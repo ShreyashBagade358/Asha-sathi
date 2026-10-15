@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/ui/Button';
 import { Card, Pill, SectionHeader } from '@/components/ui/Card';
@@ -171,7 +172,13 @@ export default function HealthSurveyScreen() {
   }, [ashaId, households, formType, formDate, householdId, waterSource, toilet, smoke, membersSeen, load]);
 
   return (
-    <Screen title={t('asha.healthSurveyTitle')} subtitle={t('asha.healthSurveySubtitle')} back withTabBar={false}>
+    <Screen
+      header="page"
+      title={t('asha.healthSurveyTitle')}
+      back
+      withTabBar={false}
+      actions={<LanguageToggle onSurface />}
+    >
       <View className="mb-4 gap-3">
         <Button
           label={showForm ? t('asha.cancel') : t('asha.startSurvey')}
@@ -317,7 +324,7 @@ function SurveyCard({ form }: { form: VillageForm }) {
     <Card>
       <View className="gap-3 p-4">
         <View className="flex-row flex-wrap items-center justify-between gap-2">
-          <Text className="min-w-0 flex-1 text-headline-md text-headline-md font-semibold text-on-surface" numberOfLines={2}>
+          <Text className="min-w-0 flex-1 font-headline-md text-headline-md font-semibold text-on-surface" numberOfLines={2}>
             {typeLabel ? t(typeLabel) : form.form_type}
           </Text>
           <View className={cx('rounded-full px-2.5 py-1', STATUS_CLS[String(form.status)] ?? 'bg-surface-container')}>

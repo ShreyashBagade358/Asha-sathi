@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
+from app.core.exceptions import NotFoundError
 from app.models.beneficiary import Beneficiary
 from app.models.child import Child, Immunization
 from app.models.user import User
@@ -279,4 +280,87 @@ async def get_coverage(
         "due": due,
         "coverage_pct": round(given / (given + due) * 100, 2) if (given + due) else 0,
         "by_vaccine": [{"vaccine_code": code, "given": count} for code, count in by_vaccine],
+    }
+
+
+def _effective_status(status: str, due_date: date | None, today: date) -> str:
+    """Resolve a stored immunization status against today's date."""
+    if status in ("given", "skipped", "overdue"):
+        return status
+    if status == "due":
+        if due_date is None:
+            return "upcoming"
+        return "overdue" if due_date < today else "due"
+    return "upcoming"
+
+
+@router.get("/children/{child_id}/vaccination-status")
+async def get_child_vaccination_status(
+    child_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Full vaccination status for one child: counts, progress and every dose."""
+    child = await db.get(Child, child_id)
+    if not child:
+        raise NotFoundError("Child not found")
+    result = await db.execute(
+        select(Immunization)
+        .where(Immunization.child_id == child_id)
+        .order_by(Immunization.due_date.is_(None), Immunization.due_date)
+    )
+    immunizations = list(result.scalars().all())
+    today = date.today()
+
+    by_dose: list[dict] = []
+    counts = {"given": 0, "due": 0, "overdue": 0, "upcoming": 0, "skipped": 0}
+    next_due: dict | None = None
+    for imm in immunizations:
+        effective = _effective_status(imm.status, imm.due_date, today)
+        counts[effective] = counts.get(effective, 0) + 1
+        by_dose.append(
+            {
+                "vaccine_code": imm.vaccine_code,
+                "vaccine_name": imm.vaccine_name,
+                "dose_number": imm.dose_number,
+                "due_date": imm.due_date.isoformat() if imm.due_date else None,
+                "given_date": imm.given_date.isoformat() if imm.given_date else None,
+                "status": imm.status,
+                "effective_status": effective,
+            }
+        )
+        if next_due is None and imm.status != "given":
+            next_due = {
+                "vaccine_code": imm.vaccine_code,
+                "vaccine_name": imm.vaccine_name,
+                "dose_number": imm.dose_number,
+                "due_date": imm.due_date.isoformat() if imm.due_date else None,
+            }
+
+    total = len(immunizations)
+    given = counts["given"]
+    overdue = counts["overdue"]
+    progress_pct = round(given / total * 100, 1) if total > 0 else 0
+    fully_immunized = given == total and total > 0
+    if fully_immunized:
+        overall_status = "fully_immunized"
+    elif overdue > 0:
+        overall_status = "overdue"
+    else:
+        overall_status = "on_track"
+
+    return {
+        "child_id": child.id,
+        "beneficiary_id": child.beneficiary_id,
+        "total": total,
+        "given": given,
+        "due": counts["due"],
+        "overdue": overdue,
+        "upcoming": counts["upcoming"],
+        "skipped": counts["skipped"],
+        "progress_pct": progress_pct,
+        "fully_immunized": fully_immunized,
+        "overall_status": overall_status,
+        "next_due": next_due,
+        "by_dose": by_dose,
     }

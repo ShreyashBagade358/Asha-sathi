@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import Boolean, Date, Float, String
+from sqlalchemy import Boolean, Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -38,9 +38,17 @@ class DiseaseCase(BaseModel):
 
 
 class MalariaCase(BaseModel):
+    """One-to-one detail row for a malaria DiseaseCase.
+
+    ``disease_case_id`` used to be declared ``primary_key=True`` alongside
+    BaseModel's ``id``, which created a bogus composite primary key. It is a
+    unique foreign key instead — the row is identified by ``id`` and joins to
+    ``disease_cases`` through ``disease_case_id``.
+    """
+
     __tablename__ = "malaria_cases"
 
-    disease_case_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    disease_case_id: Mapped[str] = mapped_column(String(36), ForeignKey("disease_cases.id"), unique=True, index=True)
     species: Mapped[str | None] = mapped_column(String(40), nullable=True)
     parasite_count: Mapped[float | None] = mapped_column(Float, nullable=True)
     rdt_result: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -52,9 +60,11 @@ class MalariaCase(BaseModel):
 
 
 class TBCase(BaseModel):
+    """One-to-one detail row for a TB DiseaseCase (same pattern as MalariaCase)."""
+
     __tablename__ = "tb_cases"
 
-    disease_case_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    disease_case_id: Mapped[str] = mapped_column(String(36), ForeignKey("disease_cases.id"), unique=True, index=True)
     tb_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
     site_extrapulmonary: Mapped[str | None] = mapped_column(String(40), nullable=True)
     bacteriologically_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)

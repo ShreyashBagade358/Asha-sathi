@@ -5,6 +5,7 @@ import type { UserSummary } from '../types';
 const TOKEN_KEY = 'asha_access_token';
 const REFRESH_KEY = 'asha_refresh_token';
 const USER_KEY = 'asha_user';
+const LAST_PHONE_KEY = 'asha_last_phone';
 
 const isDevice = typeof SecureStore.setItemAsync === 'function';
 
@@ -94,6 +95,14 @@ export const tokenStore = {
 
   async setAccessToken(token: string): Promise<void> {
     await writeRaw(TOKEN_KEY, token);
+  },
+
+  async getLastPhone(): Promise<string | null> {
+    return readRaw(LAST_PHONE_KEY);
+  },
+
+  async saveLastPhone(phone: string): Promise<void> {
+    await writeRaw(LAST_PHONE_KEY, phone);
   },
 
   async clear(): Promise<void> {

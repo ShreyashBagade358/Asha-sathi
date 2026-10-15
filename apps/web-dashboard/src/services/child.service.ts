@@ -8,6 +8,9 @@ export interface ChildListParams {
 
 export interface CreateChildPayload {
   beneficiaryId: string
+  motherId: string
+  fatherId?: string
+  deliveryOutcomeId?: string
   birthWeightGrams?: number
   birthLengthCm?: number
   headCircumferenceCm?: number
@@ -42,6 +45,44 @@ export interface CreateGrowthRecordPayload {
   nutritionStatus?: string
 }
 
+export interface CreateHBNCVisitPayload {
+  visitNumber?: number
+  visitDate: string
+  weightGrams?: number
+  temperature?: number
+  breastfeedingStatus?: string
+  cordCondition?: string
+  skinCondition?: string
+  dangerSigns?: Record<string, unknown>
+  referralMade?: boolean
+  referralReason?: string
+}
+
+export interface CreateHBYCVisitPayload {
+  visitNumber?: number
+  visitDate: string
+  ageMonths?: number
+  weightKg?: number
+  heightCm?: number
+  muacMm?: number
+  nutritionStatus?: string
+  developmentalMilestones?: Record<string, unknown>
+  dangerSigns?: Record<string, unknown>
+  referralMade?: boolean
+}
+
+export interface HomeVisit {
+  id: string
+  child_id: string
+  visit_number: number
+  visit_date: string
+  weight_grams?: number | null
+  weight_kg?: number | null
+  breastfeeding_status?: string | null
+  nutrition_status?: string | null
+  referral_made: boolean
+}
+
 interface RawGrowthRecord {
   id: string
   child_id: string
@@ -58,6 +99,10 @@ interface RawGrowthRecord {
 interface RawChild {
   id: string
   beneficiary_id: string
+  mother_id?: string | null
+  father_id?: string | null
+  mother_name?: string | null
+  father_name?: string | null
   birth_weight_grams?: number | null
   gestation_weeks?: number | null
   delivery_type?: string | null
@@ -68,6 +113,11 @@ interface RawChild {
 interface RawChildPageItem {
   id: string
   beneficiary_id: string
+  mother_id?: string | null
+  father_id?: string | null
+  delivery_outcome_id?: string | null
+  mother_name?: string | null
+  father_name?: string | null
   birth_registration_no?: string | null
   birth_weight_grams?: number | null
   gestation_weeks?: number | null
@@ -90,6 +140,10 @@ function mapChildFromDetail(r: RawChild): Child {
   return {
     id: r.id,
     beneficiaryId: r.beneficiary_id,
+    motherId: r.mother_id ?? undefined,
+    fatherId: r.father_id ?? undefined,
+    motherName: r.mother_name ?? undefined,
+    fatherName: r.father_name ?? undefined,
     name: 'Child',
     dob: r.created_at ?? '',
     gender: 'female',
@@ -157,6 +211,9 @@ export const childService = {
   async createChild(payload: CreateChildPayload): Promise<RawChildPageItem> {
     const { data } = await api.post<RawChildPageItem>('/children', {
       beneficiary_id: payload.beneficiaryId,
+      mother_id: payload.motherId,
+      father_id: payload.fatherId || undefined,
+      delivery_outcome_id: payload.deliveryOutcomeId || undefined,
       birth_weight_grams: payload.birthWeightGrams,
       birth_length_cm: payload.birthLengthCm,
       head_circumference_cm: payload.headCircumferenceCm,
@@ -187,7 +244,7 @@ export const childService = {
   },
 
   async updateImmunization(immunizationId: string, payload: UpdateImmunizationPayload): Promise<Immunization> {
-    const { data } = await api.put<RawImmunization>(`/immunizations/${immunizationId}`, {
+    const { data } = await api.put<RawImmunization>(`/children/immunizations/${immunizationId}`, {
       status: payload.status,
       given_date: payload.givenDate,
       given_by: payload.givenBy,
@@ -233,5 +290,47 @@ export const childService = {
       `/children/${childId}/growth/${growthRecordId}/photo`,
     )
     return mapGrowthRecord(data)
+  },
+
+  async addHBNCVisit(childId: string, payload: CreateHBNCVisitPayload): Promise<HomeVisit> {
+    const { data } = await api.post<HomeVisit>(`/children/${childId}/hbnc`, {
+      visit_number: payload.visitNumber,
+      visit_date: payload.visitDate,
+      weight_grams: payload.weightGrams,
+      temperature: payload.temperature,
+      breastfeeding_status: payload.breastfeedingStatus,
+      cord_condition: payload.cordCondition,
+      skin_condition: payload.skinCondition,
+      danger_signs: payload.dangerSigns,
+      referral_made: payload.referralMade,
+      referral_reason: payload.referralReason,
+    })
+    return data
+  },
+
+  async listHBNCVisits(childId: string): Promise<HomeVisit[]> {
+    const { data } = await api.get<HomeVisit[]>(`/children/${childId}/hbnc`)
+    return data
+  },
+
+  async addHBYCVisit(childId: string, payload: CreateHBYCVisitPayload): Promise<HomeVisit> {
+    const { data } = await api.post<HomeVisit>(`/children/${childId}/hbyc`, {
+      visit_number: payload.visitNumber,
+      visit_date: payload.visitDate,
+      age_months: payload.ageMonths,
+      weight_kg: payload.weightKg,
+      height_cm: payload.heightCm,
+      muac_mm: payload.muacMm,
+      nutrition_status: payload.nutritionStatus,
+      developmental_milestones: payload.developmentalMilestones,
+      danger_signs: payload.dangerSigns,
+      referral_made: payload.referralMade,
+    })
+    return data
+  },
+
+  async listHBYCVisits(childId: string): Promise<HomeVisit[]> {
+    const { data } = await api.get<HomeVisit[]>(`/children/${childId}/hbyc`)
+    return data
   },
 }

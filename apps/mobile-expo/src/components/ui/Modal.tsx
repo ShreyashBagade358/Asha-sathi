@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/ui/Icon';
 import { cx } from '@/cx';
+import { useLocalization } from '@/i18n/useLocalization';
 import { shadow } from '@/theme';
 
 export type ModalProps = {
@@ -21,17 +22,23 @@ export type ModalProps = {
  * Bottom-sheet shell matching the web modal recipe: backdrop bg-black/40,
  * panel rounded-t-2xl bg-surface-container-lowest p-5 shadow-modal with a
  * header row (title + close) above the caller's content.
+ *
+ * The backdrop tap and Android's hardware back (onRequestClose) both dismiss,
+ * and the sheet's bottom padding folds in the home-indicator inset so content
+ * clears it.
  */
 export function Modal({ visible, onClose, title, children, variant = 'sheet', hideClose = false }: ModalProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLocalization();
   const isSheet = variant === 'sheet';
+  const closeLabel = t('common.close');
 
   return (
     <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable
         className={cx('flex-1 bg-black/40', isSheet ? 'justify-end' : 'items-center justify-center')}
         accessibilityRole="button"
-        accessibilityLabel="Close"
+        accessibilityLabel={closeLabel}
         onPress={onClose}
       >
         <Pressable
@@ -54,7 +61,7 @@ export function Modal({ visible, onClose, title, children, variant = 'sheet', hi
               {!hideClose ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Close"
+                  accessibilityLabel={closeLabel}
                   onPress={onClose}
                   hitSlop={8}
                   className="h-9 w-9 items-center justify-center rounded-full bg-surface-container"

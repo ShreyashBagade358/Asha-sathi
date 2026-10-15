@@ -4,7 +4,6 @@ import { useTodayTasks } from '@/hooks/useTodayTasks'
 import { DailyPlanCard } from '@/components/asha/DailyPlanCard'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Icon } from '@/components/common/Icons'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { formatDay } from '@/pages/asha/taskView'
@@ -15,12 +14,6 @@ export default function HealthSurveyAshaSathi() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <PageHeader
-        title={t('asha.healthSurveyTitle')}
-        subtitle={t('asha.visitQueueSubtitle')}
-        breadcrumbs={[{ label: t('nav.ashaHome'), to: '/asha/home' }, { label: t('asha.healthSurveyTitle') }]}
-      />
-
       <DailyPlanCard tasks={tasks} />
 
       {isLoading ? (
@@ -58,12 +51,12 @@ export default function HealthSurveyAshaSathi() {
                       {task.title}
                     </p>
                     {task.priority === 'high' && !task.done ? (
-                      <span className="rounded-full bg-error-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-error-container">
+                      <span className="rounded-full bg-error-container px-2 py-0.5 font-caption text-label-sm font-semibold text-on-error-container">
                         {task.priority}
                       </span>
                     ) : null}
                     {task.carriedFrom && !task.done ? (
-                      <span className="rounded-full bg-tertiary-container px-2 py-0.5 font-caption text-[11px] font-semibold text-on-tertiary-container">
+                      <span className="rounded-full bg-tertiary-container px-2 py-0.5 font-caption text-label-sm font-semibold text-on-tertiary-container">
                         {t('asha.carriedBadge')} {formatDay(task.carriedFrom)}
                       </span>
                     ) : null}

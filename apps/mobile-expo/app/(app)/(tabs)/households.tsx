@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -13,7 +13,7 @@ import { getQueueCounts } from '@/db/database';
 import { useLocalization } from '@/i18n/useLocalization';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { MoreButton } from '@/nav/MoreSheet';
-import { subscribeOnline } from '@/sync/network';
+import { subscribeOnline, subscribeSync } from '@/sync/network';
 import { colors } from '@/theme';
 import { cx } from '@/cx';
 
@@ -77,11 +77,21 @@ export default function HouseholdsScreen() {
     setPending(counts.pending + counts.failed);
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Reload on focus as well as mount: the tab navigator keeps this screen
+  // mounted, so a household recorded offline would otherwise stay invisible
+  // until the next sync event.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   useEffect(() => subscribeOnline(setOnline), []);
+
+  // A sync landing while open (post-login pull, Sync Now) changes the list.
+  useEffect(() => subscribeSync((result) => {
+    if (result) void load();
+  }), [load]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -100,13 +110,13 @@ export default function HouseholdsScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScrollView
-        contentContainerClassName="px-4 pb-28"
+        className="flex-1"
+        contentContainerClassName="px-4 pb-36"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <PageHeader
           title={t('asha.assignedHouseholds')}
-          subtitle={t('asha.householdsSubtitle')}
           actions={
             <>
               <LanguageToggle onSurface />

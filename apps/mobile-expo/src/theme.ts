@@ -95,3 +95,15 @@ export const toneClass = (tone: Tone) => {
       return { fg: 'text-primary', container: 'bg-primary-container', onContainer: 'text-on-primary' };
   }
 };
+
+/**
+ * Hex twin of each tone's `fg` class. The web tints icons through CSS
+ * `currentColor`, which the RN Icon cannot read, so anything that colours a
+ * row of icon + text by tone needs the literal hex here instead.
+ */
+export const toneColor: Record<Tone, string> = {
+  primary: colors.primary,
+  secondary: colors.secondary,
+  tertiary: colors.tertiary,
+  error: colors.error,
+};

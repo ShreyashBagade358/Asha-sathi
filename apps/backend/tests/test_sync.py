@@ -22,9 +22,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import Base
+from app.core.security import verify_password
 from app.models.beneficiary import Beneficiary, Household
 from app.models.sync import SyncOperation
-from app.models.user import ASHAProfile
+from app.models.user import ASHAProfile, User
 
 pytestmark = pytest.mark.asyncio
 
@@ -295,6 +296,68 @@ async def test_asha_pull_includes_own_children_records(client, user_factory, ses
     assert [p["id"] for p in pregnancies] == ["preg-c"]
 
 
+async def test_asha_pull_includes_own_household_visit_checks(client, user_factory, session):
+    """Per-member visit checks are scoped the way their household is."""
+    from app.core.security import create_access_token
+    from app.models.beneficiary import HouseholdVisitCheck
+
+    asha = await user_factory(phone="9100000030", role="asha")
+    session.add(
+        ASHAProfile(
+            user_id=asha.id,
+            asha_id="ASHA-E",
+            catchment_villages=["village-e"],
+            emergency_contact_name="x",
+        )
+    )
+    await session.commit()
+
+    await _make_household(session, household_id="hh-e", village_id="village-e", asha_user_id=asha.id)
+    # A neighbouring ASHA's household: out of scope even though it shares the
+    # pull (own-household OR catchment-village is the rule, so ownership by a
+    # different worker is what excludes it).
+    other = await user_factory(phone="9100000031", role="asha")
+    await _make_household(session, household_id="hh-f", village_id="village-f", asha_user_id=other.id)
+
+    session.add(
+        HouseholdVisitCheck(
+            id="chk-e",
+            household_id="hh-e",
+            check_type="general",
+            result="concern",
+            notes="Needs a BP check",
+            visited_at=date(2024, 5, 1),
+            created_by=asha.id,
+        )
+    )
+    session.add(
+        HouseholdVisitCheck(
+            id="chk-f",
+            household_id="hh-f",
+            check_type="general",
+            result="ok",
+            notes="Other tenant note",
+            visited_at=date(2024, 5, 1),
+            created_by=asha.id,
+        )
+    )
+    await session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(asha.id)}"}
+    res = await client.post(
+        "/api/v1/sync/pull",
+        json={"device_id": "d1", "last_pull_at": (EPOCH - timedelta(days=1)).isoformat()},
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    checks = res.json()["records"].get("household_visit_checks", [])
+    ids = {c["id"] for c in checks}
+
+    assert "chk-e" in ids
+    assert "chk-f" not in ids, "visit checks must follow the household scope"
+    assert "Other tenant note" not in res.text
+
+
 async def test_patient_pull_only_sees_own_record(client, user_factory, session):
     """A patient token must not pull the whole deployment."""
     patient = await user_factory(phone="9300000001", role="patient")
@@ -540,6 +603,36 @@ async def test_patient_may_push_own_clinical_record(client, user_factory):
     assert res.json()["summary"]["pushed"] == 1
 
 
+async def test_patient_cannot_push_household_visit_checks(client, user_factory):
+    """Visit checks describe a whole household, so a patient may not write them."""
+    patient = await user_factory(phone="9900000003", role="patient")
+
+    from app.core.security import create_access_token
+
+    headers = {"Authorization": f"Bearer {create_access_token(patient.id)}"}
+    res = await client.post(
+        "/api/v1/sync/push",
+        json={
+            "device_id": "d1",
+            "operations": [
+                {
+                    "entity": "household_visit_checks",
+                    "operation": "create",
+                    "id": "chk-evil",
+                    "version": 1,
+                    "client_request_id": "req-chk-evil",
+                    "data": {"household_id": "hh-x", "check_type": "general", "result": "ok"},
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["summary"]["failed"] == 1
+    assert body["results"][0]["error"] == "forbidden"
+
+
 # ---------------------------------------------------------------------------
 # Conflict resolution scoping
 # ---------------------------------------------------------------------------
@@ -613,8 +706,10 @@ async def test_scope_link_column_exists():
         "via_pregnancy": "pregnancy_id",
         "via_child": "child_id",
         "ec_followup": "ec_id",
+        "via_referral": "referral_id",
         "eligible_couple": "wife_id",
         "beneficiary_self": "id",
+        "user_self": "user_id",
     }
 
     for name, model in SYNC_TABLES.items():
@@ -675,6 +770,50 @@ async def test_push_coerces_iso_date_string_for_create(client, auth_headers, ses
     stored = (await session.execute(select(Beneficiary).where(Beneficiary.id == "ben-iso-1"))).scalar_one()
     assert stored.date_of_birth == date(1997, 3, 14)
     assert isinstance(stored.date_of_birth, date)
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_push_beneficiary_password_creates_patient_login(client, auth_headers, session):
+    """The app-generated password must become a working patient login.
+
+    The mobile app shows the password once at save time - possibly offline -
+    so the account can only be created here, on first push. A replayed push
+    must leave the existing login untouched instead of duplicating it.
+    """
+    headers = await auth_headers(phone="9000000001", role="admin")
+    op = {
+        "entity": "beneficiaries",
+        "operation": "create",
+        "id": "ben-creds-1",
+        "version": 1,
+        "client_request_id": "req-creds-1",
+        "data": {
+            "beneficiary_id": "BEN-CRED-1",
+            "full_name": "Creds Patient",
+            "gender": "male",
+            "date_of_birth": "1990-01-01",
+            "phone": "9111112222",
+            "password": "Pat@2222Ab3x",
+        },
+    }
+
+    response = await client.post(
+        "/api/v1/sync/push", json={"device_id": "d1", "operations": [op]}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["summary"]["pushed"] == 1
+
+    user = (await session.execute(select(User).where(User.phone == "9111112222"))).scalar_one()
+    assert user.role == "patient"
+    assert verify_password("Pat@2222Ab3x", user.hashed_password)
+
+    # Replaying the same operation must not create or touch a second login.
+    replay = await client.post(
+        "/api/v1/sync/push", json={"device_id": "d1", "operations": [op]}, headers=headers
+    )
+    assert replay.status_code == 200, replay.text
+    users = (await session.execute(select(User).where(User.phone == "9111112222"))).scalars().all()
+    assert len(users) == 1
 
 
 @pytest.mark.asyncio(loop_scope="function")

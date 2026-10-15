@@ -40,9 +40,28 @@ function schema() {
   return base + '\n' + clinical;
 }
 
+/**
+ * The unique id indexes the app creates at open time.
+ *
+ * Most clinical tables declare `id TEXT NOT NULL` with no constraint, so any
+ * `INSERT … ON CONFLICT(id)` upsert throws "ON CONFLICT clause does not match
+ * any PRIMARY KEY or UNIQUE constraint" unless the index exists. The app
+ * creates them in `ensureIdUniqueIndexes`; parsing the list here keeps the
+ * test database shaped like a real one instead of failing upserts the device
+ * would happily run.
+ */
+function idUniqueTables() {
+  const src = fs.readFileSync(path.join(APP, 'src/db/database.ts'), 'utf8');
+  const block = src.match(/const ID_UNIQUE_TABLES = \[([\s\S]*?)\];/)[1];
+  return [...block.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+}
+
 const TABLES = tableColumns();
 const db = new DatabaseSync(':memory:');
 db.exec(schema());
+for (const table of idUniqueTables()) {
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_id ON ${table}(id)`);
+}
 
 // Load the fixture using the registry's column list, so a column the registry
 // does not know about is reported instead of silently dropped.

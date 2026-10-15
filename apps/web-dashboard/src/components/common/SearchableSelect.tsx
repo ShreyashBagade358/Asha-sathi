@@ -116,7 +116,7 @@ export function SearchableSelect({
           <span
             className={`truncate ${selected ? 'text-on-surface' : 'text-on-surface-variant'}`}
           >
-            {loading ? loadingLabel : selected ? selected.name : disabledHint ?? placeholder}
+            {loading ? loadingLabel : selected ? selected.name : (disabled ? disabledHint ?? placeholder : placeholder)}
           </span>
           <span className="material-symbols-outlined shrink-0 text-[20px] text-on-surface-variant">
             {loading ? 'progress_activity' : 'search'}

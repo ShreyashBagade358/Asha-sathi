@@ -196,3 +196,90 @@ async def test_my_profile_only_ever_returns_the_callers_data(client, auth_header
 async def test_my_profile_requires_authentication(client):
     resp = await client.get(ME)
     assert resp.status_code == 401
+
+
+HOUSEHOLD_ME = f"{ME}/household"
+
+
+async def _create_household(client, headers, hhid: str, head_name: str) -> dict:
+    resp = await client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={"hhid": hhid, "village_id": f"vill-{hhid.lower()}", "head_name": head_name},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+@pytest.mark.asyncio
+async def test_my_household_lists_the_family_and_marks_the_caller(client, auth_headers):
+    asha_headers = await auth_headers(phone="9000008101", role="asha")
+    household = await _create_household(client, asha_headers, "HH-FAM-001", "Rahul Kakad")
+
+    # A second family member, added by the ASHA worker before the patient
+    # ever signs in, plus a stranger in a neighbouring household.
+    spouse = await client.post(
+        f"/api/v1/households/{household['id']}/members",
+        headers=asha_headers,
+        json={
+            "beneficiary_id": "BEN-SPOUSE-001",
+            "full_name": "Sunita Devi",
+            "gender": "female",
+            "relationship_to_head": "spouse",
+            "status": "active",
+        },
+    )
+    assert spouse.status_code == 201, spouse.text
+
+    other = await _create_household(client, asha_headers, "HH-FAM-002", "Outside Person")
+    outsider = await client.post(
+        f"/api/v1/households/{other['id']}/members",
+        headers=asha_headers,
+        json={"beneficiary_id": "BEN-OUTSIDER-1", "full_name": "Guddu Lal", "status": "active"},
+    )
+    assert outsider.status_code == 201, outsider.text
+
+    # Registering the patient with the household's human hhid links them to it.
+    _, headers = await _register_and_login(
+        client,
+        auth_headers,
+        household_id="HH-FAM-001",
+        relationship_to_head="head",
+        phone="9876543410",
+        abha_id="55-5555-6666-7777",
+    )
+
+    resp = await client.get(HOUSEHOLD_ME, headers=headers)
+    assert resp.status_code == 200, resp.text
+    family = resp.json()
+
+    assert family["hhid"] == "HH-FAM-001"
+    assert family["head_name"] == "Rahul Kakad"
+    assert family["member_count"] == 2
+    assert len(family["members"]) == 2
+
+    # The head is listed first, exactly like the ASHA members list.
+    assert family["members"][0]["full_name"] == "Rahul Kakad"
+    assert family["members"][0]["relationship_to_head"] == "head"
+
+    self_members = [m for m in family["members"] if m["is_self"]]
+    assert [m["full_name"] for m in self_members] == ["Rahul Kakad"]
+    spouse_members = [m for m in family["members"] if not m["is_self"]]
+    assert [m["full_name"] for m in spouse_members] == ["Sunita Devi"]
+    assert spouse_members[0]["relationship_to_head"] == "spouse"
+
+    # Another household's members never leak into this family view.
+    assert "Guddu Lal" not in resp.text
+
+
+@pytest.mark.asyncio
+async def test_my_household_is_404_when_no_household_is_linked(client, auth_headers):
+    _, headers = await _register_and_login(client, auth_headers, household_id="HH-NOPE-001")
+
+    resp = await client.get(HOUSEHOLD_ME, headers=headers)
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_my_household_requires_authentication(client):
+    assert (await client.get(HOUSEHOLD_ME)).status_code == 401

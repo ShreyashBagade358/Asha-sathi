@@ -15,6 +15,13 @@ export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   icon?: IconName;
   loading?: boolean;
   full?: boolean;
+  /**
+   * Merged into the button's own classes (flex-1, mt-4, ...). It must not
+   * *replace* them: a caller className prop spread after the base className
+   * used to wipe out bg-primary/h-touch-target/px-5, rendering a white,
+   * boxless button.
+   */
+  className?: string;
 };
 
 const VARIANT_CLS: Record<ButtonVariant, { base: string; text: string }> = {
@@ -22,8 +29,9 @@ const VARIANT_CLS: Record<ButtonVariant, { base: string; text: string }> = {
   primary: { base: 'bg-primary', text: 'text-on-primary' },
   secondary: { base: 'bg-primary-container', text: 'text-on-primary' },
   error: { base: 'bg-error', text: 'text-on-error' },
-  // Web outline action: rounded-full text-primary hover:bg-surface-container-highest
-  ghost: { base: 'border border-outline-variant bg-surface-container-lowest', text: 'text-primary' },
+  // Web outline action (AddNewPatient's Cancel): rounded-full text-primary,
+  // no border and no fill - just the label in the primary colour.
+  ghost: { base: 'bg-transparent', text: 'text-primary' },
 };
 
 export function Button({
@@ -36,6 +44,7 @@ export function Button({
   disabled,
   onPressIn,
   onPressOut,
+  className,
   ...rest
 }: ButtonProps) {
   const [pressed, setPressed] = useState(false);
@@ -60,7 +69,9 @@ export function Button({
         shape === 'pill' ? 'rounded-full' : 'rounded-lg',
         v.base,
         full ? 'w-full' : 'self-start',
-        isDisabled && 'opacity-50',
+        isDisabled && 'opacity-60',
+        // Caller extras (flex-1, mt-4) append to - never replace - the base.
+        className,
       )}
       style={[
         variant !== 'ghost' ? shadow.card : null,
@@ -86,18 +97,25 @@ export type IconButtonProps = {
   color?: string;
   background?: string;
   accessibilityLabel: string;
+  disabled?: boolean;
   className?: string;
 };
 
 /** The 44x44 circular icon buttons used in list rows and the top bar. */
-export function IconButton({ name, onPress, size = 20, color = colors.onSurfaceVariant, background = colors.surfaceContainer, accessibilityLabel, className }: IconButtonProps) {
+export function IconButton({ name, onPress, size = 20, color = colors.onSurfaceVariant, background = colors.surfaceContainer, accessibilityLabel, disabled = false, className }: IconButtonProps) {
+  const [pressed, setPressed] = useState(false);
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      className={cx('h-11 w-11 items-center justify-center rounded-full', className)}
-      style={{ backgroundColor: background }}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      className={cx('h-11 w-11 items-center justify-center rounded-full', disabled && 'opacity-60', pressed && !disabled && 'bg-surface-container-high', className)}
+      style={{ backgroundColor: pressed && !disabled ? undefined : background }}
     >
       <Icon name={name} size={size} color={color} />
     </Pressable>

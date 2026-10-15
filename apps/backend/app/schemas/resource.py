@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ResourceType = Literal["staff", "vaccines", "equipment"]
+ResourceType = Literal["staff", "vaccines", "equipment", "medicines", "vehicles"]
 
 
 class ResourceAllocationCreate(BaseModel):
