@@ -33,6 +33,26 @@ export default {
           DEFAULT: '#EF4444',
           hover: '#DC2626',
         },
+        maternal: {
+          DEFAULT: '#F472B6',
+          light: '#FDF2F8',
+        },
+        amber: {
+          DEFAULT: '#F59E0B',
+          light: '#FFFBEB',
+        },
+        teal: {
+          DEFAULT: '#10B981',
+          light: '#ECFDF5',
+        },
+        neutral: {
+          50: '#F8FAFC',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          500: '#64748B',
+          800: '#1E293B',
+          900: '#0F172A',
+        },
         error: '#ba1a1a',
         'on-error': '#ffffff',
         'error-container': '#ffdad6',

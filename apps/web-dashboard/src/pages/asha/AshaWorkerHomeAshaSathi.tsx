@@ -28,17 +28,17 @@ interface CareModule {
 const CARE_MODULES: CareModule[] = [
   { label: 'asha.modAddPatient', path: '/asha/patients/new', icon: 'plus', tone: 'bg-primary-container text-on-primary-container' },
   { label: 'asha.modHouseholds', path: '/asha/households', icon: 'box', tone: 'bg-secondary-container text-on-secondary-container' },
-  { label: 'asha.modHealthSurvey', path: '/asha/health-survey', icon: 'edit', tone: 'bg-tertiary-container text-on-tertiary-container' },
-  { label: 'asha.modPregnancy', path: '/asha/pregnancy', icon: 'heart', tone: 'bg-primary-container text-on-primary-container' },
-  { label: 'asha.modChildHealth', path: '/asha/child-health', icon: 'heart', tone: 'bg-secondary-container text-on-secondary-container' },
-  { label: 'asha.modVaccination', path: '/asha/child-health', icon: 'checkCircle', tone: 'bg-tertiary-container text-on-tertiary-container' },
+  { label: 'asha.modHealthSurvey', path: '/asha/health-survey', icon: 'edit', tone: 'bg-primary-fixed text-primary' },
+  { label: 'asha.modPregnancy', path: '/asha/pregnancy', icon: 'heart', tone: 'bg-maternal-light text-maternal' },
+  { label: 'asha.modChildHealth', path: '/asha/child-health', icon: 'heart', tone: 'bg-amber-light text-amber' },
+  { label: 'asha.modVaccination', path: '/asha/child-health', icon: 'checkCircle', tone: 'bg-teal-light text-teal' },
   { label: 'asha.modHealthCheckup', path: '/asha/health-checkup', icon: 'activity', tone: 'bg-primary-container text-on-primary-container' },
-  { label: 'asha.modReferral', path: '/asha/referrals', icon: 'fileText', tone: 'bg-secondary-container text-on-secondary-container' },
-  { label: 'asha.modFollowUp', path: '/asha/follow-ups', icon: 'refresh', tone: 'bg-tertiary-container text-on-tertiary-container' },
-  { label: 'asha.modTasks', path: '/asha/tasks', icon: 'checkCircle', tone: 'bg-surface-variant text-on-surface-variant' },
-  { label: 'asha.modNotifications', path: '/asha/notifications', icon: 'bell', tone: 'bg-error-container text-on-error-container' },
-  { label: 'asha.modSync', path: '/asha/sync', icon: 'refresh', tone: 'bg-surface-variant text-on-surface-variant' },
-  { label: 'asha.modProfile', path: '/asha/profile', icon: 'settings', tone: 'bg-surface-variant text-on-surface-variant' },
+  { label: 'asha.modReferral', path: '/asha/referrals', icon: 'fileText', tone: 'bg-primary-fixed text-primary' },
+  { label: 'asha.modFollowUp', path: '/asha/follow-ups', icon: 'refresh', tone: 'bg-teal-light text-teal' },
+  { label: 'asha.modTasks', path: '/asha/tasks', icon: 'checkCircle', tone: 'bg-primary-container text-on-primary-container' },
+  { label: 'asha.modNotifications', path: '/asha/notifications', icon: 'bell', tone: 'bg-maternal-light text-maternal' },
+  { label: 'asha.modSync', path: '/asha/sync', icon: 'refresh', tone: 'bg-primary-fixed text-primary' },
+  { label: 'asha.modProfile', path: '/asha/profile', icon: 'settings', tone: 'bg-neutral-100 text-neutral-500' },
 ]
 
 function greeting(firstName: string, t: (k: string) => string) {
