@@ -142,14 +142,14 @@ export default function AshaWorkerHomeAshaSathi() {
         </Link>
         <Link
           to="/asha/households"
-          className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-primary p-4 text-on-primary shadow-sm transition-all duration-200 hover:bg-on-primary-fixed-variant active:scale-[0.97]"
+          className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-secondary p-4 text-on-secondary shadow-sm transition-all duration-200 hover:bg-on-secondary-fixed-variant active:scale-[0.97]"
         >
           <Icon name="edit" size={28} />
           <span className="font-label-md text-label-md text-center font-semibold leading-tight">{t('asha.recordVisit')}</span>
         </Link>
         <Link
           to="/asha/connection-error"
-          className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-error p-4 text-white shadow-sm transition-all duration-200 hover:bg-red-800 active:scale-[0.97]"
+          className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-emergency p-4 text-white shadow-sm transition-all duration-200 hover:bg-emergency-hover active:scale-[0.97]"
         >
           <Icon name="alert" size={28} />
           <span className="font-label-md text-label-md text-center font-semibold leading-tight">{t('asha.emergency')}</span>

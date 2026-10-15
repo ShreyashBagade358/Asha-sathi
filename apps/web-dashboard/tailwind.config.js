@@ -29,6 +29,10 @@ export default {
         'tertiary-fixed-dim': '#99F6E4',
         'on-tertiary-fixed': '#042F2E',
         'on-tertiary-fixed-variant': '#115E59',
+        emergency: {
+          DEFAULT: '#EF4444',
+          hover: '#DC2626',
+        },
         error: '#ba1a1a',
         'on-error': '#ffffff',
         'error-container': '#ffdad6',
