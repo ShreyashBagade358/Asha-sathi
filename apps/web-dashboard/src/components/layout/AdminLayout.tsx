@@ -35,13 +35,13 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
       titleKey: 'nav.work',
       items: [
         { labelKey: 'nav.ashaHome', path: '/asha/home', icon: 'dashboard', end: true, bottomNav: true },
-        { labelKey: 'nav.ashaTasks', path: '/asha/tasks', icon: 'activity', badge: 2, bottomNav: true },
+        { labelKey: 'nav.ashaTasks', path: '/asha/tasks', icon: 'activity', bottomNav: true },
       ],
     },
     {
       titleKey: 'nav.care',
       items: [
-        { labelKey: 'nav.ashaHouseholds', path: '/asha/households', icon: 'box', badge: 2, bottomNav: true },
+        { labelKey: 'nav.ashaHouseholds', path: '/asha/households', icon: 'box', bottomNav: true },
         { labelKey: 'nav.healthSurvey', path: '/asha/health-survey', icon: 'edit', bottomNav: false },
         { labelKey: 'nav.pregnancyTracking', path: '/asha/pregnancy', icon: 'heart', bottomNav: false },
         { labelKey: 'nav.childHealth', path: '/asha/child-health', icon: 'heart', bottomNav: false },
@@ -57,8 +57,8 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
     {
       titleKey: 'nav.data',
       items: [
-        { labelKey: 'nav.ashaSync', path: '/asha/sync', icon: 'refresh', badge: 12, badgeTone: 'danger', bottomNav: true },
-        { labelKey: 'nav.notifications', path: '/asha/notifications', icon: 'bell', badge: 3, bottomNav: false },
+        { labelKey: 'nav.ashaSync', path: '/asha/sync', icon: 'refresh', bottomNav: true },
+        { labelKey: 'nav.notifications', path: '/asha/notifications', icon: 'bell', bottomNav: false },
         { labelKey: 'nav.profile', path: '/asha/profile', icon: 'settings', bottomNav: false },
       ],
     },
@@ -74,24 +74,35 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
       ],
     },
     {
+      titleKey: 'nav.care',
+      items: [
+        { labelKey: 'nav.followUps', path: '/phc/follow-ups', icon: 'checkCircle' },
+        { labelKey: 'nav.healthCheckup', path: '/phc/health-checkups/new', icon: 'activity' },
+      ],
+    },
+    {
       titleKey: 'nav.oversight',
       items: [
-        { labelKey: 'nav.reports', path: '/phc/reports', icon: 'fileText' },
-        { labelKey: 'nav.analytics', path: '/phc/analytics', icon: 'barChart' },
         { labelKey: 'nav.riskAnalysis', path: '/phc/risk-analysis', icon: 'shield' },
-        { labelKey: 'nav.phcComparison', path: '/district/phc-comparison', icon: 'barChart' },
-        { labelKey: 'nav.districtComparison', path: '/state/district-comparison', icon: 'barChart' },
+        { labelKey: 'nav.phcComparison', path: '/phc/phc-comparison', icon: 'barChart' },
+        { labelKey: 'nav.districtComparison', path: '/phc/district-comparison', icon: 'barChart' },
       ],
     },
     {
       titleKey: 'nav.administration',
       items: [
-        { labelKey: 'nav.resourceAllocation', path: '/district/resources', icon: 'box' },
-        { labelKey: 'nav.policyConfig', path: '/state/policy-config', icon: 'fileText' },
-        { labelKey: 'nav.auditLogs', path: '/phc/audit-logs', icon: 'shield' },
-        { labelKey: 'nav.userManagement', path: '/super/users', icon: 'users' },
-        { labelKey: 'nav.systemConfig', path: '/super/system-config', icon: 'settings' },
-        { labelKey: 'nav.deployment', path: '/super/deployment', icon: 'server' },
+        { labelKey: 'nav.districtDashboard', path: '/phc/district-dashboard', icon: 'dashboard' },
+        { labelKey: 'nav.stateDashboard', path: '/phc/state-dashboard', icon: 'dashboard' },
+        { labelKey: 'nav.resourceAllocation', path: '/phc/resources', icon: 'box' },
+        { labelKey: 'nav.userManagement', path: '/phc/users', icon: 'users' },
+        { labelKey: 'nav.deployment', path: '/phc/deployment', icon: 'server' },
+      ],
+    },
+    {
+      titleKey: 'nav.data',
+      items: [
+        { labelKey: 'nav.notifications', path: '/phc/notifications', icon: 'bell' },
+        { labelKey: 'nav.settings', path: '/phc/settings', icon: 'settings' },
       ],
     },
   ],
@@ -102,6 +113,7 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
         { labelKey: 'nav.patientHome', path: '/patient/dashboard', icon: 'dashboard', end: true, bottomNav: true },
         { labelKey: 'nav.patientProfile', path: '/patient/health-profile', icon: 'heart', bottomNav: true },
         { labelKey: 'nav.patientRecords', path: '/patient/records', icon: 'fileText', bottomNav: true },
+        { labelKey: 'nav.patientFamily', path: '/patient/family', icon: 'users', bottomNav: false },
       ],
     },
     {
@@ -115,7 +127,7 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
     {
       titleKey: 'nav.data',
       items: [
-        { labelKey: 'nav.patientNotifications', path: '/patient/notifications', icon: 'bell', badge: 3, bottomNav: false },
+        { labelKey: 'nav.patientNotifications', path: '/patient/notifications', icon: 'bell', bottomNav: false },
         { labelKey: 'nav.patientSettings', path: '/patient/profile', icon: 'settings', bottomNav: true },
       ],
     },
@@ -181,6 +193,10 @@ function getBreadcrumbDefs(pathname: string): BreadcrumbDef[] | null {
   }
   if (pathname === '/patient/records') {
     return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientRecords' }]
+  }
+
+  if (pathname === '/patient/family') {
+    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientFamily' }]
   }
   if (pathname === '/patient/vaccination') {
     return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientVaccination' }]
@@ -266,7 +282,7 @@ export function AdminLayout() {
         sections={sections}
         userName={user?.fullName ?? ''}
         userRole={user?.role ?? 'asha'}
-        subtitle={user?.role === 'patient' ? 'Patient App' : 'ASHA Worker App'}
+        subtitle={user?.role === 'patient' ? 'Patient App' : user?.role === 'admin' ? 'Admin Portal' : 'ASHA Worker App'}
         village={user?.villages?.[0] ?? ''}
         online={online}
         onOpenProfile={() => setProfileOpen(true)}
@@ -326,7 +342,7 @@ function Sidebar({
   const initials = userName.charAt(0).toUpperCase() || '?'
 
   const content = (
-    <div className="flex h-full flex-col bg-primary text-on-primary">
+    <div className="flex h-full flex-col bg-sidebar text-on-primary">
       <div className={`flex items-center gap-3 py-3 ${collapsed ? 'justify-center px-2' : 'px-5'}`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
           <Icon name="heart" size={22} />
@@ -342,7 +358,7 @@ function Sidebar({
               onClick={toggleSidebarCollapsed}
               aria-label={t('nav.collapse')}
               title={t('nav.collapse')}
-              className="ml-auto hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-fixed-dim transition-colors hover:bg-primary/40 hover:text-white lg:flex"
+              className="ml-auto hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white lg:flex"
             >
               <Icon name="chevronLeft" size={18} />
             </button>
@@ -353,7 +369,7 @@ function Sidebar({
             onClick={toggleSidebarCollapsed}
             aria-label={t('nav.collapse')}
             title={t('nav.collapse')}
-            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-fixed-dim transition-colors hover:bg-primary/40 hover:text-white lg:flex"
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white lg:flex"
           >
             <Icon name="chevronRight" size={18} />
           </button>
@@ -361,7 +377,7 @@ function Sidebar({
       </div>
 
       {!collapsed && village ? (
-        <div className="mx-4 mb-0 flex items-center gap-1.5 rounded-full bg-primary/40 px-3 py-1 text-label-md text-primary-fixed-dim">
+        <div className="mx-4 mb-0 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-label-md text-primary-fixed-dim">
           <Icon name="mapPin" size={14} />
           <span className="truncate">{village}</span>
           <span className={`ml-auto h-2 w-2 shrink-0 rounded-full ${online ? 'bg-secondary-container' : 'bg-error'}`} />
@@ -390,8 +406,8 @@ function Sidebar({
                           collapsed ? 'justify-center px-0' : 'px-3'
                         } ${
                           isActive
-                            ? 'bg-primary/40 font-semibold text-white before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-primary-fixed-dim'
-                            : 'text-on-primary hover:bg-primary/40 hover:text-white'
+                            ? 'bg-primary font-semibold text-white before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-white'
+                            : 'text-on-primary hover:bg-white/10 hover:text-white'
                         }`
                       }
                     >
@@ -399,7 +415,7 @@ function Sidebar({
                         <Icon name={item.icon} size={20} />
                         {collapsed && item.badge ? (
                           <span
-                            className={`absolute -right-1.5 -top-1.5 h-2.5 w-2.5 rounded-full border-2 border-primary ${
+                            className={`absolute -right-1.5 -top-1.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar ${
                               item.badgeTone === 'danger' ? 'bg-error' : 'bg-secondary-container'
                             }`}
                           />
@@ -410,7 +426,7 @@ function Sidebar({
                           <span className="min-w-0 flex-1 truncate">{label}</span>
                           {item.badge ? (
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold leading-4 ${
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-label-sm font-bold leading-4 ${
                                 item.badgeTone === 'danger'
                                   ? 'bg-error text-on-error'
                                   : 'bg-on-primary/15 text-white'
@@ -451,7 +467,7 @@ function Sidebar({
                   onClick={onOpenProfile}
                   aria-label={t('nav.myProfile')}
                   title={t('nav.myProfile')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-primary/40 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <Icon name="eye" size={18} />
                 </button>
@@ -473,7 +489,7 @@ function Sidebar({
                 onClick={onOpenProfile}
                 aria-label={t('nav.myProfile')}
                 title={t('nav.myProfile')}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-primary/40 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white"
               >
                 <Icon name="eye" size={18} />
               </button>
@@ -640,7 +656,7 @@ function TopAppBar({
             className={HEADER_ICON_BUTTON}
           >
             <Icon name="bell" size={22} />
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-4 text-on-error ring-2 ring-surface-container-lowest">
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-label-sm font-bold leading-4 text-on-error ring-2 ring-surface-container-lowest">
               {unreadCount}
             </span>
           </button>
@@ -756,7 +772,7 @@ function MobileBottomNav({ sections }: { sections: NavSection[] }) {
               />
             ) : null}
           </span>
-          <span className="font-caption text-[11px] font-semibold">{t(item.labelKey)}</span>
+          <span className="font-caption text-label-sm font-semibold">{t(item.labelKey)}</span>
         </NavLink>
       ))}
     </nav>

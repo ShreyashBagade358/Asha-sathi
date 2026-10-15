@@ -4,12 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#003267',
-        'primary-container': '#005eb8',
+        sidebar: '#242B65',
+        primary: '#4F46E5',
+        'primary-container': '#383E7D',
         'on-primary': '#ffffff',
-        'on-primary-container': '#c8daff',
-        'primary-fixed': '#d6e3ff',
-        'primary-fixed-dim': '#a9c7ff',
+        'on-primary-container': '#E0E7FF',
+        'primary-fixed': '#E0E7FF',
+        'primary-fixed-dim': '#A5B4FC',
         'on-primary-fixed': '#001b3d',
         'on-primary-fixed-variant': '#00468c',
         secondary: '#006e28',
