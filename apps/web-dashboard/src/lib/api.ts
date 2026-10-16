@@ -3,6 +3,7 @@ import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestCo
 export const TOKEN_KEY = 'asha_sathi_token'
 export const REFRESH_TOKEN_KEY = 'asha_sathi_refresh_token'
 export const REMEMBERED_PHONE_KEY = 'asha_sathi_remembered_phone'
+export const REMEMBERED_PASSWORD_KEY = 'asha_sathi_remembered_password'
 
 export const api = axios.create({
   baseURL: (import.meta.env.VITE_API_URL as string | undefined) || '/api/v1',
@@ -128,6 +129,30 @@ export function writeRememberedPhone(phone: string): void {
 export function clearRememberedPhone(): void {
   try {
     localStorage.removeItem(REMEMBERED_PHONE_KEY)
+  } catch {
+    // nothing to do
+  }
+}
+
+export function readRememberedPassword(): string | null {
+  try {
+    return localStorage.getItem(REMEMBERED_PASSWORD_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function writeRememberedPassword(password: string): void {
+  try {
+    localStorage.setItem(REMEMBERED_PASSWORD_KEY, password)
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function clearRememberedPassword(): void {
+  try {
+    localStorage.removeItem(REMEMBERED_PASSWORD_KEY)
   } catch {
     // nothing to do
   }

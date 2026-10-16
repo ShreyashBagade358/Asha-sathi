@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { clearRememberedPhone, readRememberedPhone, writeRememberedPhone } from '@/lib/api'
+import { clearRememberedPassword, clearRememberedPhone, readRememberedPassword, readRememberedPhone, writeRememberedPassword, writeRememberedPhone } from '@/lib/api'
 
 type LoginRole = 'health-worker' | 'patient' | 'phc-admin'
 
@@ -24,8 +24,9 @@ export default function LoginAshaSathi() {
   const { isAuthenticated, isHydrating, signIn } = useAuth()
   const [role, setRole] = useState<LoginRole>('health-worker')
   const [phone, setPhone] = useState(() => readRememberedPhone() ?? '')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(() => !!readRememberedPhone())
+  const [savedPassword] = useState(() => readRememberedPassword() ?? '')
+  const [password, setPassword] = useState(() => readRememberedPassword() ?? '')
+  const [rememberMe, setRememberMe] = useState(() => !!readRememberedPhone() && !!readRememberedPassword())
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,8 +61,10 @@ export default function LoginAshaSathi() {
       await signIn(digits, password)
       if (rememberMe) {
         writeRememberedPhone(digits)
+        writeRememberedPassword(password)
       } else {
         clearRememberedPhone()
+        clearRememberedPassword()
       }
       navigate('/dashboard', { replace: true })
     } catch (err) {
