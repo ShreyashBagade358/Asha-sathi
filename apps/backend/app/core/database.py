@@ -1,6 +1,8 @@
 import json
+import ssl
 from collections.abc import AsyncGenerator
 from datetime import date, datetime
+from functools import lru_cache
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -20,6 +22,18 @@ def json_dumps(obj):
     return json.dumps(obj, default=_json_default)
 
 
+@lru_cache
+def _tls_context() -> ssl.SSLContext:
+    """TLS context that trusts certifi's CA bundle.
+
+    Slim Docker images (and some macOS Python installs) lack system CA certs,
+    so ``ssl=True`` alone fails CERTIFICATE_VERIFY_FAILED against Neon.
+    """
+    import certifi
+
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 def _normalize_ssl(url: str) -> tuple[str, dict]:
     """Move libpq-style ``sslmode=`` out of the URL into asyncpg's ``ssl=`` arg.
 
@@ -33,12 +47,13 @@ def _normalize_ssl(url: str) -> tuple[str, dict]:
     parts = urlsplit(url)
     query = dict(parse_qsl(parts.query))
     sslmode = query.pop("sslmode", None)
+    # channel_binding is a libpq param asyncpg doesn't understand either.
+    query.pop("channel_binding", None)
     cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     if sslmode in (None, "disable"):
         return cleaned, {}
-    # require / prefer / allow / verify-ca / verify-full all need a TLS socket;
-    # True uses the system default CA bundle, which is what hosted providers want.
-    return cleaned, {"ssl": True}
+    # require / prefer / allow / verify-ca / verify-full all need a TLS socket.
+    return cleaned, {"ssl": _tls_context()}
 
 
 engine = create_async_engine(
