@@ -406,7 +406,7 @@ function Sidebar({
                           collapsed ? 'justify-center px-0' : 'px-3'
                         } ${
                           isActive
-                            ? 'bg-primary font-semibold text-white before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-white'
+                            ? 'bg-white/15 font-semibold text-white before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-white'
                             : 'text-on-primary hover:bg-white/10 hover:text-white'
                         }`
                       }

@@ -5,7 +5,7 @@ export default {
     extend: {
       colors: {
         sidebar: '#242B65',
-        primary: '#4F46E5',
+        primary: '#242B65',
         'primary-container': '#383E7D',
         'on-primary': '#ffffff',
         'on-primary-container': '#E0E7FF',
