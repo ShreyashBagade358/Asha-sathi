@@ -24,7 +24,6 @@ export default function LoginAshaSathi() {
   const { isAuthenticated, isHydrating, signIn } = useAuth()
   const [role, setRole] = useState<LoginRole>('health-worker')
   const [phone, setPhone] = useState(() => readRememberedPhone() ?? '')
-  const [savedPassword] = useState(() => readRememberedPassword() ?? '')
   const [password, setPassword] = useState(() => readRememberedPassword() ?? '')
   const [rememberMe, setRememberMe] = useState(() => !!readRememberedPhone() && !!readRememberedPassword())
   const [showPassword, setShowPassword] = useState(false)

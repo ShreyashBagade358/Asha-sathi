@@ -1,4 +1,7 @@
 import { useMemo } from 'react'
+import { useLocalDateTime } from '@/hooks/useLocalDateTime'
+import { useWeather } from '@/hooks/useWeather'
+import { DynamicWeatherIcon } from '@/components/weather/DynamicWeatherIcon'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
@@ -41,10 +44,10 @@ const CARE_MODULES: CareModule[] = [
   { label: 'asha.modProfile', path: '/asha/profile', icon: 'settings', tone: 'bg-neutral-100 text-neutral-500' },
 ]
 
-function greeting(firstName: string, t: (k: string) => string) {
-  const hour = new Date().getHours()
-  if (hour < 12) return t('asha.greetingMorning').replace('{{name}}', firstName)
-  if (hour < 17) return t('asha.greetingAfternoon').replace('{{name}}', firstName)
+function greetingForPeriod(period: string, firstName: string, t: (k: string) => string) {
+  if (period === 'morning') return t('asha.greetingMorning').replace('{{name}}', firstName)
+  if (period === 'afternoon') return t('asha.greetingAfternoon').replace('{{name}}', firstName)
+  if (period === 'evening') return t('asha.greetingEvening').replace('{{name}}', firstName)
   return t('asha.greetingEvening').replace('{{name}}', firstName)
 }
 
@@ -110,13 +113,53 @@ export default function AshaWorkerHomeAshaSathi() {
   )
 
   const firstName = user?.fullName?.split(' ')[0] || 'there'
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+  const { now, period, formattedDate } = useLocalDateTime()
+  const weather = useWeather(period, now.getHours())
+  const greetingText = greetingForPeriod(period, firstName, t)
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <section className="flex flex-col gap-1 animate-fade-up">
-        <p className="font-caption text-caption font-medium text-on-surface-variant">{today}</p>
-        <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface">{greeting(firstName, t)}</h1>
+      <section
+        className="animate-fade-up overflow-hidden rounded-3xl border border-outline-variant/30 p-5 sm:p-7"
+        style={{ background: 'linear-gradient(135deg, #F5F8FF 0%, #FFFFFF 100%)' }}
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1">
+            <p className="mb-2 text-[18px] font-medium text-[#627DA8] sm:text-[20px]">{formattedDate}</p>
+            <div className="flex items-center gap-3">
+              <DynamicWeatherIcon condition={weather.condition} size={44} />
+              <h1 className="text-[26px] font-bold leading-tight text-[#17265F] sm:text-[32px] lg:text-[36px]">
+                {greetingText.split(firstName)[0]}
+                <span className="text-[#4438B8]">{firstName}</span>
+                {greetingText.includes('!') ? '!' : ''}
+              </h1>
+            </div>
+            <p className="mt-2 max-w-lg text-[16px] text-[#627DA8] sm:text-[18px]">
+              Here's what's happening in your area today.
+            </p>
+          </div>
+          <div className="hidden shrink-0 lg:block" aria-hidden="true">
+            <svg viewBox="0 0 180 140" width="180" height="140" className="opacity-90">
+              <ellipse cx="90" cy="75" rx="75" ry="55" fill="#D9F0FC" opacity="0.4" />
+              <ellipse cx="40" cy="45" rx="20" ry="12" fill="#D9F0FC" opacity="0.5" />
+              <ellipse cx="145" cy="50" rx="18" ry="10" fill="#D9F0FC" opacity="0.45" />
+              <ellipse cx="65" cy="110" rx="22" ry="10" fill="#D9F0FC" opacity="0.4" />
+              <path d="M75 115 Q78 95 85 85 Q80 90 75 95 Q70 90 65 95 Q72 95 75 115Z" fill="#A7C8E8" opacity="0.6" />
+              <path d="M115 110 Q118 92 125 84 Q120 88 115 93 Q110 88 105 93 Q112 93 115 110Z" fill="#A7C8E8" opacity="0.5" />
+              <circle cx="90" cy="58" r="16" fill="#F5D5C8" />
+              <path d="M74 58 Q74 38 90 38 Q106 38 106 58" fill="#2D2A3E" />
+              <rect x="76" y="74" width="28" height="42" rx="8" fill="#6C63FF" />
+              <rect x="78" y="74" width="24" height="42" rx="6" fill="#7164D8" />
+              <rect x="83" y="88" width="14" height="18" rx="2" fill="#E8EDFF" />
+              <line x1="85" y1="93" x2="95" y2="93" stroke="#B0B8D8" strokeWidth="1" />
+              <line x1="85" y1="97" x2="95" y2="97" stroke="#B0B8D8" strokeWidth="1" />
+              <line x1="85" y1="101" x2="92" y2="101" stroke="#B0B8D8" strokeWidth="1" />
+              <text x="90" y="132" textAnchor="middle" fontSize="8.5" fill="#4438B8" fontFamily="cursive" fontStyle="italic">Healthy Families</text>
+              <text x="90" y="140" textAnchor="middle" fontSize="8.5" fill="#4438B8" fontFamily="cursive" fontStyle="italic">Stronger Communities</text>
+              <path d="M86 148 Q86 144 90 144 Q94 144 94 148 Q94 152 90 155 Q86 152 86 148Z" fill="none" stroke="#7164D8" strokeWidth="1.2" />
+            </svg>
+          </div>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-3 animate-fade-up animate-delay-100 sm:grid-cols-2 lg:grid-cols-4">

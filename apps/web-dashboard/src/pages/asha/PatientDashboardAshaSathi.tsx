@@ -52,7 +52,7 @@ export default function PatientDashboardAshaSathi() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="relative flex-1 sm:max-w-md">
+        <div className="relative flex-1 sm:max-w-md">
           <Icon name="search" size={18} className="absolute inset-y-0 left-3.5 my-auto text-on-surface-variant" />
           <input
             value={query}
