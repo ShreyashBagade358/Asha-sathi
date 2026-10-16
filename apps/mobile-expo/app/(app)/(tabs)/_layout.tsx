@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/nav/TabBar';
 import { useTabBadges } from '@/nav/useTabBadges';
+import { useColors } from '@/theme';
 
 /**
  * The five tab destinations are exactly the items the web marks
@@ -17,12 +18,13 @@ import { useTabBadges } from '@/nav/useTabBadges';
 export default function TabsLayout() {
   const badges = useTabBadges();
   const insets = useSafeAreaInsets();
+  const c = useColors();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: '#F9F9FF', paddingTop: insets.top },
+        sceneStyle: { backgroundColor: c.background, paddingTop: insets.top },
       }}
       tabBar={(props) => <TabBar state={props.state} badges={badges} />}
     >

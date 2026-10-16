@@ -3,9 +3,79 @@
 @tailwind utilities;
 
 /*
- * react-native-css-interop consumes these directives; the bodies stay empty
- * because all layout/spacing/typography comes from Tailwind utilities. The
- * web's index.css equivalents (CSS keyframes for ambient-blob, loader-ring,
- * pulse-subtle, risk-strip-*) are implemented with Reanimated in
- * src/theme.ts since RN's CSS engine does not animate.
+ * Indigo + Teal healthcare palette with automatic dark mode.
+ *
+ * Surface / neutral colors are CSS variables so the same className tokens
+ * (bg-surface, text-on-surface, ...) resolve to light or dark values based on
+ * the phone's system appearance. Accent colors (primary, secondary, tertiary,
+ * error, maternal, amber, teal) are static hex in tailwind.config.js because
+ * they are brand colours that stay consistent across themes.
+ *
+ * react-native-css-interop consumes these variables at runtime; the
+ * @media (prefers-color-scheme: dark) block swaps them when the phone enters
+ * dark mode.
  */
+
+:root {
+  /* ── Light theme (default) ────────────────────────────────────────── */
+  --color-primary: #242b65;
+  --color-primary-container: #383e7d;
+  --color-on-primary-container: #e0e7ff;
+
+  --color-surface: #f8fafc;
+  --color-surface-dim: #e2e8f0;
+  --color-surface-bright: #f8fafc;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f1f5f9;
+  --color-surface-container: #e2e8f0;
+  --color-surface-container-high: #cbd5e1;
+  --color-surface-container-highest: #94a3b8;
+
+  --color-on-surface: #1e293b;
+  --color-on-surface-variant: #64748b;
+
+  --color-background: #f8fafc;
+  --color-on-background: #1e293b;
+
+  --color-outline: #94a3b8;
+  --color-outline-variant: #e2e8f0;
+
+  --color-inverse-surface: #1e293b;
+  --color-inverse-on-surface: #f1f5f9;
+  --color-inverse-primary: #a5b4fc;
+
+  --color-surface-tint: #242b65;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* ── Dark theme ───────────────────────────────────────────────────── */
+    --color-primary: #4f46e5;
+    --color-primary-container: #3730a3;
+    --color-on-primary-container: #c7d2fe;
+
+    --color-surface: #0f172a;
+    --color-surface-dim: #020617;
+    --color-surface-bright: #1e293b;
+    --color-surface-container-lowest: #020617;
+    --color-surface-container-low: #0f172a;
+    --color-surface-container: #1e293b;
+    --color-surface-container-high: #334155;
+    --color-surface-container-highest: #475569;
+
+    --color-on-surface: #f1f5f9;
+    --color-on-surface-variant: #94a3b8;
+
+    --color-background: #020617;
+    --color-on-background: #f1f5f9;
+
+    --color-outline: #64748b;
+    --color-outline-variant: #334155;
+
+    --color-inverse-surface: #f1f5f9;
+    --color-inverse-on-surface: #1e293b;
+    --color-inverse-primary: #242b65;
+
+    --color-surface-tint: #a5b4fc;
+  }
+}

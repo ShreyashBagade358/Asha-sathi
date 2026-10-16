@@ -38,9 +38,9 @@ const FILTER_LABEL: Record<FilterKey, string> = {
 };
 
 const STATUS: Record<Cta, { labelKey: string; tone: ChipTone; icon: IconName; rail: string }> = {
-  visit: { labelKey: 'asha.visitDue', tone: 'error', icon: 'alert', rail: '#BA1A1A' },
-  review: { labelKey: 'asha.followUp', tone: 'success', icon: 'checkCircle', rail: '#006E28' },
-  planned: { labelKey: 'asha.scheduled', tone: 'neutral', icon: 'calendar', rail: '#727783' },
+  visit: { labelKey: 'asha.visitDue', tone: 'error', icon: 'alert', rail: colors.error },
+  review: { labelKey: 'asha.followUp', tone: 'success', icon: 'checkCircle', rail: colors.secondary },
+  planned: { labelKey: 'asha.scheduled', tone: 'neutral', icon: 'calendar', rail: colors.outline },
 };
 
 function ctaFor(household: HouseholdCard, today: string): Cta {

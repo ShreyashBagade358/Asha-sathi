@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: asha-sathi-api
+    runtime: docker
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: ./apps/backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: prod
+      - key: DEBUG
+        value: false
+      - key: CORS_ORIGINS
+        value: '["https://asha-sathi.vercel.app"]'
+      - key: PYTHONUNBUFFERED
+        value: "1"

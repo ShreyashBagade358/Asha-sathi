@@ -27,7 +27,7 @@ type RiskFilter = RiskLevel | 'all';
 
 const RISK_CHIP: Record<RiskLevel, { labelKey: string; cls: string; icon: IconName }> = {
   low: { labelKey: 'asha.riskLowLabel', cls: 'bg-secondary-container', icon: 'checkCircle' },
-  medium: { labelKey: 'asha.riskMediumLabel', cls: 'bg-[#FF8C00]/15', icon: 'alert' },
+  medium: { labelKey: 'asha.riskMediumLabel', cls: 'bg-amber-light', icon: 'alert' },
   high: { labelKey: 'asha.riskHighLabel', cls: 'bg-error-container', icon: 'alert' },
 };
 

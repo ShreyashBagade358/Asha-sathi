@@ -91,7 +91,7 @@ export default function Index() {
     return (
       <ImageBackground source={SPLASH_ART} resizeMode="cover" className="flex-1 bg-background">
         <View className="flex-1 items-center justify-end pb-16">
-          <ActivityIndicator color="#b5322c" />
+          <ActivityIndicator color="#242B65" />
         </View>
       </ImageBackground>
     );

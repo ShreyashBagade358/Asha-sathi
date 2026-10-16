@@ -7,58 +7,112 @@
  *
  * Every hex here is duplicated from apps/web-dashboard/tailwind.config.js on
  * purpose - keep the two in sync.
+ *
+ * Dark mode: the surface / neutral tokens are CSS variables in global.css
+ * (auto-swapped by prefers-color-scheme). Accent colours below are static and
+ * identical in both themes. Use `useColors()` to get theme-aware inline
+ * colours; the plain `colors` export is the light-theme default for backward
+ * compatibility.
  */
 
+import { useColorScheme } from 'react-native';
+
+/** Light-theme palette (also the default export for existing callers). */
 export const colors = {
-  primary: '#003267',
-  primaryContainer: '#005eb8',
+  primary: '#242B65',
+  primaryContainer: '#383E7D',
   onPrimary: '#ffffff',
-  onPrimaryContainer: '#c8daff',
-  primaryFixed: '#d6e3ff',
-  primaryFixedDim: '#a9c7ff',
-  onPrimaryFixed: '#001b3d',
-  onPrimaryFixedVariant: '#00468c',
-  secondary: '#006e28',
-  secondaryContainer: '#82fc90',
+  onPrimaryContainer: '#E0E7FF',
+  primaryFixed: '#E0E7FF',
+  primaryFixedDim: '#A5B4FC',
+  onPrimaryFixed: '#1E1B4B',
+  onPrimaryFixedVariant: '#312E81',
+  secondary: '#10B981',
+  secondaryContainer: '#A7F3D0',
   onSecondary: '#ffffff',
-  onSecondaryContainer: '#00752a',
-  secondaryFixed: '#82fc90',
-  secondaryFixedDim: '#65df77',
-  onSecondaryFixed: '#002107',
-  onSecondaryFixedVariant: '#00531c',
-  tertiary: '#004e61',
-  tertiaryContainer: '#006880',
+  onSecondaryContainer: '#065F46',
+  secondaryFixed: '#A7F3D0',
+  secondaryFixedDim: '#6EE7B7',
+  onSecondaryFixed: '#022C22',
+  onSecondaryFixedVariant: '#065F46',
+  tertiary: '#0F766E',
+  tertiaryContainer: '#CCFBF1',
   onTertiary: '#ffffff',
-  onTertiaryContainer: '#9be4ff',
-  tertiaryFixed: '#b6ebff',
-  tertiaryFixedDim: '#57d5fc',
-  onTertiaryFixed: '#001f28',
-  onTertiaryFixedVariant: '#004e60',
-  error: '#ba1a1a',
+  onTertiaryContainer: '#134E4A',
+  tertiaryFixed: '#CCFBF1',
+  tertiaryFixedDim: '#99F6E4',
+  onTertiaryFixed: '#042F2E',
+  onTertiaryFixedVariant: '#115E59',
+  error: '#EF4444',
   onError: '#ffffff',
-  errorContainer: '#ffdad6',
-  onErrorContainer: '#93000a',
-  surface: '#f9f9ff',
-  surfaceDim: '#cadbfc',
-  surfaceBright: '#f9f9ff',
-  surfaceContainerLowest: '#ffffff',
-  surfaceContainerLow: '#f0f3ff',
-  surfaceContainer: '#e7eeff',
-  surfaceContainerHigh: '#dfe8ff',
-  surfaceContainerHighest: '#d6e3ff',
-  onSurface: '#091c35',
-  onSurfaceVariant: '#424752',
-  inverseSurface: '#20314b',
-  inverseOnSurface: '#ecf0ff',
-  inversePrimary: '#a9c7ff',
-  outline: '#727783',
-  outlineVariant: '#c2c6d4',
-  surfaceTint: '#005db6',
-  background: '#f9f9ff',
-  onBackground: '#091c35',
-  riskHigh: '#7b0000',
-  riskMedium: '#f59e0b',
+  errorContainer: '#FEE2E2',
+  onErrorContainer: '#991B1B',
+  maternal: '#F472B6',
+  maternalLight: '#FDF2F8',
+  amber: '#F59E0B',
+  amberLight: '#FFFBEB',
+  teal: '#10B981',
+  tealLight: '#ECFDF5',
+  // Surface tokens mirror the CSS variables in global.css (light values).
+  surface: '#F8FAFC',
+  surfaceDim: '#E2E8F0',
+  surfaceBright: '#F8FAFC',
+  surfaceContainerLowest: '#FFFFFF',
+  surfaceContainerLow: '#F1F5F9',
+  surfaceContainer: '#E2E8F0',
+  surfaceContainerHigh: '#CBD5E1',
+  surfaceContainerHighest: '#94A3B8',
+  onSurface: '#1E293B',
+  onSurfaceVariant: '#64748B',
+  inverseSurface: '#1E293B',
+  inverseOnSurface: '#F1F5F9',
+  inversePrimary: '#A5B4FC',
+  outline: '#94A3B8',
+  outlineVariant: '#E2E8F0',
+  surfaceTint: '#242B65',
+  background: '#F8FAFC',
+  onBackground: '#1E293B',
+  riskHigh: '#EF4444',
+  riskMedium: '#F59E0B',
 } as const;
+
+/** Dark-theme palette — accent colours stay the same, surfaces go dark. */
+export const darkColors = {
+  ...colors,
+  // Primary shifts to a lighter indigo so buttons remain visible on dark bg.
+  primary: '#4F46E5',
+  primaryContainer: '#3730A3',
+  onPrimaryContainer: '#C7D2FE',
+  // Surfaces
+  surface: '#0F172A',
+  surfaceDim: '#020617',
+  surfaceBright: '#1E293B',
+  surfaceContainerLowest: '#020617',
+  surfaceContainerLow: '#0F172A',
+  surfaceContainer: '#1E293B',
+  surfaceContainerHigh: '#334155',
+  surfaceContainerHighest: '#475569',
+  onSurface: '#F1F5F9',
+  onSurfaceVariant: '#94A3B8',
+  inverseSurface: '#F1F5F9',
+  inverseOnSurface: '#1E293B',
+  inversePrimary: '#242B65',
+  outline: '#64748B',
+  outlineVariant: '#334155',
+  surfaceTint: '#A5B4FC',
+  background: '#020617',
+  onBackground: '#F1F5F9',
+} as const;
+
+/**
+ * Theme-aware colour hook. Returns the dark palette when the phone is in
+ * dark mode, the light palette otherwise. Use for inline styles, Icon
+ * `color` props, and Reanimated values that cannot be a className.
+ */
+export function useColors() {
+  const scheme = useColorScheme();
+  return scheme === 'dark' ? darkColors : colors;
+}
 
 export const shadow = {
   card: {
@@ -78,21 +132,32 @@ export const shadow = {
 } as const;
 
 /**
- * Semantic tone rotation used by the dashboard's care-module grid and KPI cards
- * (the web cycles primary -> secondary -> tertiary across tiles).
+ * Semantic tone rotation used by the dashboard's care-module grid and KPI cards.
+ * The web cycles primary -> secondary -> tertiary plus maternal / amber / teal
+ * accents for module-specific tiles.
  */
-export type Tone = 'primary' | 'secondary' | 'tertiary' | 'error';
+export type Tone = 'primary' | 'secondary' | 'tertiary' | 'error' | 'maternal' | 'amber' | 'teal' | 'primaryFixed' | 'neutral';
 
 export const toneClass = (tone: Tone) => {
   switch (tone) {
     case 'secondary':
       return { fg: 'text-secondary', container: 'bg-secondary-container', onContainer: 'text-on-secondary-container' };
     case 'tertiary':
-      return { fg: 'text-tertiary', container: 'bg-tertiary-fixed', onContainer: 'text-tertiary' };
+      return { fg: 'text-tertiary', container: 'bg-tertiary-container', onContainer: 'text-on-tertiary-container' };
     case 'error':
       return { fg: 'text-error', container: 'bg-error-container', onContainer: 'text-on-error-container' };
+    case 'maternal':
+      return { fg: 'text-maternal', container: 'bg-maternal-light', onContainer: 'text-maternal' };
+    case 'amber':
+      return { fg: 'text-amber', container: 'bg-amber-light', onContainer: 'text-amber' };
+    case 'teal':
+      return { fg: 'text-teal', container: 'bg-teal-light', onContainer: 'text-teal' };
+    case 'primaryFixed':
+      return { fg: 'text-primary', container: 'bg-primary-fixed', onContainer: 'text-primary' };
+    case 'neutral':
+      return { fg: 'text-neutral-500', container: 'bg-neutral-100', onContainer: 'text-neutral-500' };
     default:
-      return { fg: 'text-primary', container: 'bg-primary-container', onContainer: 'text-on-primary' };
+      return { fg: 'text-primary', container: 'bg-primary-container', onContainer: 'text-on-primary-container' };
   }
 };
 
@@ -106,4 +171,9 @@ export const toneColor: Record<Tone, string> = {
   secondary: colors.secondary,
   tertiary: colors.tertiary,
   error: colors.error,
+  maternal: colors.maternal,
+  amber: colors.amber,
+  teal: colors.teal,
+  primaryFixed: colors.primary,
+  neutral: '#64748B',
 };

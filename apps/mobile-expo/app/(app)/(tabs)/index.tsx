@@ -43,16 +43,16 @@ type CareModule = { label: string; path: string; icon: IconName; tone: Tone };
 const CARE_MODULES: CareModule[] = [
   { label: 'asha.modAddPatient', path: '/register', icon: 'plus', tone: 'primary' },
   { label: 'asha.modHouseholds', path: '/households', icon: 'box', tone: 'secondary' },
-  { label: 'asha.modHealthSurvey', path: '/health-survey', icon: 'edit', tone: 'tertiary' },
-  { label: 'asha.modPregnancy', path: '/pregnancy', icon: 'heart', tone: 'primary' },
-  { label: 'asha.modChildHealth', path: '/child-health', icon: 'users', tone: 'secondary' },
-  { label: 'asha.modVaccination', path: '/child-health', icon: 'checkCircle', tone: 'tertiary' },
+  { label: 'asha.modHealthSurvey', path: '/health-survey', icon: 'edit', tone: 'primaryFixed' },
+  { label: 'asha.modPregnancy', path: '/pregnancy', icon: 'heart', tone: 'maternal' },
+  { label: 'asha.modChildHealth', path: '/child-health', icon: 'users', tone: 'amber' },
+  { label: 'asha.modVaccination', path: '/child-health', icon: 'checkCircle', tone: 'teal' },
   { label: 'asha.modHealthCheckup', path: '/health-checkup', icon: 'activity', tone: 'primary' },
-  { label: 'asha.modReferral', path: '/referrals', icon: 'fileText', tone: 'secondary' },
-  { label: 'asha.modFollowUp', path: '/follow-ups', icon: 'refresh', tone: 'tertiary' },
-  { label: 'asha.modTasks', path: '/tasks', icon: 'checkCircle', tone: 'secondary' },
-  { label: 'asha.modNotifications', path: '/notifications', icon: 'bell', tone: 'error' },
-  { label: 'asha.modSync', path: '/sync', icon: 'refresh', tone: 'secondary' },
+  { label: 'asha.modReferral', path: '/referrals', icon: 'fileText', tone: 'primaryFixed' },
+  { label: 'asha.modFollowUp', path: '/follow-ups', icon: 'refresh', tone: 'teal' },
+  { label: 'asha.modTasks', path: '/tasks', icon: 'checkCircle', tone: 'primary' },
+  { label: 'asha.modNotifications', path: '/notifications', icon: 'bell', tone: 'maternal' },
+  { label: 'asha.modSync', path: '/sync', icon: 'refresh', tone: 'primaryFixed' },
 ];
 
 function isDone(task: TaskWithPatient): boolean {
@@ -205,8 +205,8 @@ export default function HomeScreen() {
             icon="edit"
             label={t('asha.recordVisit')}
             onPress={() => router.push('/households')}
-            className="bg-primary"
-            textClass="text-on-primary"
+            className="bg-secondary"
+            textClass="text-on-secondary"
           />
           <QuickAction
             icon="alert"
@@ -300,7 +300,7 @@ export default function HomeScreen() {
           ) : (
             <View className="gap-3">
               {todaysVisits.map((visit) => (
-                <Card key={visit.id} rail="#1E6F5C" railWidth={6}>
+                <Card key={visit.id} rail={colors.secondary} railWidth={6}>
                   <View className="flex-row items-center justify-between p-4 pl-5">
                     <View className="flex-1 flex-row items-center gap-3">
                       <View className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary-container">

@@ -129,13 +129,12 @@ export type RiskChipProps = {
 };
 
 /**
- * Risk chip colours are copied from PatientDashboardAshaSathi's riskChip map,
- * including the medium tier's custom #FF8C00 / #B34E00 pair, which is not part
- * of the Material palette.
+ * Risk chip colours are copied from PatientDashboardAshaSathi's riskChip map.
+ * Medium tier uses the amber accent per the Indigo + Teal palette.
  */
 const RISK_CLS = {
   low: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer, icon: 'checkCircle' as IconName },
-  medium: { bg: '#FF8C0026', fg: '#B34E00', icon: 'alert' as IconName },
+  medium: { bg: colors.amberLight, fg: colors.amber, icon: 'alert' as IconName },
   high: { bg: colors.errorContainer, fg: colors.onErrorContainer, icon: 'alert' as IconName },
 };
 

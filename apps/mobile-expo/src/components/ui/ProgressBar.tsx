@@ -18,13 +18,13 @@ const TONE_CLS: Record<ProgressTone, string> = {
   secondary: 'bg-secondary',
   tertiary: 'bg-tertiary',
   error: 'bg-error',
-  warning: 'bg-[#FF8C00]',
+  warning: 'bg-amber',
 };
 
 /**
  * ChildHealthAshaSathi's vaccination progress bar:
  *   h-2 overflow-hidden rounded-full bg-surface-variant
- *   > h-full rounded-full (bg-secondary healthy / #FF8C00 otherwise), width %
+ *   > h-full rounded-full (bg-secondary healthy / bg-amber otherwise), width %
  *
  * Exposed to assistive tech as a real progressbar with its 0-100 value; the
  * fill itself is a colour-only indicator a screen reader cannot otherwise see.

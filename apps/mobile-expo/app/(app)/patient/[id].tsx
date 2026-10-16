@@ -36,6 +36,7 @@ import {
 import { useLocalization } from '@/i18n/useLocalization';
 import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
 import { cx } from '@/cx';
+import { colors } from '@/theme';
 import { relationshipLabel } from '@/utils/relationship';
 
 type Translate = ReturnType<typeof useLocalization>['t'];
@@ -63,9 +64,9 @@ type Translate = ReturnType<typeof useLocalization>['t'];
 type Tab = 'summary' | 'history' | 'maternal' | 'vaccination' | 'referrals';
 
 const RISK_RAIL: Record<RiskLevel, string> = {
-  low: '#1E6F5C',
-  medium: '#FF8C00',
-  high: '#BA1A1A',
+  low: colors.secondary,
+  medium: colors.amber,
+  high: colors.error,
 };
 
 const TABS: Tab[] = ['summary', 'history', 'maternal', 'vaccination', 'referrals'];

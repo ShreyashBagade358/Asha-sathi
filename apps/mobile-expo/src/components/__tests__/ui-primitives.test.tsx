@@ -26,7 +26,7 @@ describe('Chip', () => {
   const TONES: { tone: ChipTone; bg: string; fg: string }[] = [
     { tone: 'success', bg: 'bg-secondary-container', fg: 'text-on-secondary-container' },
     { tone: 'error', bg: 'bg-error-container', fg: 'text-on-error-container' },
-    { tone: 'warning', bg: 'bg-[#FF8C00]/15', fg: 'text-[#B34E00]' },
+    { tone: 'warning', bg: 'bg-amber-light', fg: 'text-amber' },
     { tone: 'info', bg: 'bg-tertiary-container', fg: 'text-on-tertiary-container' },
     { tone: 'neutral', bg: 'bg-surface-variant', fg: 'text-on-surface-variant' },
   ];
@@ -101,7 +101,7 @@ describe('Toggle', () => {
 describe('RiskStrip', () => {
   it.each([
     ['high', 'bg-error'],
-    ['medium', 'bg-[#FF8C00]'],
+    ['medium', 'bg-amber'],
     ['low', 'bg-secondary'],
     ['none', 'bg-primary'],
   ] as const)('renders the %s rail colour', (risk, expected) => {

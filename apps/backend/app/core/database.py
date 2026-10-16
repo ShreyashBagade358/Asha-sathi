@@ -1,6 +1,7 @@
 import json
 from collections.abc import AsyncGenerator
 from datetime import date, datetime
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -19,12 +20,33 @@ def json_dumps(obj):
     return json.dumps(obj, default=_json_default)
 
 
+def _normalize_ssl(url: str) -> tuple[str, dict]:
+    """Move libpq-style ``sslmode=`` out of the URL into asyncpg's ``ssl=`` arg.
+
+    Hosted Postgres providers (Neon, Supabase) hand out URLs like
+    ``postgresql+asyncpg://user:pass@host/db?sslmode=require``. asyncpg parses
+    ``sslmode`` from a DSN string but *rejects* it when SQLAlchemy forwards it
+    as a connect kwarg, so we strip the param and set ``ssl`` ourselves.
+    """
+    if "sslmode=" not in url:
+        return url, {}
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query))
+    sslmode = query.pop("sslmode", None)
+    cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+    if sslmode in (None, "disable"):
+        return cleaned, {}
+    # require / prefer / allow / verify-ca / verify-full all need a TLS socket;
+    # True uses the system default CA bundle, which is what hosted providers want.
+    return cleaned, {"ssl": True}
+
+
 engine = create_async_engine(
-    settings.database_url,
+    _normalize_ssl(settings.database_url)[0],
     echo=False,
     pool_pre_ping=True,
     json_serializer=json_dumps,
-    connect_args={"prepared_statement_cache_size": 0},
+    connect_args={"prepared_statement_cache_size": 0, **_normalize_ssl(settings.database_url)[1]},
 )
 
 async_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

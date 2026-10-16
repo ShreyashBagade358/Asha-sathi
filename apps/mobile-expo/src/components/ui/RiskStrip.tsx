@@ -16,7 +16,7 @@ export type RiskStripProps = {
 
 const RISK_CLS: Record<RiskLevel, string> = {
   high: 'bg-error',
-  medium: 'bg-[#FF8C00]',
+  medium: 'bg-amber',
   low: 'bg-secondary',
   none: 'bg-primary',
 };
@@ -26,7 +26,7 @@ const RISK_CLS: Record<RiskLevel, string> = {
  * AshaWorkerHomeAshaSathi:
  *   relative overflow-hidden rounded-2xl border border-outline-variant/40
  *   bg-surface-container-lowest shadow-card
- * with an absolute w-2 rail down the left edge (bg-error / #FF8C00 /
+ * with an absolute w-2 rail down the left edge (bg-error / bg-amber /
  * bg-secondary, web uses a bare card for 'none' so it falls back to primary).
  */
 export function RiskStrip({ risk, children, variant = 'md', style }: RiskStripProps) {

@@ -42,7 +42,7 @@ function MoreSheet({
         accessibilityRole="button"
         accessibilityLabel={t('common.close')}
         onPress={onClose}
-        style={{ flex: 1, backgroundColor: 'rgba(32, 49, 75, 0.5)' }}
+        style={{ flex: 1, backgroundColor: 'rgba(30, 41, 59, 0.5)' }}
       />
       <View className="max-h-[75%] rounded-t-2xl bg-surface-container-lowest">
         <View className="flex-row items-center justify-between px-4 py-4">

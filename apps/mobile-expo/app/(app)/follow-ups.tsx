@@ -15,6 +15,7 @@ import { listFollowUps, setFollowUpDate, setFollowUpDone, type FollowUp } from '
 import { useLocalization } from '@/i18n/useLocalization';
 import { dateToIso } from '@/utils/date';
 import { cx } from '@/cx';
+import { colors } from '@/theme';
 
 type Filter = 'all' | 'overdue' | 'upcoming';
 
@@ -265,7 +266,7 @@ function FollowUpCard({
   const initial = (row.patient_name ?? '').trim().charAt(0).toUpperCase();
 
   return (
-    <Card rail={overdue ? '#BA1A1A' : '#006e28'}>
+    <Card rail={overdue ? colors.error : colors.secondary}>
       <View className="flex-row items-start gap-3 p-4">
         <View className="h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-container">
           <Text className="font-headline-md text-headline-md font-bold text-on-primary-container">

@@ -16,6 +16,7 @@ import { colors } from '@/theme';
 export type IconName =
   | 'dashboard'
   | 'users'
+  | 'user'
   | 'heart'
   | 'fileText'
   | 'alert'
@@ -68,6 +69,7 @@ export type IconName =
 const FEATHER: Record<IconName, ComponentProps<typeof Feather>['name']> = {
   dashboard: 'grid',
   users: 'users',
+  user: 'user',
   heart: 'heart',
   fileText: 'file-text',
   alert: 'alert-triangle',

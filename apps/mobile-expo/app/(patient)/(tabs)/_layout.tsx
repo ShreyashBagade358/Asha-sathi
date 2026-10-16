@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalization } from '@/i18n/useLocalization';
 import { TabBar } from '@/nav/TabBar';
 import { PATIENT_BOTTOM_NAV } from '@/nav/config';
+import { useColors } from '@/theme';
 
 /**
  * The five tab destinations are exactly the items the web marks
@@ -17,12 +18,13 @@ import { PATIENT_BOTTOM_NAV } from '@/nav/config';
 export default function PatientTabsLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useLocalization();
+  const c = useColors();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: '#F9F9FF', paddingTop: insets.top },
+        sceneStyle: { backgroundColor: c.background, paddingTop: insets.top },
       }}
       tabBar={(props) => <TabBar state={props.state} items={PATIENT_BOTTOM_NAV} />}
     >

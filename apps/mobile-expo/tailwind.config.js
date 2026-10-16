@@ -1,10 +1,11 @@
 /**
  * Mirrors apps/web-dashboard/tailwind.config.js so the mobile app renders the
- * exact same Material 3 palette and type scale the dashboard actually ships.
+ * exact same Indigo + Teal healthcare palette the dashboard actually ships.
  *
- * The web repo also carries packages/design-system/tokens/design-tokens.json
- * (a teal / Public Sans theme) - that file is orphaned and is NOT what the web
- * UI uses. The hexes below are the rendered source of truth.
+ * Surface / neutral colours are CSS variables defined in global.css so they
+ * swap automatically when the phone enters dark mode (prefers-color-scheme).
+ * Accent colours (primary, secondary, tertiary, error, maternal, amber, teal)
+ * are static hex — they are brand colours that stay consistent across themes.
  *
  * Differences from the web config, both forced by React Native:
  *  - `fontFamily` tokens resolve to the loaded Inter variants rather than a
@@ -17,59 +18,84 @@
 module.exports = {
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
+  darkMode: 'media',
   theme: {
     extend: {
       colors: {
-        primary: '#003267',
-        'primary-container': '#005eb8',
+        // ── CSS-variable tokens (swap in dark mode via global.css) ────
+        primary: 'var(--color-primary)',
+        'primary-container': 'var(--color-primary-container)',
+        'on-primary-container': 'var(--color-on-primary-container)',
+        surface: 'var(--color-surface)',
+        'surface-dim': 'var(--color-surface-dim)',
+        'surface-bright': 'var(--color-surface-bright)',
+        'surface-container-lowest': 'var(--color-surface-container-lowest)',
+        'surface-container-low': 'var(--color-surface-container-low)',
+        'surface-container': 'var(--color-surface-container)',
+        'surface-container-high': 'var(--color-surface-container-high)',
+        'surface-container-highest': 'var(--color-surface-container-highest)',
+        'on-surface': 'var(--color-on-surface)',
+        'on-surface-variant': 'var(--color-on-surface-variant)',
+        background: 'var(--color-background)',
+        'on-background': 'var(--color-on-background)',
+        outline: 'var(--color-outline)',
+        'outline-variant': 'var(--color-outline-variant)',
+        'inverse-surface': 'var(--color-inverse-surface)',
+        'inverse-on-surface': 'var(--color-inverse-on-surface)',
+        'inverse-primary': 'var(--color-inverse-primary)',
+        'surface-tint': 'var(--color-surface-tint)',
+
+        // ── Static accent tokens (same in light & dark) ───────────────
         'on-primary': '#ffffff',
-        'on-primary-container': '#c8daff',
-        'primary-fixed': '#d6e3ff',
-        'primary-fixed-dim': '#a9c7ff',
-        'on-primary-fixed': '#001b3d',
-        'on-primary-fixed-variant': '#00468c',
-        secondary: '#006e28',
-        'secondary-container': '#82fc90',
+        'primary-fixed': '#E0E7FF',
+        'primary-fixed-dim': '#A5B4FC',
+        'on-primary-fixed': '#1E1B4B',
+        'on-primary-fixed-variant': '#312E81',
+
+        secondary: '#10B981',
+        'secondary-container': '#A7F3D0',
         'on-secondary': '#ffffff',
-        'on-secondary-container': '#00752a',
-        'secondary-fixed': '#82fc90',
-        'secondary-fixed-dim': '#65df77',
-        'on-secondary-fixed': '#002107',
-        'on-secondary-fixed-variant': '#00531c',
-        tertiary: '#004e61',
-        'tertiary-container': '#006880',
+        'on-secondary-container': '#065F46',
+        'secondary-fixed': '#A7F3D0',
+        'secondary-fixed-dim': '#6EE7B7',
+        'on-secondary-fixed': '#022C22',
+        'on-secondary-fixed-variant': '#065F46',
+
+        tertiary: '#0F766E',
+        'tertiary-container': '#CCFBF1',
         'on-tertiary': '#ffffff',
-        'on-tertiary-container': '#9be4ff',
-        'tertiary-fixed': '#b6ebff',
-        'tertiary-fixed-dim': '#57d5fc',
-        'on-tertiary-fixed': '#001f28',
-        'on-tertiary-fixed-variant': '#004e60',
-        error: '#ba1a1a',
+        'on-tertiary-container': '#134E4A',
+        'tertiary-fixed': '#CCFBF1',
+        'tertiary-fixed-dim': '#99F6E4',
+        'on-tertiary-fixed': '#042F2E',
+        'on-tertiary-fixed-variant': '#115E59',
+
+        error: '#EF4444',
         'on-error': '#ffffff',
-        'error-container': '#ffdad6',
-        'on-error-container': '#93000a',
-        surface: '#f9f9ff',
-        'surface-dim': '#cadbfc',
-        'surface-bright': '#f9f9ff',
-        'surface-container-lowest': '#ffffff',
-        'surface-container-low': '#f0f3ff',
-        'surface-container': '#e7eeff',
-        'surface-container-high': '#dfe8ff',
-        'surface-container-highest': '#d6e3ff',
-        'on-surface': '#091c35',
-        'on-surface-variant': '#424752',
-        'inverse-surface': '#20314b',
-        'inverse-on-surface': '#ecf0ff',
-        'inverse-primary': '#a9c7ff',
-        outline: '#727783',
-        'outline-variant': '#c2c6d4',
-        'surface-tint': '#005db6',
-        background: '#f9f9ff',
-        'on-background': '#091c35',
-        // Risk rails. The web hardcodes these in index.css as
-        // .risk-strip-high / -medium rather than in the palette.
-        'risk-high': '#7b0000',
-        'risk-medium': '#f59e0b',
+        'error-container': '#FEE2E2',
+        'on-error-container': '#991B1B',
+
+        // Brand accents (mirrored from web tailwind.config.js)
+        maternal: '#F472B6',
+        'maternal-light': '#FDF2F8',
+        amber: '#F59E0B',
+        'amber-light': '#FFFBEB',
+        teal: '#10B981',
+        'teal-light': '#ECFDF5',
+
+        // Risk rails
+        'risk-high': '#EF4444',
+        'risk-medium': '#F59E0B',
+
+        // Neutral scale (static — same in both themes)
+        neutral: {
+          50: '#F8FAFC',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          500: '#64748B',
+          800: '#1E293B',
+          900: '#0F172A',
+        },
       },
       fontFamily: {
         sans: ['Inter_400Regular'],
