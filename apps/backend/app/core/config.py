@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -17,8 +18,8 @@ class Settings(BaseSettings):
     #   DEV_BYPASS_USERS={"9876500001":"asha"}
     dev_bypass_users: dict[str, str] = Field(
         default_factory=lambda: {
-            "9876543210": "asha",    # ASHA test login
-            "9876543215": "admin",   # Admin test login (all admin areas)
+            "9876543210": "asha",  # ASHA test login
+            "9876543215": "admin",  # Admin test login (all admin areas)
             "9876543216": "patient",  # Patient portal test login
         }
     )
@@ -45,7 +46,28 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379"
 
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # NoDecode: accept CORS_ORIGINS as a JSON list ("[\"https://a\"]"), a
+    # comma-separated string, or a bare URL — Render/env UIs mangle JSON quotes.
+    cors_origins: Annotated[list[str], NoDecode] = Field(default=["http://localhost:3000", "http://localhost:5173"])
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return ["http://localhost:3000", "http://localhost:5173"]
+            if s.startswith("["):
+                import json
+
+                try:
+                    return json.loads(s)
+                except ValueError:
+                    # Malformed JSON (smart quotes, trailing comma) — strip brackets
+                    # and treat the remainder as comma-separated.
+                    s = s.strip("[]")
+            return [o.strip().strip('"').strip("'") for o in s.split(",") if o.strip()]
+        return v
 
     smtp_host: str | None = None
     smtp_port: int = 587
