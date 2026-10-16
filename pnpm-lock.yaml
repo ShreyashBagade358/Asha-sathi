@@ -24,8 +24,8 @@ importers:
   apps/web-dashboard:
     dependencies:
       '@tanstack/react-query':
-        specifier: ^5.45.0
-        version: 5.101.4(react@18.3.1)
+        specifier: ^5.104.2
+        version: 5.104.2(react@18.3.1)
       asha-design-system:
         specifier: file:../../packages/design-system/react
         version: file:packages/design-system/react(react-dom@18.3.1)(react@18.3.1)
@@ -817,16 +817,16 @@ packages:
     dev: true
     optional: true
 
-  /@tanstack/query-core@5.101.4:
-    resolution: {integrity: sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw==}
+  /@tanstack/query-core@5.104.2:
+    resolution: {integrity: sha512-/qbsxJK5c3Ve1aFIULWYNcT2jeRUAiD4HME6Eu2ZdpofHoVgAjpkQhLg5xHuOoBkTPQUJLfP7zOxy0qsBcqROA==}
     dev: false
 
-  /@tanstack/react-query@5.101.4(react@18.3.1):
-    resolution: {integrity: sha512-yRg2pfOCxIs4ZJW3XYYHU/WgtD04FHSnfHlpRT7h7pR77hwkdRG4wxbKe4aq6P0RvXUTBSQpQeadS1SUYUe+KA==}
+  /@tanstack/react-query@5.104.2(react@18.3.1):
+    resolution: {integrity: sha512-xKmzWGhadbE5wGS/ZmXShRITnI9oItox5GO14KvFZco3+vhTAyXS1erYzJWdiY280zapAGJXFUL9nHgwP6SV/g==}
     peerDependencies:
       react: ^18 || ^19
     dependencies:
-      '@tanstack/query-core': 5.101.4
+      '@tanstack/query-core': 5.104.2
       react: 18.3.1
     dev: false
 
