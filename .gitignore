@@ -53,6 +53,11 @@ artifacts/
 .dvc/
 *.dvc
 
+# Bundled inference models shipped inside the backend image (Render has no
+# access to apps/ml-training/artifacts, which stays gitignored above).
+!apps/backend/ml_artifacts/
+!apps/backend/ml_artifacts/**
+
 # Backups & data
 backups/
 *.dump

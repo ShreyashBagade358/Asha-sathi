@@ -1,0 +1,33 @@
+{
+  "version": "v1",
+  "features": [
+    "age",
+    "gravida",
+    "parity",
+    "gestational_weeks",
+    "bp_systolic",
+    "bp_diastolic",
+    "hemoglobin",
+    "blood_sugar",
+    "bmi",
+    "previous_csection",
+    "previous_pph",
+    "previous_preterm",
+    "previous_stillbirth",
+    "htn",
+    "diabetes",
+    "heart_disease",
+    "kidney_disease",
+    "anc_visits_attended",
+    "pmsma_attended"
+  ],
+  "classes": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "model_path": "/Users/shreyash/Downloads/asha-sathi/apps/artifacts/maternal/model_v1.joblib",
+  "framework": "xgboost",
+  "task": "multiclass",
+  "objective": "multi:softprob"
+}

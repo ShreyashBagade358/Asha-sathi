@@ -1,0 +1,25 @@
+{
+  "version": "v1",
+  "features": [
+    "age_months",
+    "sex",
+    "weight_kg",
+    "height_cm",
+    "muac_mm",
+    "birth_weight_kg",
+    "gestation_weeks",
+    "breastfeeding",
+    "complementary_feeding",
+    "diarrhea_episodes",
+    "immunization_complete"
+  ],
+  "classes": [
+    "MAM",
+    "SAM",
+    "normal"
+  ],
+  "model_path": "/Users/shreyash/Downloads/asha-sathi/apps/artifacts/child/model_v1.joblib",
+  "framework": "xgboost",
+  "task": "multiclass",
+  "objective": "multi:softprob"
+}

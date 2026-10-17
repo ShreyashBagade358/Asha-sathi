@@ -1,0 +1,25 @@
+{
+  "version": "v1",
+  "features": [
+    "age",
+    "sex",
+    "bmi",
+    "waist_cm",
+    "tobacco_use",
+    "alcohol_use",
+    "physical_activity",
+    "family_history_diabetes",
+    "family_history_hypertension",
+    "known_diabetes",
+    "known_hypertension",
+    "bp_systolic",
+    "bp_diastolic",
+    "blood_sugar_random"
+  ],
+  "models": [
+    "diabetes",
+    "hypertension"
+  ],
+  "task": "binary",
+  "framework": "xgboost"
+}

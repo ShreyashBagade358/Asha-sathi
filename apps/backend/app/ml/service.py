@@ -15,6 +15,10 @@ except ImportError:  # pragma: no cover - only in envs without onnxruntime
 logger = get_logger("ml_service")
 
 _DEFAULT_REGISTRY = Path(__file__).resolve().parents[3] / "ml-training" / "artifacts"
+# Bundled copy shipped inside the backend image — apps/ml-training/artifacts is
+# gitignored and outside the Docker build context, so the deployed container
+# would otherwise fall back to rule-based heuristics.
+_BUNDLED_REGISTRY = Path(__file__).resolve().parents[2] / "ml_artifacts"
 
 # logical model name -> (metadata directory, onnx file relative to the registry root)
 _MODEL_SPECS: dict[str, tuple[str, str]] = {
@@ -53,7 +57,11 @@ class MLService:
     def _registry_root(self) -> Path:
         if settings.model_registry_path:
             return Path(settings.model_registry_path)
-        return _DEFAULT_REGISTRY
+        # Prefer the local training output when present (dev machines), else the
+        # copy bundled into the Docker image at apps/backend/ml_artifacts.
+        if (_DEFAULT_REGISTRY / "onnx").is_dir():
+            return _DEFAULT_REGISTRY
+        return _BUNDLED_REGISTRY
 
     def _session(self, name: str) -> Any | None:
         if name in self._sessions:
@@ -141,8 +149,7 @@ class MLService:
         return {
             "maternal_risk": self._session("maternal_risk") is not None,
             "child_growth": self._session("child_growth") is not None,
-            "ncd_risk": self._session("ncd_diabetes") is not None
-            and self._session("ncd_hypertension") is not None,
+            "ncd_risk": self._session("ncd_diabetes") is not None and self._session("ncd_hypertension") is not None,
         }
 
     def _version(self, name: str) -> str:
