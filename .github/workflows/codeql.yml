@@ -25,7 +25,7 @@ jobs:
         # Also scan Dart by adding: , "swift", "java-kotlin", "c-cpp"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
