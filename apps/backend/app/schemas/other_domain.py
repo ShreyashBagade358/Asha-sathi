@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +259,19 @@ class ASHATaskResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     version: int = 1
+
+    @field_validator("metadata_json", mode="before")
+    @classmethod
+    def _parse_metadata_json(cls, v: str | dict | None) -> dict | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
 
 
 class ASHAKPIResponse(BaseModel):
