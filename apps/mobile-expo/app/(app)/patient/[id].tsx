@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ import {
   listChildren,
   listHouseholdMembers,
   listHouseholdsWithCounts,
+  listHouseholdVisitChecksForBeneficiary,
   listImmunizations,
   listNcdScreenings,
   listPregnancies,
@@ -26,7 +27,9 @@ import {
   type AncVisit,
   type Child,
   type HouseholdMember,
+  type HouseholdVisitCheck,
   type HouseholdWithCounts,
+  type Immunization,
   type NcdScreening,
   type PatientRow,
   type Pregnancy,
@@ -92,6 +95,7 @@ type HistorySource = {
   referrals: Referral[];
   ancVisits: AncVisit[];
   givenDoses: Array<{ child: string; label: string; given: string }>;
+  householdVisitChecks: HouseholdVisitCheck[];
 };
 
 type MaternalData = { pregnancy: Pregnancy | null; ancVisits: AncVisit[] };
@@ -195,10 +199,11 @@ export default function PatientDetailScreen() {
       }
 
       if (tab === 'history') {
-        const [referralRows, pregnancies, children] = await Promise.all([
+        const [referralRows, pregnancies, children, householdVisitChecks] = await Promise.all([
           listReferrals(patient.id),
           listPregnancies(patient.id),
           listChildren(patient.id),
+          listHouseholdVisitChecksForBeneficiary(patient.id),
         ]);
         const ancVisits = (await Promise.all(pregnancies.map((p) => listAncVisits(p.id)))).flat();
         const givenDoses = (
@@ -215,7 +220,7 @@ export default function PatientDetailScreen() {
           )
         ).flat();
         if (cancelled) return;
-        setHistory({ referrals: referralRows, ancVisits, givenDoses });
+        setHistory({ referrals: referralRows, ancVisits, givenDoses, householdVisitChecks });
         return;
       }
 
@@ -457,6 +462,23 @@ export default function PatientDetailScreen() {
                       <Text className="shrink-0 font-caption text-caption text-on-surface-variant">{formatDate(row.date)}</Text>
                     </View>
                     {row.note ? <Text className="font-caption text-caption text-on-surface-variant">{row.note}</Text> : null}
+                    {row.photoUrls && row.photoUrls.length > 0 ? (
+                      <View className="mt-2 flex-row gap-2">
+                        {row.photoUrls.slice(0, 3).map((uri, idx) => (
+                          <Image
+                            key={idx}
+                            source={{ uri }}
+                            style={{ width: 60, height: 60, borderRadius: 8, resizeMode: 'cover' }}
+                            resizeMode="cover"
+                          />
+                        ))}
+                        {row.photoUrls.length > 3 && (
+                          <View style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: colors.surfaceContainer, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 12, color: colors.onSurfaceVariant }}>+{row.photoUrls.length - 3}</Text>
+                          </View>
+                        )}
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               ))}
@@ -692,9 +714,16 @@ export default function PatientDetailScreen() {
 
 const CLOSED_STATUSES = ['delivered', 'aborted', 'closed'];
 
-type HistoryRow = { key: string; date: string | null; title: string; note: string; urgent: boolean };
+type HistoryRow = { 
+  key: string; 
+  date: string | null; 
+  title: string; 
+  note: string; 
+  urgent: boolean;
+  photoUrls?: string[];
+};
 
-/** Merge referrals, ANC visits and given doses into one date-ordered timeline. */
+/** Merge referrals, ANC visits, given doses, and household visit checks into one date-ordered timeline. */
 function buildHistory(t: Translate, source: HistorySource | null): HistoryRow[] {
   if (!source) return [];
   const rows: HistoryRow[] = [
@@ -719,6 +748,19 @@ function buildHistory(t: Translate, source: HistorySource | null): HistoryRow[] 
       note: d.child,
       urgent: false,
     })),
+    ...(source.householdVisitChecks ?? []).map((check) => {
+      const photoUrls = check.photo_url ? (() => {
+        try { return JSON.parse(check.photo_url); } catch { return [check.photo_url]; }
+      })() : [];
+      return {
+        key: check.id,
+        date: check.visited_at,
+        title: t('asha.householdVisitCheck', { checkType: check.check_type, result: check.result }),
+        note: `${check.notes ?? ''} ${photoUrls.length > 0 ? `📷 ${photoUrls.length} photo(s)` : ''}`,
+        urgent: check.result === 'concern',
+        photoUrls,
+      };
+    }),
   ];
   return rows.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 }

@@ -190,29 +190,51 @@ export function PatientHistoryTimeline({
             const meta = META[event.type]
             const label = meta?.label ?? event.type
             const detail = meta?.detail?.(event.record) ?? ''
+            const photoUrl = event.type === 'HouseholdVisitCheck' ? (() => {
+    const raw = (event.record as Record<string, unknown>).photo_url as string | undefined;
+    if (!raw) return undefined;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed[0] : parsed;
+    } catch {
+      return raw;
+    }
+  })() : undefined
             return (
               <li
                 key={`${event.type}-${event.date}-${i}`}
-                className="flex items-start gap-3 rounded-lg border border-outline-variant/50 bg-surface-container p-4"
+                className="flex flex-col gap-2 rounded-lg border border-outline-variant/50 bg-surface-container p-4"
               >
-                <span
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${meta?.dot ?? 'bg-outline'}`}
-                  aria-hidden
-                />
-                <Icon
-                  name={meta?.icon ?? 'fileText'}
-                  size={18}
-                  className="mt-0.5 shrink-0 text-on-surface-variant"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <p className="font-label-md text-label-md font-semibold text-on-surface">{label}</p>
-                    <p className="font-caption text-caption text-on-surface-variant">{formatDate(event.date)}</p>
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${meta?.dot ?? 'bg-outline'}`}
+                    aria-hidden
+                  />
+                  <Icon
+                    name={meta?.icon ?? 'fileText'}
+                    size={18}
+                    className="mt-0.5 shrink-0 text-on-surface-variant"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <p className="font-label-md text-label-md font-semibold text-on-surface">{label}</p>
+                      <p className="font-caption text-caption text-on-surface-variant">{formatDate(event.date)}</p>
+                    </div>
+                    {detail ? (
+                      <p className="mt-0.5 break-words font-caption text-caption text-on-surface-variant">{detail}</p>
+                    ) : null}
                   </div>
-                  {detail ? (
-                    <p className="mt-0.5 break-words font-caption text-caption text-on-surface-variant">{detail}</p>
-                  ) : null}
                 </div>
+                {photoUrl ? (
+                  <div className="ml-8 flex gap-2">
+                    <img
+                      src={photoUrl}
+                      alt={`${label} photo`}
+                      className="w-24 h-24 object-cover rounded-lg border border-outline-variant"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
               </li>
             )
           })}

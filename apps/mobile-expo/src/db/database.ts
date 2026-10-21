@@ -493,6 +493,7 @@ CREATE TABLE IF NOT EXISTS household_visit_checks (
   notes TEXT,
   visited_at TEXT,
   created_by TEXT,
+  photo_url TEXT,
   created_at TEXT,
   updated_at TEXT,
   version INTEGER NOT NULL DEFAULT 1
@@ -567,6 +568,8 @@ const ADDED_COLUMNS: Array<{ table: string; column: string; ddl: string }> = [
   { table: 'children', column: 'mother_id', ddl: 'mother_id TEXT' },
   { table: 'children', column: 'father_id', ddl: 'father_id TEXT' },
   { table: 'children', column: 'delivery_outcome_id', ddl: 'delivery_outcome_id TEXT' },
+  // Photos for household visit checks (member photos during household visits).
+  { table: 'household_visit_checks', column: 'photo_url', ddl: 'photo_url TEXT' },
 ];
 
 /**
@@ -1133,6 +1136,7 @@ export async function insertLocalVisitChecks(
     notes: string | null;
     visitedAt: string;
     createdBy: string | null;
+    photoUrls?: string[];
   }>,
 ): Promise<void> {
   if (rows.length === 0) return;
@@ -1143,11 +1147,12 @@ export async function insertLocalVisitChecks(
       await db.runAsync(
         `INSERT INTO household_visit_checks
            (id, household_id, survey_id, beneficiary_id, check_type, result, notes,
-            visited_at, created_by, created_at, updated_at, version)
-         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            visited_at, created_by, photo_url, created_at, updated_at, version)
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
          ON CONFLICT(id) DO UPDATE SET
            result = excluded.result,
            notes = excluded.notes,
+           photo_url = excluded.photo_url,
            updated_at = excluded.updated_at`,
         row.id,
         row.householdId,
@@ -1157,6 +1162,7 @@ export async function insertLocalVisitChecks(
         row.notes,
         row.visitedAt,
         row.createdBy,
+        row.photoUrls ? JSON.stringify(row.photoUrls) : null,
         now,
         now,
       );

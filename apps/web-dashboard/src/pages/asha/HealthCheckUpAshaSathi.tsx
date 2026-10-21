@@ -7,6 +7,7 @@ import { Icon } from '@/components/common/Icons'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
+import { PhotoCapture } from '@/components/common/PhotoCapture'
 import { pregnancyService } from '@/services/pregnancy.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
 import { ncdService, type NCDScreening } from '@/services/ncd.service'
@@ -105,6 +106,7 @@ export default function HealthCheckUpAshaSathi() {
     notes: '',
     risk: 'low' as RiskLevel,
   })
+  const [checkupPhotos, setCheckupPhotos] = useState<string[]>([])
 
   const setField = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -210,6 +212,14 @@ export default function HealthCheckUpAshaSathi() {
               <option value="high">{t('asha.riskHighLabel')}</option>
             </select>
             <input value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={t('asha.formNotes')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+            <PhotoCapture
+              photos={checkupPhotos}
+              onPhotosChange={setCheckupPhotos}
+              maxPhotos={3}
+              label={t('photo.checkupPhotoLabel')}
+              hint={t('photo.checkupPhotoHint')}
+              size="md"
+            />
           </div>
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={() => setShowForm(false)} className="h-touch-target rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-on-surface-variant hover:bg-surface-container">

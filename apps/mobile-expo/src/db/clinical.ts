@@ -1692,6 +1692,22 @@ export async function completeHouseholdTasks(householdId: string, queue: boolean
   return tasks.length;
 }
 
+export type HouseholdVisitCheck = {
+  id: string;
+  household_id: string;
+  survey_id: string | null;
+  beneficiary_id: string | null;
+  check_type: string;
+  result: string;
+  notes: string | null;
+  visited_at: string | null;
+  created_by: string | null;
+  photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+};
+
 export type HouseholdVisitRecord = {
   id: string;
   visited_at: string | null;
@@ -1721,6 +1737,22 @@ export async function listHouseholdVisitRecords(householdId: string): Promise<Ho
         answers,
       };
     });
+}
+
+/**
+ * Member checks recorded during household visits for a specific beneficiary.
+ * Includes photo URLs for offline viewing.
+ */
+export async function listHouseholdVisitChecksForBeneficiary(beneficiaryId: string): Promise<HouseholdVisitCheck[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<HouseholdVisitCheck>(
+    `SELECT id, household_id, survey_id, beneficiary_id, check_type, result, notes,
+            visited_at, created_by, photo_url, created_at, updated_at, version
+       FROM household_visit_checks
+      WHERE beneficiary_id = ?
+      ORDER BY visited_at DESC, created_at DESC`,
+    beneficiaryId,
+  );
 }
 
 /** Local commit for a household registered in the field (offline-first). */

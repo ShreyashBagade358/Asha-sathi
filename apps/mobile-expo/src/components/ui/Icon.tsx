@@ -53,6 +53,7 @@ export type IconName =
   | 'eye'
   | 'eyeOff'
   | 'save'
+  | 'camera'
   /**
    * Error-screen glyphs. The web draws these as inline SVGs inside
    * packages/design-system/react/src/components/ErrorScreens.tsx rather than
@@ -106,6 +107,7 @@ const FEATHER: Record<IconName, ComponentProps<typeof Feather>['name']> = {
   eye: 'eye',
   eyeOff: 'eye-off',
   save: 'save',
+  camera: 'camera',
   wifiOff: 'wifi-off',
   lock: 'lock',
   alertCircle: 'alert-circle',

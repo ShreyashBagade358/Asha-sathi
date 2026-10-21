@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from sqlalchemy import and_, case, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +26,8 @@ from app.schemas.beneficiary import (
     MemberCheckResponse,
 )
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
+from app.services import images as images_svc
+from app.services import storage as storage_svc
 from app.services.audit import log_action
 from app.services.sync_scope import resolve_scope
 from app.services.task_plan import OPEN_TASK_STATUSES
@@ -435,6 +438,7 @@ async def _survey_responses(db: AsyncSession, surveys: list[HouseholdSurvey]) ->
             visited_at=survey.visited_at,
             created_at=survey.created_at,
             member_checks=[MemberCheckResponse.model_validate(check) for check in checks_by_survey.get(survey.id, [])],
+            photo_urls=survey.photo_urls,
         )
         for survey in surveys
     ]
@@ -553,3 +557,160 @@ async def list_household_surveys(
         .order_by(HouseholdSurvey.created_at.desc())
     )
     return await _survey_responses(db, list(result.scalars().all()))
+
+
+# ---------------------------------------------------------------------------
+# Survey photo uploads
+# ---------------------------------------------------------------------------
+@router.post(
+    "/{household_id}/survey/{survey_id}/photo",
+    response_model=HouseholdSurveyResponse,
+)
+async def upload_survey_photo(
+    household_id: str,
+    survey_id: str,
+    file: Annotated[UploadFile, File(...)],
+    mime_type: Annotated[str, Form()] = "image/jpeg",
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Upload a photo and attach it to a household survey."""
+    survey = await db.get(HouseholdSurvey, survey_id)
+    if not survey or survey.household_id != household_id:
+        raise NotFoundError("Survey not found for this household")
+
+    data, ext = await images_svc.read_image(file)
+    storage_path = f"surveys/{survey_id}.{ext}"
+    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+
+    photos = dict(survey.photo_urls or {})
+    # Use a simple counter or timestamp-based key
+    photo_key = f"photo_{len(photos) + 1}"
+    photos[photo_key] = photo_url
+    survey.photo_urls = photos
+
+    await log_action(
+        db,
+        user.id,
+        "survey_photo_uploaded",
+        "household_survey",
+        survey.id,
+        new_values={"photo_urls": photos},
+    )
+    await db.commit()
+    await db.refresh(survey)
+    return (await _survey_responses(db, [survey]))[0]
+
+
+@router.post(
+    "/{household_id}/survey/{survey_id}/check/{check_id}/photo",
+    response_model=MemberCheckResponse,
+)
+async def upload_member_check_photo(
+    household_id: str,
+    survey_id: str,
+    check_id: str,
+    file: Annotated[UploadFile, File(...)],
+    mime_type: Annotated[str, Form()] = "image/jpeg",
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Upload a photo and attach it to a member check within a survey."""
+    check = await db.get(HouseholdVisitCheck, check_id)
+    if not check or check.household_id != household_id or check.survey_id != survey_id:
+        raise NotFoundError("Member check not found for this survey")
+
+    data, ext = await images_svc.read_image(file)
+    storage_path = f"surveys/{survey_id}/checks/{check_id}.{ext}"
+    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+
+    check.photo_url = photo_url
+
+    await log_action(
+        db,
+        user.id,
+        "member_check_photo_uploaded",
+        "household_visit_check",
+        check.id,
+        new_values={"photo_url": photo_url},
+    )
+    await db.commit()
+    await db.refresh(check)
+    return MemberCheckResponse.model_validate(check)
+
+
+@router.delete(
+    "/{household_id}/survey/{survey_id}/photo/{photo_key}",
+    response_model=HouseholdSurveyResponse,
+)
+async def delete_survey_photo(
+    household_id: str,
+    survey_id: str,
+    photo_key: str,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Remove a photo from a household survey."""
+    survey = await db.get(HouseholdSurvey, survey_id)
+    if not survey or survey.household_id != household_id:
+        raise NotFoundError("Survey not found for this household")
+
+    photos = dict(survey.photo_urls or {})
+    if photo_key not in photos:
+        raise NotFoundError("Photo not found")
+
+    photo_url = photos.pop(photo_key)
+    survey.photo_urls = photos if photos else None
+
+    # Try to delete from storage
+    parsed = storage_svc.bucket_and_path_from_url(photo_url)
+    if parsed:
+        storage_svc.delete(parsed[1], bucket=parsed[0])
+
+    await log_action(
+        db,
+        user.id,
+        "survey_photo_deleted",
+        "household_survey",
+        survey.id,
+        new_values={"photo_urls": photos},
+    )
+    await db.commit()
+    await db.refresh(survey)
+    return (await _survey_responses(db, [survey]))[0]
+
+
+@router.delete(
+    "/{household_id}/survey/{survey_id}/check/{check_id}/photo",
+    response_model=MemberCheckResponse,
+)
+async def delete_member_check_photo(
+    household_id: str,
+    survey_id: str,
+    check_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    user: User = Depends(get_current_user),
+):
+    """Remove the photo from a member check."""
+    check = await db.get(HouseholdVisitCheck, check_id)
+    if not check or check.household_id != household_id or check.survey_id != survey_id:
+        raise NotFoundError("Member check not found for this survey")
+
+    if check.photo_url:
+        parsed = storage_svc.bucket_and_path_from_url(check.photo_url)
+        if parsed:
+            storage_svc.delete(parsed[1], bucket=parsed[0])
+
+    check.photo_url = None
+
+    await log_action(
+        db,
+        user.id,
+        "member_check_photo_deleted",
+        "household_visit_check",
+        check.id,
+        new_values={"photo_url": None},
+    )
+    await db.commit()
+    await db.refresh(check)
+    return MemberCheckResponse.model_validate(check)

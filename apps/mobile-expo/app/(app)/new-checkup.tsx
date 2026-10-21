@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/ui/Button';
 import { Card, SectionHeader } from '@/components/ui/Card';
 import { SelectField, TextField } from '@/components/ui/Field';
+import { PhotoCapture } from '@/components/ui/PhotoCapture';
 import { useToast } from '@/components/ui/Toast';
 import { insertLocalNcdScreening, listPatients, type PatientRow } from '@/db/clinical';
 import { enqueue } from '@/db/database';
@@ -49,6 +50,7 @@ export default function NewCheckupScreen() {
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [checkupPhotos, setCheckupPhotos] = useState<string[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -201,6 +203,15 @@ export default function NewCheckupScreen() {
             />
           </View>
         </Card>
+
+        <PhotoCapture
+          photos={checkupPhotos}
+          onPhotosChange={setCheckupPhotos}
+          maxPhotos={3}
+          label={t('photo.checkupPhotoLabel')}
+          hint={t('photo.checkupPhotoHint')}
+          size="md"
+        />
 
         {error ? (
           <Text className="rounded-lg bg-error-container p-3 font-body-md text-body-md text-on-error-container">{error}</Text>

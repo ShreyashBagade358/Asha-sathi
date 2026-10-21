@@ -8,12 +8,14 @@ import { Card, Pill, SectionHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SelectField, TextField } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
+import { PhotoCapture } from '@/components/ui/PhotoCapture';
 import { listVillageForms, readFormData, type VillageForm } from '@/db/clinical';
 import { enqueue, insertLocalVillageForm, listHouseholds } from '@/db/database';
 import { tokenStore } from '@/auth/tokenStore';
 import { useLocalization } from '@/i18n/useLocalization';
 import { isCurrentlyOnline, scheduleSync } from '@/sync/network';
 import { cx } from '@/cx';
+import { queueSurveyPhotos } from '@/sync/surveyPhotos';
 
 type FormType = 'general' | 'maternal' | 'child';
 
@@ -81,6 +83,7 @@ export default function HealthSurveyScreen() {
   const [toilet, setToilet] = useState('own');
   const [smoke, setSmoke] = useState('no');
   const [membersSeen, setMembersSeen] = useState('');
+  const [surveyPhotos, setSurveyPhotos] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setStatus('loading');
@@ -124,6 +127,7 @@ export default function HealthSurveyScreen() {
         toilet_facility: toilet,
         tobacco_smoke: smoke === 'yes',
         members_screened: membersSeen.trim() === '' ? null : Number(membersSeen),
+        photos: surveyPhotos,
       };
       const data = {
         asha_id: ashaId,
@@ -152,10 +156,16 @@ export default function HealthSurveyScreen() {
         data,
       });
 
+      // Queue photos for background upload when online
+      if (surveyPhotos.length > 0) {
+        await queueSurveyPhotos(id, surveyPhotos.map((uri, idx) => ({ photoKey: `photo_${idx + 1}`, uri })));
+      }
+
       setSaved(true);
       setShowForm(false);
       setHouseholdId('');
       setMembersSeen('');
+      setSurveyPhotos([]);
       await load();
 
       if (isCurrentlyOnline()) {
@@ -278,6 +288,15 @@ export default function HealthSurveyScreen() {
               onChangeText={setMembersSeen}
               keyboardType="number-pad"
               placeholder="0"
+            />
+
+            <PhotoCapture
+              photos={surveyPhotos}
+              onPhotosChange={setSurveyPhotos}
+              maxPhotos={5}
+              label={t('photo.householdPhotoLabel')}
+              hint={t('photo.householdPhotoHint')}
+              size="md"
             />
 
             <Button

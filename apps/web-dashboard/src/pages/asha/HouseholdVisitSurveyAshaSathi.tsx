@@ -7,6 +7,7 @@ import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
+import { PhotoCapture } from '@/components/common/PhotoCapture'
 import { householdService } from '@/services/household.service'
 
 function memberIcon(member: { isPregnant?: boolean }): IconName {
@@ -30,6 +31,8 @@ export default function HouseholdVisitSurveyAshaSathi() {
   const [toilet, setToilet] = useState(false)
   const [fever, setFever] = useState<'yes' | 'no' | ''>('')
   const [checks, setChecks] = useState<Record<string, 'ok' | 'concern'>>({})
+  const [memberPhotos, setMemberPhotos] = useState<Record<string, string[]>>({})
+  const [householdPhotos, setHouseholdPhotos] = useState<string[]>([])
 
   const householdQuery = useQuery({
     queryKey: ['household', id],
@@ -50,8 +53,9 @@ export default function HouseholdVisitSurveyAshaSathi() {
   })
 
   const submitMutation = useMutation({
-    mutationFn: () =>
-      householdService.submitSurvey(id!, {
+    mutationFn: async () => {
+      // First submit the survey
+      const survey = await householdService.submitSurvey(id!, {
         answers: {
           clean_water: water,
           functional_toilet: toilet,
@@ -62,7 +66,45 @@ export default function HouseholdVisitSurveyAshaSathi() {
           beneficiaryId: member.id,
           result: checks[member.id] ?? 'ok',
         })),
-      }),
+      })
+
+      // Upload household photos
+      for (const photo of householdPhotos) {
+        try {
+          // Convert photo URL back to blob for upload
+          const response = await fetch(photo)
+          const blob = await response.blob()
+          const file = new File([blob], `household-${Date.now()}.jpg`, { type: 'image/jpeg' })
+          await householdService.uploadSurveyPhoto(id!, survey.id, file)
+        } catch (e) {
+          console.error('Failed to upload household photo:', e)
+        }
+      }
+
+      // Upload member check photos
+      const memberChecks = survey.memberChecks
+      for (const member of members) {
+        const photos = memberPhotos[member.id] ?? []
+        if (photos.length === 0) continue
+
+        // Find the corresponding member check
+        const check = memberChecks.find((c) => c.beneficiaryId === member.id)
+        if (!check) continue
+
+        for (const photo of photos) {
+          try {
+            const response = await fetch(photo)
+            const blob = await response.blob()
+            const file = new File([blob], `member-${member.id}-${Date.now()}.jpg`, { type: 'image/jpeg' })
+            await householdService.uploadMemberCheckPhoto(id!, survey.id, check.id, file)
+          } catch (e) {
+            console.error(`Failed to upload photo for member ${member.id}:`, e)
+          }
+        }
+      }
+
+      return survey
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['asha', 'tasks'] })
       void queryClient.invalidateQueries({ queryKey: ['household-surveys', id] })
@@ -165,7 +207,7 @@ export default function HouseholdVisitSurveyAshaSathi() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="flex gap-2">
+<div className="flex gap-2 items-center">
                     {(['ok', 'concern'] as const).map((result) => {
                       const selected = (checks[member.id] ?? 'ok') === result
                       return (
@@ -191,6 +233,12 @@ export default function HouseholdVisitSurveyAshaSathi() {
                         </label>
                       )
                     })}
+                    <PhotoCapture
+                      photos={memberPhotos[member.id] ?? []}
+                      onPhotosChange={(photos) => setMemberPhotos((prev) => ({ ...prev, [member.id]: photos }))}
+                      maxPhotos={3}
+                      size="xs"
+                    />
                   </div>
                 </div>
               ))}
@@ -260,6 +308,15 @@ export default function HouseholdVisitSurveyAshaSathi() {
                 ))}
               </div>
             </div>
+
+            <PhotoCapture
+              photos={householdPhotos}
+              onPhotosChange={setHouseholdPhotos}
+              maxPhotos={5}
+              label={t('photo.householdPhotoLabel')}
+              hint={t('photo.householdPhotoHint')}
+              size="md"
+            />
           </div>
         </section>
 

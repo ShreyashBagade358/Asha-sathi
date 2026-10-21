@@ -310,6 +310,43 @@ export const householdService = {
     return data.map(mapSurvey);
   },
 
+  async uploadSurveyPhoto(
+    householdId: string,
+    surveyId: string,
+    file: File
+  ): Promise<HouseholdSurvey> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<RawSurvey>(`/households/${householdId}/survey/${surveyId}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return mapSurvey(data);
+  },
+
+  async uploadMemberCheckPhoto(
+    householdId: string,
+    surveyId: string,
+    checkId: string,
+    file: File
+  ): Promise<MemberCheck> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<RawMemberCheck>(`/households/${householdId}/survey/${surveyId}/check/${checkId}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return mapMemberCheck(data);
+  },
+
+  async deleteSurveyPhoto(householdId: string, surveyId: string, photoKey: string): Promise<HouseholdSurvey> {
+    const { data } = await api.delete<RawSurvey>(`/households/${householdId}/survey/${surveyId}/photo/${photoKey}`);
+    return mapSurvey(data);
+  },
+
+  async deleteMemberCheckPhoto(householdId: string, surveyId: string, checkId: string): Promise<MemberCheck> {
+    const { data } = await api.delete<RawMemberCheck>(`/households/${householdId}/survey/${surveyId}/check/${checkId}/photo`);
+    return mapMemberCheck(data);
+  },
+
   async deleteHousehold(id: string): Promise<void> {
     await api.delete(`/households/${id}`);
   },

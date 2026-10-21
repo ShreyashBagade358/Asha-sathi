@@ -118,7 +118,7 @@ export const TABLES = {
   // null for a visit queued offline (it links back to the village_form row).
   household_visit_checks: [
     'id', 'household_id', 'survey_id', 'beneficiary_id', 'check_type', 'result', 'notes',
-    'visited_at', 'created_by', 'created_at', 'updated_at', 'version',
+    'visited_at', 'created_by', 'photo_url', 'created_at', 'updated_at', 'version',
   ],
   notifications: [
     'id', 'user_id', 'type', 'priority', 'title', 'message', 'action_url',

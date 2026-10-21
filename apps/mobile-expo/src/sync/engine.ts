@@ -3,6 +3,7 @@ import { tokenStore } from '../auth/tokenStore';
 import { config } from '../config';
 import { upsertRows } from '../db/clinical';
 import { flushPendingPhotos } from './photos';
+import { flushPendingSurveyPhotos, flushPendingMemberCheckPhotos } from './surveyPhotos';
 import { writeDenial } from './scope';
 import { ALL_TABLES, isTableName, type TableName } from '../db/tables';
 import {
@@ -347,6 +348,14 @@ export async function runSync(): Promise<SyncResult> {
     await flushPendingPhotos();
   } catch (error) {
     console.warn('[sync] photo flush failed', error);
+  }
+
+  // Survey photos (household-level and member check photos)
+  try {
+    await flushPendingSurveyPhotos();
+    await flushPendingMemberCheckPhotos();
+  } catch (error) {
+    console.warn('[sync] survey photo flush failed', error);
   }
 
   return {

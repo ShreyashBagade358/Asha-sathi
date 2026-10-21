@@ -7,6 +7,7 @@ import { Icon } from '@/components/common/Icons'
 import { getErrorMessage } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
+import { PhotoCapture } from '@/components/common/PhotoCapture'
 import { childService } from '@/services/child.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
 
@@ -42,6 +43,7 @@ export default function ChildHealthAshaSathi() {
     birthLengthCm: '',
     gestationWeeks: '',
   })
+  const [childPhotos, setChildPhotos] = useState<string[]>([])
 
   const setField = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -150,6 +152,14 @@ export default function ChildHealthAshaSathi() {
             <input value={form.birthWeightGrams} onChange={(e) => setField('birthWeightGrams', e.target.value)} placeholder="Birth weight (g)" className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="number" />
             <input value={form.birthLengthCm} onChange={(e) => setField('birthLengthCm', e.target.value)} placeholder={t('asha.formHeightCm')} className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="number" step="0.1" />
             <input value={form.gestationWeeks} onChange={(e) => setField('gestationWeeks', e.target.value)} placeholder="Gestation weeks" className="h-touch-target rounded-lg border border-outline bg-surface px-4 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" type="number" />
+            <PhotoCapture
+              photos={childPhotos}
+              onPhotosChange={setChildPhotos}
+              maxPhotos={3}
+              label={t('photo.childPhotoLabel')}
+              hint={t('photo.childPhotoHint')}
+              size="md"
+            />
           </div>
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={() => setShowForm(false)} className="h-touch-target rounded-full border border-outline px-5 py-2.5 font-label-md text-label-md font-semibold text-on-surface-variant hover:bg-surface-container">

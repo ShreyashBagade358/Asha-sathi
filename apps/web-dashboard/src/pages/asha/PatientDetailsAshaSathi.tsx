@@ -233,7 +233,12 @@ export default function PatientDetailsAshaSathi() {
     { key: 'maternal', label: t('asha.tabMaternal') },
     { key: 'vaccination', label: t('asha.tabVaccination') },
     { key: 'referrals', label: t('asha.tabReferrals') },
-  ];
+  ].filter((item): item is { key: Tab; label: string } => {
+    if (item.key === 'maternal') {
+      return patient.gender?.toLowerCase() === 'female';
+    }
+    return true;
+  });
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">

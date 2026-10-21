@@ -12,6 +12,8 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Icon } from '@/components/ui/Icon';
 import { Toggle } from '@/components/ui/Toggle';
 import { useToast } from '@/components/ui/Toast';
+import { PhotoCapture } from '@/components/ui/PhotoCapture';
+import { queueSurveyPhotos, queueMemberCheckPhotos } from '@/sync/surveyPhotos';
 import {
   completeHouseholdTasks,
   getHouseholdCard,
@@ -77,6 +79,8 @@ export default function HouseholdVisitScreen() {
   const [toilet, setToilet] = useState(false);
   const [fever, setFever] = useState<FeverAnswer>('');
   const [checks, setChecks] = useState<Record<string, CheckResult>>({});
+  const [memberPhotos, setMemberPhotos] = useState<Record<string, string[]>>({});
+  const [householdPhotos, setHouseholdPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +131,8 @@ export default function HouseholdVisitScreen() {
         clean_water: water,
         functional_toilet: toilet,
         ...(fever ? { recent_fever: fever } : {}),
+        photos: householdPhotos,
+        member_photos: memberPhotos,
       };
       const formDate = new Date().toISOString().slice(0, 10);
       const submittedAt = new Date().toISOString();
@@ -165,6 +171,7 @@ export default function HouseholdVisitScreen() {
         notes: null,
         visitedAt: formDate,
         createdBy: ashaId || null,
+        photoUrls: memberPhotos[member.id] ?? [],
       }));
       await insertLocalVisitChecks(checkRows);
       for (const row of checkRows) {
@@ -183,9 +190,22 @@ export default function HouseholdVisitScreen() {
             notes: row.notes,
             visited_at: row.visitedAt,
             created_by: row.createdBy,
+            photo_urls: row.photoUrls,
           },
         });
       }
+
+      // Queue photos for background upload when online
+      if (householdPhotos.length > 0) {
+        await queueSurveyPhotos(formId, householdPhotos.map((uri, idx) => ({ photoKey: `photo_${idx + 1}`, uri })));
+      }
+      for (const row of checkRows) {
+        const photos = memberPhotos[row.beneficiaryId] ?? [];
+        if (photos.length > 0) {
+          await queueMemberCheckPhotos(row.id, photos.map(uri => ({ uri })));
+        }
+      }
+
       const openTasks = await listHouseholdVisitTasks(id);
       await completeHouseholdTasks(id, true);
 
@@ -336,7 +356,7 @@ export default function HouseholdVisitScreen() {
                       </View>
                       {member.is_pregnant > 0 ? <Chip tone="info">{t('asha.highRisk')}</Chip> : null}
                     </View>
-                    <View className="mt-3 flex-row gap-2">
+                    <View className="mt-3 flex-row gap-2 items-center">
                       {CHECK_OPTIONS.map((option) => {
                         const selected = value === option;
                         return (
@@ -373,6 +393,12 @@ export default function HouseholdVisitScreen() {
                           </Pressable>
                         );
                       })}
+                      <PhotoCapture
+                        photos={memberPhotos[member.id] ?? []}
+                        onPhotosChange={(photos) => setMemberPhotos((prev) => ({ ...prev, [member.id]: photos }))}
+                        maxPhotos={3}
+                        size="xs"
+                      />
                     </View>
                   </View>
                 );
@@ -443,6 +469,15 @@ export default function HouseholdVisitScreen() {
             </View>
           </View>
         </View>
+
+        <PhotoCapture
+          photos={householdPhotos}
+          onPhotosChange={setHouseholdPhotos}
+          maxPhotos={5}
+          label={t('photo.householdPhotoLabel')}
+          hint={t('photo.householdPhotoHint')}
+          size="md"
+        />
 
         {error ? (
           <Text className="rounded-lg bg-error-container px-3 py-2 font-body-md text-body-md text-on-error-container">

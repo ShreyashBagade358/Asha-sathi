@@ -205,6 +205,7 @@ class MemberCheckResponse(BaseModel):
     notes: str | None = None
     visited_at: date | None = None
     created_at: datetime
+    photo_url: str | None = None
 
 
 class HouseholdSurveyCreate(BaseModel):
@@ -224,6 +225,7 @@ class HouseholdSurveyResponse(BaseModel):
     visited_at: date | None = None
     created_at: datetime
     member_checks: list[MemberCheckResponse] = Field(default_factory=list)
+    photo_urls: dict[str, Any] | None = None
 
 
 class BeneficiarySearchParams(BaseModel):

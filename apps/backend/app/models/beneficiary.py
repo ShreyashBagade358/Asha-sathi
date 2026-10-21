@@ -49,6 +49,7 @@ class HouseholdVisitCheck(BaseModel):
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     visited_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 
 class HouseholdSurvey(BaseModel):
@@ -66,6 +67,7 @@ class HouseholdSurvey(BaseModel):
     consent_obtained: Mapped[bool] = mapped_column(Boolean, default=False)
     visited_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    photo_urls: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class Beneficiary(BaseModel):

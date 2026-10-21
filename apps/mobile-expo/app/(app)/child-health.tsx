@@ -9,6 +9,7 @@ import { Card, SectionHeader } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SelectField, TextField } from '@/components/ui/Field';
+import { PhotoCapture } from '@/components/ui/PhotoCapture';
 import { useToast } from '@/components/ui/Toast';
 import {
   getVaccinationSummary,
@@ -77,6 +78,7 @@ export default function ChildHealthScreen() {
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [childPhotos, setChildPhotos] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setStatus('loading');
@@ -319,6 +321,14 @@ export default function ChildHealthScreen() {
               keyboardType="number-pad"
               maxLength={2}
               returnKeyType="done"
+            />
+            <PhotoCapture
+              photos={childPhotos}
+              onPhotosChange={setChildPhotos}
+              maxPhotos={3}
+              label={t('photo.childPhotoLabel')}
+              hint={t('photo.childPhotoHint')}
+              size="md"
             />
             <Button
               label={t('asha.saveChild')}
