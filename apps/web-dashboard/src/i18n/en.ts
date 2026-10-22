@@ -388,6 +388,8 @@ const en = {
     syncCenterTitle: 'Offline Sync Center',
     syncCenterSubtitle: 'Manage records pending upload to the server',
     pendingRecords: 'Pending Records',
+    forceSync: 'Force Sync Now',
+    syncCompleted: 'Sync completed — {{count}} records updated',
     lastSyncedAt: 'Last Synced: {{time}}',
     syncNow: 'Sync Now',
     syncCompleteToast: 'All records synced successfully',

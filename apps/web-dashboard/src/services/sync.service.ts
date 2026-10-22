@@ -31,4 +31,19 @@ export const syncService = {
     const { data } = await api.get<RawSyncStatus>('/sync/status')
     return mapSyncStatus(data)
   },
+
+  async forcePull(): Promise<{ records: Record<string, unknown[]>; server_time: string; has_more: boolean; next_cursor: string | null }> {
+    const { data } = await api.post<{ records: Record<string, unknown[]>; server_time: string; has_more: boolean; next_cursor: string | null }>('/sync/pull', {
+      last_pull_at: new Date(0).toISOString(), // Get all changes
+      limit: 10000,
+    })
+    return data
+  },
+
+  async resolveAllConflicts(resolution: 'server_wins' | 'client_wins' = 'server_wins'): Promise<{ message: string }> {
+    // This would need a new backend endpoint to resolve all at once
+    // For now, we'll call the existing resolve endpoint for each conflict
+    // But we need a list of conflicts first
+    throw new Error('Not implemented - requires backend endpoint to list conflicts')
+  },
 }

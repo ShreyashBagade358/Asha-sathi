@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
 import { Icon } from '@/components/common/Icons'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { syncService } from '@/services/sync.service'
+import { addToast } from '@/hooks/useToast'
 
 function formatSince(iso: string | null): string {
   if (!iso) return '—'
@@ -25,6 +26,16 @@ export default function OfflineSyncCenterAshaSathi() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['sync-status'],
     queryFn: () => syncService.getStatus(),
+  })
+
+  const forcePullMutation = useMutation({
+    mutationFn: () => syncService.forcePull(),
+    onSuccess: (result) => {
+      const total = Object.values(result.records).reduce((sum, arr) => sum + arr.length, 0)
+      addToast('success', t('asha.syncCompleted', { count: total }))
+      refetch()
+    },
+    onError: (err) => addToast('error', getErrorMessage(err)),
   })
 
   const counters = [
@@ -65,6 +76,17 @@ export default function OfflineSyncCenterAshaSathi() {
                 <span className="font-display-lg text-display-lg font-bold text-on-surface">{c.value}</span>
               </div>
             ))}
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <button
+              onClick={() => forcePullMutation.mutate()}
+              disabled={forcePullMutation.isPending}
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98] disabled:opacity-60"
+            >
+              <Icon name="refresh" size={20} />
+              {forcePullMutation.isPending ? t('asha.syncing') : t('asha.forceSync')}
+            </button>
           </section>
 
           {data && data.pendingPush + data.pendingPull + data.conflicts === 0 ? (

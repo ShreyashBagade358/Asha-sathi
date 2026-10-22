@@ -388,6 +388,8 @@ const hi = {
     syncCenterTitle: 'ऑफ़लाइन सिंक केंद्र',
     syncCenterSubtitle: 'सर्वर पर अपलोड होने वाले रिकॉर्ड प्रबंधित करें',
     pendingRecords: 'लंबित रिकॉर्ड',
+    forceSync: 'अभी सिंक करें',
+    syncCompleted: 'सिंक पूरा — {{count}} रिकॉर्ड अपडेट',
     lastSyncedAt: 'अंतिम सिंक: {{time}}',
     syncNow: 'अभी सिंक करें',
     syncCompleteToast: 'सभी रिकॉर्ड सफलतापूर्वक सिंक हुए',
