@@ -40,7 +40,7 @@ export const syncService = {
     return data
   },
 
-  async resolveAllConflicts(resolution: 'server_wins' | 'client_wins' = 'server_wins'): Promise<{ message: string }> {
+  async resolveAllConflicts(_resolution: 'server_wins' | 'client_wins' = 'server_wins'): Promise<{ message: string }> {
     // This would need a new backend endpoint to resolve all at once
     // For now, we'll call the existing resolve endpoint for each conflict
     // But we need a list of conflicts first

@@ -1,11 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
+import { useUIStore } from '@/stores/ui.store'
 import { Icon } from '@/components/common/Icons'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { syncService } from '@/services/sync.service'
-import { addToast } from '@/hooks/useToast'
 
 function formatSince(iso: string | null): string {
   if (!iso) return '—'
@@ -22,6 +22,7 @@ function formatSince(iso: string | null): string {
 
 export default function OfflineSyncCenterAshaSathi() {
   const { t } = useLocalization()
+  const { addToast } = useUIStore()
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['sync-status'],
