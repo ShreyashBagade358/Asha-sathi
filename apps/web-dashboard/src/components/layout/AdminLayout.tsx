@@ -344,9 +344,7 @@ function Sidebar({
   const content = (
     <div className="flex h-full flex-col bg-sidebar text-on-primary">
       <div className={`flex items-center gap-3 py-3 ${collapsed ? 'justify-center px-2' : 'px-5'}`}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
-          <Icon name="heart" size={22} />
-        </div>
+        <img src="/images/logo.png" alt="ASHA Sathi" className="flex h-10 w-10 shrink-0 rounded-lg" />
         {!collapsed ? (
           <>
             <div className="min-w-0 flex-1">
@@ -585,7 +583,8 @@ function TopAppBar({
         <Icon name="menu" size={22} />
       </button>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 flex items-center gap-3">
+        <img src="/images/logo.png" alt="ASHA Sathi" className="h-8 w-8 shrink-0 rounded-lg" />
         <h2 className="truncate font-headline-md text-headline-md leading-tight text-on-surface">{title}</h2>
         {breadcrumbs && breadcrumbs.length > 1 ? (
           <nav className="mt-0.5 hidden min-w-0 items-center gap-1 text-label-md text-on-surface-variant sm:flex" aria-label="Breadcrumb">
