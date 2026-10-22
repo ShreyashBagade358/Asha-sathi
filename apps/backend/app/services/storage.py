@@ -31,10 +31,11 @@ UPLOADTHING_DELETE_API = "https://api.uploadthing.com/v6/deleteFiles"
 
 @lru_cache(maxsize=1)
 def _ut_headers() -> dict[str, str] | None:
-    if not settings.uploadthing_token or not settings.uploadthing_app_id:
+    token = settings.uploadthing_token or settings.uploadthing_secret
+    if not token or not settings.uploadthing_app_id:
         return None
     return {
-        "x-uploadthing-api-key": settings.uploadthing_token,
+        "x-uploadthing-api-key": token,
         "x-uploadthing-app-id": settings.uploadthing_app_id,
         "Content-Type": "application/json",
     }

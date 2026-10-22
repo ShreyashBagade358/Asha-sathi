@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # UploadThing (alternative photo storage)
     uploadthing_token: str | None = None
+    uploadthing_secret: str | None = None
     uploadthing_app_id: str | None = None
 
     jwt_secret_key: str = "change-me-in-production"
