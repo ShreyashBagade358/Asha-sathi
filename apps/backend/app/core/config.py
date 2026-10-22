@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     aws_s3_bucket: str = "asha-sathi"
     s3_public_base_url: str | None = None
 
+    # UploadThing (alternative photo storage)
+    uploadthing_token: str | None = None
+    uploadthing_app_id: str | None = None
+
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
