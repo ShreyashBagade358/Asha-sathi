@@ -17,4 +17,3 @@ email-validator
 structlog
 numpy>=1.26
 onnxruntime>=1.17
-uploadthing-python>=1.0.0
