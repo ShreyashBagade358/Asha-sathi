@@ -292,7 +292,7 @@ async def upload_growth_photo(
         raise BadRequestError("File too large. Maximum size is 5 MB.")
     ext = (file.filename or "photo.jpg").rsplit(".", 1)[-1]
     storage_path = f"growth/{child_id}/{growth_record_id}.{ext}"
-    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+    photo_url = await storage_svc.upload(storage_path, data, content_type=mime_type)
     record.photo_url = photo_url
     await log_action(
         db,

@@ -581,7 +581,7 @@ async def upload_survey_photo(
 
     data, ext = await images_svc.read_image(file)
     storage_path = f"surveys/{survey_id}.{ext}"
-    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+    photo_url = await storage_svc.upload(storage_path, data, content_type=mime_type)
 
     photos = dict(survey.photo_urls or {})
     # Use a simple counter or timestamp-based key
@@ -622,7 +622,7 @@ async def upload_member_check_photo(
 
     data, ext = await images_svc.read_image(file)
     storage_path = f"surveys/{survey_id}/checks/{check_id}.{ext}"
-    photo_url = storage_svc.upload(storage_path, data, content_type=mime_type)
+    photo_url = await storage_svc.upload(storage_path, data, content_type=mime_type)
 
     check.photo_url = photo_url
 

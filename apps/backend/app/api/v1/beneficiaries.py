@@ -372,7 +372,7 @@ async def upload_beneficiary_photo(
     if not beneficiary:
         raise NotFoundError("Beneficiary not found")
     data, ext = await images.read_image(file)
-    photo_url = storage_svc.upload(
+    photo_url = await storage_svc.upload(
         f"beneficiaries/{beneficiary_id}.{ext}",
         data,
         content_type=file.content_type or "image/jpeg",

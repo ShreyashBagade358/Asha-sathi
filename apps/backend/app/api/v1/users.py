@@ -156,7 +156,7 @@ async def upload_avatar(
     if not target:
         raise NotFoundError("User not found")
     data, ext = await images.read_image(file)
-    avatar_url = storage_svc.upload(
+    avatar_url = await storage_svc.upload(
         f"avatars/{user_id}.{ext}",
         data,
         content_type=file.content_type or "image/jpeg",

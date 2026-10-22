@@ -1,7 +1,7 @@
 """Unified photo storage helpers for the ASHA Sathi backend.
 
 Supports two backends (in order of preference):
-1. UploadThing (if UPLOADTHING_TOKEN + UPLOADTHING_APP_ID are set)
+1. UploadThing REST API (if UPLOADTHING_TOKEN + UPLOADTHING_APP_ID are set)
 2. Neon S3-compatible object storage (if AWS_ENDPOINT_URL_S3 + keys are set)
 
 Returns public CDN/URL for each upload.
@@ -23,44 +23,77 @@ BUCKET_NAME = settings.aws_s3_bucket
 
 
 # ---------------------------------------------------------------------------
-# UploadThing backend
+# UploadThing REST API backend
 # ---------------------------------------------------------------------------
+UPLOADTHING_API = "https://api.uploadthing.com/v6/uploadFiles"
+UPLOADTHING_DELETE_API = "https://api.uploadthing.com/v6/deleteFiles"
+
+
 @lru_cache(maxsize=1)
-def _ut_client():
-    """Return a singleton UploadThing client."""
+def _ut_headers() -> dict[str, str] | None:
     if not settings.uploadthing_token or not settings.uploadthing_app_id:
         return None
-    from uploadthing_python import UploadThing
-    return UploadThing(
-        secret=settings.uploadthing_token,
-        app_id=settings.uploadthing_app_id,
-    )
+    return {
+        "x-uploadthing-api-key": settings.uploadthing_token,
+        "x-uploadthing-app-id": settings.uploadthing_app_id,
+        "Content-Type": "application/json",
+    }
 
 
-def _ut_upload(file_path: str, data: bytes, content_type: str = "image/jpeg") -> str | None:
-    client = _ut_client()
-    if not client:
+async def _ut_upload(file_path: str, data: bytes, content_type: str = "image/jpeg") -> str | None:
+    headers = _ut_headers()
+    if not headers:
         return None
+
+    import base64
     extension = Path(file_path).suffix.lstrip(".") or "jpg"
     filename = f"{file_path}.{extension}" if "." not in file_path else file_path
-    try:
-        result = client.upload(files=[{"name": filename, "data": data, "type": content_type}])
-    except Exception as exc:
-        raise ServiceUnavailableError(f"UploadThing upload failed: {exc}") from exc
-    if not result or not result[0].get("url"):
-        raise ServiceUnavailableError("UploadThing returned no URL")
-    return result[0]["url"]
+    file_data = base64.b64encode(data).decode()
+
+    payload = {
+        "files": [{
+            "name": filename,
+            "type": content_type,
+            "data": f"data:{content_type};base64,{file_data}",
+        }],
+        "appId": settings.uploadthing_app_id,
+    }
+
+    import httpx
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.post(
+                "https://api.uploadthing.com/v6/uploadFiles",
+                json={"files": [{"name": filename, "type": content_type, "data": f"data:{content_type};base64,{file_data}"}], "appId": settings.uploadthing_app_id},
+                headers=headers,
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+        except Exception as exc:
+            raise ServiceUnavailableError(f"UploadThing upload failed: {exc}") from exc
+
+    if not result.get("data") or not result["data"][0].get("url"):
+        raise ServiceUnavailableError(f"UploadThing returned no URL: {result}")
+
+    return result["data"][0]["url"]
 
 
-def _ut_delete(file_url: str) -> None:
-    client = _ut_client()
-    if not client:
+async def _ut_delete(file_url: str) -> None:
+    headers = _ut_headers()
+    if not headers:
         return
     try:
         parsed = urlparse(file_url)
         if "utfs.io" in parsed.netloc:
             file_key = parsed.path.lstrip("/f/")
-            client.delete_files(file_key)
+            import httpx
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(
+                    "https://api.uploadthing.com/v6/deleteFiles",
+                    json={"fileKeys": [file_key], "appId": settings.uploadthing_app_id},
+                    headers=headers,
+                )
     except Exception:
         logger.warning("UploadThing delete failed for %s", file_url, exc_info=True)
 
@@ -74,7 +107,6 @@ def _is_ut_url(url: str) -> bool:
 # ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def _s3_client():
-    """Return a singleton boto3 S3 client bound to the Neon endpoint."""
     if not settings.aws_endpoint_url_s3 or not settings.aws_access_key_id:
         return None
     import boto3
@@ -153,17 +185,16 @@ def _s3_bucket_and_path(url: str):
 
 # Backward compatibility
 def bucket_and_path_from_url(url: str) -> tuple[str, str] | None:
-    """Split a public URL back into ``(bucket, key)`` for deletion (S3 only)."""
     return _s3_bucket_and_path(url)
 
 
 # ---------------------------------------------------------------------------
 # Public API (prefers UploadThing, falls back to S3)
 # ---------------------------------------------------------------------------
-def upload(file_path: str, data: bytes, content_type: str = "image/jpeg", bucket: str = BUCKET_NAME) -> str:
+async def upload(file_path: str, data: bytes, content_type: str = "image/jpeg", bucket: str = BUCKET_NAME) -> str:
     """Upload data to preferred storage and return public URL."""
     # Try UploadThing first
-    ut_url = _ut_upload(file_path, data, content_type)
+    ut_url = await _ut_upload(file_path, data, content_type)
     if ut_url:
         return ut_url
     # Fall back to S3
@@ -173,10 +204,10 @@ def upload(file_path: str, data: bytes, content_type: str = "image/jpeg", bucket
     raise ServiceUnavailableError("No storage backend configured (need UploadThing or S3 env vars)")
 
 
-def delete(file_url: str) -> None:
+async def delete(file_url: str) -> None:
     """Delete from whichever backend the URL belongs to."""
     if _is_ut_url(file_url):
-        _ut_delete(file_url)
+        await _ut_delete(file_url)
     else:
         parsed = _s3_bucket_and_path(file_url)
         if parsed:
@@ -185,5 +216,4 @@ def delete(file_url: str) -> None:
 
 
 def is_uploadthing_url(url: str) -> bool:
-    """Check if a URL is an UploadThing CDN URL."""
-    return _is_ut_url(url)
+    return "utfs.io" in url
