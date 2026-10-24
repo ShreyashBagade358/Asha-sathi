@@ -33,7 +33,12 @@ export default function DashboardPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['district-dashboard', effectiveDistrictId ?? 'default'],
-    queryFn: () => dashboardService.getDistrictDashboard(effectiveDistrictId || undefined),
+    queryFn: async () => {
+      console.log('[DistrictDashboard] Fetching with districtId:', effectiveDistrictId);
+      const result = await dashboardService.getDistrictDashboard(effectiveDistrictId || undefined);
+      console.log('[DistrictDashboard] Response:', result);
+      return result;
+    },
     enabled: Boolean(effectiveDistrictId),
   })
 
