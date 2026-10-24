@@ -139,9 +139,7 @@ export default function LoginAshaSathi() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
         <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20">
-              <img src="/images/asha-logo.jpeg" alt="ASHA Sathi Logo" className="w-full h-full rounded-2xl object-cover" />
-            </div>
+            <img src="/images/asha-logo.jpeg" alt="ASHA Satti Logo" className="h-16 w-16 rounded-2xl object-cover" />
             <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface">ASHA Sathi</h1>
             <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Login to access your healthcare portal</p>
           </div>
