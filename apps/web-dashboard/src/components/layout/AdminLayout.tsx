@@ -447,7 +447,7 @@ function Sidebar({
       <div className="border-t border-on-primary/20">
         <div className={`flex items-center gap-3 p-3 ${collapsed ? 'flex-col' : ''}`}>
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-container text-label-lg font-bold text-on-secondary-container ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white font-bold text-label-lg ${
               collapsed ? '' : ''
             }`}
           >
@@ -465,7 +465,7 @@ function Sidebar({
                   onClick={onOpenProfile}
                   aria-label={t('nav.myProfile')}
                   title={t('nav.myProfile')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <Icon name="eye" size={18} />
                 </button>
@@ -474,7 +474,7 @@ function Sidebar({
                   onClick={onLogout}
                   aria-label={t('common.logout')}
                   title={t('common.logout')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-error hover:text-on-error"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors hover:bg-error hover:text-on-error"
                 >
                   <Icon name="logOut" size={18} />
                 </button>
@@ -487,7 +487,7 @@ function Sidebar({
                 onClick={onOpenProfile}
                 aria-label={t('nav.myProfile')}
                 title={t('nav.myProfile')}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 hover:text-white"
               >
                 <Icon name="eye" size={18} />
               </button>
@@ -496,7 +496,7 @@ function Sidebar({
                 onClick={onLogout}
                 aria-label={t('common.logout')}
                 title={t('common.logout')}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-primary-fixed-dim transition-colors hover:bg-error hover:text-on-error"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white transition-colors hover:bg-error hover:text-on-error"
               >
                 <Icon name="logOut" size={18} />
               </button>
