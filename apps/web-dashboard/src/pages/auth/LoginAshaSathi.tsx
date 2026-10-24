@@ -88,7 +88,7 @@ export default function LoginAshaSathi() {
 
         <div className="relative flex items-center gap-3 animate-fade-up">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-on-primary ring-1 ring-white/20">
-            <img src="https://drive.google.com/uc?export=view&id=13FvZGz__PkNzpJGH8CFqmKxhm_UeLMxo" alt="ASHA Sathi Logo" className="w-full h-full rounded-xl object-cover" />
+            <img src="/images/asha-logo.jpeg" alt="ASHA Sathi Logo" className="w-full h-full rounded-xl object-cover" />
           </div>
           <div>
             <p className="font-headline-md text-headline-md font-bold leading-tight">ASHA Sathi</p>
@@ -140,7 +140,7 @@ export default function LoginAshaSathi() {
         <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 flex flex-col items-center text-center lg:hidden">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20">
-              <img src="https://drive.google.com/uc?export=view&id=13FvZGz__PkNzpJGH8CFqmKxhm_UeLMxo" alt="ASHA Sathi Logo" className="w-full h-full rounded-2xl object-cover" />
+              <img src="/images/asha-logo.jpeg" alt="ASHA Sathi Logo" className="w-full h-full rounded-2xl object-cover" />
             </div>
             <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface">ASHA Sathi</h1>
             <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Login to access your healthcare portal</p>
