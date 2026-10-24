@@ -87,7 +87,7 @@ export default function LoginAshaSathi() {
         <div className="pointer-events-none absolute top-1/2 right-8 h-40 w-40 rounded-full border border-white/10 animate-float" />
 
         <div className="relative flex items-center gap-3 animate-fade-up">
-          <img src="/images/asha-logo.jpeg" alt="ASHA Satti Logo" />
+          <img src="/images/asha-logo.jpeg" alt="ASHA Satti Logo" className="h-12 w-12 object-contain" />
           <div>
             <p className="font-headline-md text-headline-md font-bold leading-tight">ASHA Sathi</p>
             <p className="font-caption text-caption text-on-primary/70">Frontline Health Digitization</p>
@@ -137,7 +137,7 @@ export default function LoginAshaSathi() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
         <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-            <img src="/images/asha-logo.jpeg" alt="ASHA Satti Logo" />
+            <img src="/images/asha-logo.jpeg" alt="ASHA Satti Logo" className="h-14 w-14 object-contain" />
             <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface">ASHA Sathi</h1>
             <p className="mt-1 font-body-md text-body-md text-on-surface-variant">Login to access your healthcare portal</p>
           </div>
