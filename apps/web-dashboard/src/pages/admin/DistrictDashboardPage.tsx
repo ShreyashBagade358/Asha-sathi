@@ -31,7 +31,7 @@ export default function DashboardPage() {
     enabled: !user?.districtId && Boolean(effectiveStateId),
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, isError } = useQuery({
     queryKey: ['district-dashboard', effectiveDistrictId ?? 'default'],
     queryFn: async () => {
       console.log('[DistrictDashboard] user.districtId:', user?.districtId);
@@ -43,6 +43,11 @@ export default function DashboardPage() {
     },
     enabled: Boolean(effectiveDistrictId),
   })
+
+  if (isError) {
+    console.error('[DistrictDashboard] Query Error:', error);
+    return <div className="p-4 text-red-600">Error loading data: {error instanceof Error ? error.message : String(error)}</div>;
+  }
 
   const kpis = useMemo(
     () => [
