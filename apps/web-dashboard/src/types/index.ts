@@ -66,6 +66,8 @@ export interface Pregnancy {
   hrpLevel?: 'low' | 'medium' | 'high'
   complications: string[]
   ancCount?: number
+  lastAncDate?: string
+  nextAncDue?: string
   registeredAt: string
   registeredBy?: string
   deliveredAt?: string

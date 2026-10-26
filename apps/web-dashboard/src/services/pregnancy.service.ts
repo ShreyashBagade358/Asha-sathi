@@ -149,6 +149,8 @@ export function mapPregnancy(r: RawPregnancy): Pregnancy {
       ? r.risk_factors
       : Object.entries(r.risk_factors ?? {}).map(([k, v]) => (v === true || v == null ? k : `${k} (${v})`)),
     ancCount: r.anc_count ?? 0,
+    lastAncDate: r.last_anc_date ?? '',
+    nextAncDue: r.next_anc_due ?? '',
     registeredAt: r.created_at ?? '',
   }
 }

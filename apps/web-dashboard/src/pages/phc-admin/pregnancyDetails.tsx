@@ -205,11 +205,17 @@ export default function PregnancyDetailsPhcAdmin() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <button className="border border-primary text-primary px-4 py-2 rounded-full font-label-md hover:bg-primary hover:text-on-primary transition-colors h-12 flex items-center justify-center gap-1 w-full sm:w-auto">
+            <button
+              onClick={() => navigate(`/phc/beneficiaries/${pregnancy.beneficiaryId}`)}
+              className="border border-primary text-primary px-4 py-2 rounded-full font-label-md hover:bg-primary hover:text-on-primary transition-colors h-12 flex items-center justify-center gap-1 w-full sm:w-auto"
+            >
               <span className="material-symbols-outlined">edit</span>
               Edit Profile
             </button>
-            <button className="bg-error text-on-error px-4 py-2 rounded-full font-label-md hover:opacity-90 transition-opacity h-12 flex items-center justify-center gap-1 w-full sm:w-auto shadow-sm">
+            <button
+              onClick={() => navigate('/phc/referrals/new')}
+              className="bg-error text-on-error px-4 py-2 rounded-full font-label-md hover:opacity-90 transition-opacity h-12 flex items-center justify-center gap-1 w-full sm:w-auto shadow-sm"
+            >
               <span className="material-symbols-outlined">local_hospital</span>
               Refer Patient
             </button>

@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { pregnancyService } from '@/services/pregnancy.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
+import { ashaService } from '@/services/asha.service'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 
@@ -48,13 +50,26 @@ export default function PregnantWomenListPhcAdmin() {
     queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
   })
 
+  const { data: ashaData } = useQuery({
+    queryKey: ['ashas', 'all'],
+    queryFn: () => ashaService.listASHAs({ pageSize: 1000 }),
+  })
+
   const beneficiaryMap = useMemo(() => {
-    const m = new Map<string, { name: string; village: string }>()
+    const m = new Map<string, { name: string; village: string; ashaId: string }>()
     for (const b of benData?.items ?? []) {
-      m.set(b.id, { name: b.name, village: b.village })
+      m.set(b.id, { name: b.name, village: b.village, ashaId: b.ashaId ?? '' })
     }
     return m
   }, [benData])
+
+  const ashaMap = useMemo(() => {
+    const m = new Map<string, { name: string; village: string }>()
+    for (const a of ashaData?.items ?? []) {
+      m.set(a.ashaId, { name: a.name, village: a.village })
+    }
+    return m
+  }, [ashaData])
 
   const pregnancies = pregData?.items ?? []
 
@@ -62,6 +77,9 @@ export default function PregnantWomenListPhcAdmin() {
     let list = pregnancies.map((p) => {
       const ben = beneficiaryMap.get(p.beneficiaryId)
       const trimesterVal = trimesterFromLmp(p.lmp)
+      const ashaWorker = ben?.ashaId
+        ? ashaMap.get(ben.ashaId)
+        : (ashaData?.items ?? []).find((w) => w.village === ben?.village)
       return {
         ...p,
         patientName: ben?.name ?? '—',
@@ -69,6 +87,7 @@ export default function PregnantWomenListPhcAdmin() {
         trimester: trimesterVal === 0 ? null : trimesterVal,
         week: weekFromLmp(p.lmp),
         risk: p.hrpLevel ?? 'low',
+        ashaName: ashaWorker?.name ?? '—',
       }
     })
     if (search.trim()) {
@@ -83,7 +102,7 @@ export default function PregnantWomenListPhcAdmin() {
     if (risk !== 'All') list = list.filter((p) => p.risk === risk)
     if (trimester !== 'All') list = list.filter((p) => String(p.trimester) === trimester)
     return list
-  }, [pregnancies, beneficiaryMap, search, village, risk, trimester])
+  }, [pregnancies, beneficiaryMap, ashaMap, ashaData, search, village, risk, trimester])
 
   const totalCount = pregData?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage))
@@ -217,21 +236,27 @@ export default function PregnantWomenListPhcAdmin() {
                           <div className="text-on-surface">{p.week > 0 ? `Week ${p.week}` : '—'}</div>
                           <div className="text-caption text-on-surface-variant">{trimesterLabel(p.trimester)}</div>
                         </td>
-                        <td className="px-5 py-4 text-on-surface">—</td>
+                        <td className="px-5 py-4 text-on-surface">{formatDate(p.lastAncDate ?? '')}</td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-medium ${riskColor(p.risk)}`}>
                             <span className={`w-2 h-2 rounded-full ${riskDot(p.risk)}`} />
                             {p.risk.charAt(0).toUpperCase() + p.risk.slice(1)}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-on-surface">—</td>
+                        <td className="px-5 py-4 text-on-surface">{p.ashaName}</td>
                         <td className="px-5 py-4 text-right space-x-2 whitespace-nowrap">
-                          <button className="text-primary hover:text-primary-fixed font-label-md text-label-md px-2 py-1 min-h-[36px]">
+                          <Link
+                            to={`/phc/maternal/${p.id}`}
+                            className="inline-block text-primary hover:text-primary-fixed font-label-md text-label-md px-2 py-1 min-h-[36px]"
+                          >
                             Details
-                          </button>
-                          <button className="border border-primary text-primary hover:bg-primary-container/10 px-3 py-1 rounded-lg font-label-md text-label-md min-h-[36px]">
+                          </Link>
+                          <Link
+                            to={`/phc/maternal/${p.id}`}
+                            className="inline-block border border-primary text-primary hover:bg-primary-container/10 px-3 py-1 rounded-lg font-label-md text-label-md min-h-[36px]"
+                          >
                             Log Visit
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}

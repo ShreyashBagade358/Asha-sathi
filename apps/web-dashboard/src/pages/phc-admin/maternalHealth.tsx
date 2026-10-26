@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { pregnancyService } from '@/services/pregnancy.service'
 import { beneficiaryService } from '@/services/beneficiary.service'
+import { ashaService } from '@/services/asha.service'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState, getErrorMessage } from '@/components/common/ErrorState'
 
@@ -38,16 +39,32 @@ export default function MaternalHealthPhcAdmin() {
     queryFn: () => beneficiaryService.listBeneficiaries({ pageSize: 1000 }),
   })
 
+  const { data: ashaData } = useQuery({
+    queryKey: ['ashas', 'all'],
+    queryFn: () => ashaService.listASHAs({ pageSize: 1000 }),
+  })
+
   const beneficiaryMap = useMemo(() => {
-    const m = new Map<string, { name: string; village: string }>()
+    const m = new Map<string, { name: string; village: string; ashaId: string }>()
     for (const b of benData?.items ?? []) {
-      m.set(b.id, { name: b.name, village: b.village })
+      m.set(b.id, { name: b.name, village: b.village, ashaId: b.ashaId ?? '' })
     }
     return m
   }, [benData])
 
+  const ashaMap = useMemo(() => {
+    const m = new Map<string, { name: string; village: string }>()
+    for (const a of ashaData?.items ?? []) {
+      m.set(a.ashaId, { name: a.name, village: a.village })
+    }
+    return m
+  }, [ashaData])
+
   const pregnancies = (pregData?.items ?? []).map((p) => {
     const ben = beneficiaryMap.get(p.beneficiaryId)
+    const ashaWorker = ben?.ashaId
+      ? ashaMap.get(ben.ashaId)
+      : (ashaData?.items ?? []).find((w) => w.village === ben?.village)
     return {
       ...p,
       patientName: ben?.name ?? '—',
@@ -55,6 +72,7 @@ export default function MaternalHealthPhcAdmin() {
       trimester: trimesterFromLmp(p.lmp),
       risk: p.hrpLevel ?? 'low',
       riskReason: p.complications[0] ?? 'High risk',
+      ashaName: ashaWorker?.name ?? '—',
     }
   })
 
@@ -64,10 +82,10 @@ export default function MaternalHealthPhcAdmin() {
   const total = pregnancies.length
   const high = pregnancies.filter((p) => p.risk === 'high').length
   const deliveryRate = total > 0 ? Math.round(((total - high) / total) * 100) : 0
-  const anc4Pct = 0
+  const anc4Pct = total > 0 ? Math.round((pregnancies.filter((p) => (p.ancCount ?? 0) >= 4).length / total) * 100) : 0
   const counts = { total, high, deliveryRate, anc4Pct }
 
-  const ashaFor = () => 'ASHA'
+  const ashaFor = (p: { ashaName: string }) => p.ashaName
 
   const byVillage = villages.map((v) => {
     const vPregs = pregnancies.filter((p) => p.village === v)
@@ -260,11 +278,14 @@ export default function MaternalHealthPhcAdmin() {
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-body-md text-on-surface-variant">{ashaFor()}</td>
+                    <td className="p-3 text-body-md text-on-surface-variant">{ashaFor(p)}</td>
                     <td className="p-3 text-right px-4">
-                      <button className="bg-error text-on-error font-label-md text-label-md px-4 py-1.5 rounded-full shadow-sm hover:bg-on-error-fixed-variant transition-colors font-medium">
+                      <Link
+                        to={`/phc/maternal/${p.id}`}
+                        className="inline-block bg-error text-on-error font-label-md text-label-md px-4 py-1.5 rounded-full shadow-sm hover:bg-on-error-fixed-variant transition-colors font-medium"
+                      >
                         Intervene
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
