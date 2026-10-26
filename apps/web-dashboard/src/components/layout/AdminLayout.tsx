@@ -123,6 +123,7 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
         { labelKey: 'nav.patientVaccination', path: '/patient/vaccination', icon: 'checkCircle', bottomNav: true },
         { labelKey: 'nav.patientAppointments', path: '/patient/appointments', icon: 'calendar', bottomNav: false },
         { labelKey: 'nav.patientReferrals', path: '/patient/referrals', icon: 'activity', bottomNav: false },
+        { labelKey: 'nav.followUps', path: '/patient/follow-ups', icon: 'checkCircle', bottomNav: false },
       ],
     },
     {
@@ -207,6 +208,9 @@ function getBreadcrumbDefs(pathname: string): BreadcrumbDef[] | null {
   }
   if (pathname === '/patient/referrals') {
     return [{ labelKey: 'nav.patientReferrals' }]
+  }
+  if (pathname === '/patient/follow-ups') {
+    return [{ labelKey: 'nav.followUps' }]
   }
   if (pathname === '/patient/notifications') {
     return [{ labelKey: 'nav.patientNotifications' }]

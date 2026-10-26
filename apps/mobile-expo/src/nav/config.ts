@@ -85,6 +85,7 @@ export const PATIENT_MORE_NAV: NavItem[] = [
   { path: '/family', labelKey: 'nav.patientFamily', icon: 'users' },
   { path: '/appointments', labelKey: 'nav.patientAppointments', icon: 'calendar' },
   { path: '/my-referrals', labelKey: 'nav.patientReferrals', icon: 'activity' },
+  { path: '/my-follow-ups', labelKey: 'nav.followUps', icon: 'checkCircle' },
   { path: '/my-notifications', labelKey: 'nav.patientNotifications', icon: 'bell' },
 ];
 

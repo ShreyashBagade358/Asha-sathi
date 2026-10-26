@@ -60,6 +60,7 @@ export default function PatientLayout() {
       <Stack.Screen name="appointments" />
       <Stack.Screen name="family" />
       <Stack.Screen name="my-referrals" />
+      <Stack.Screen name="my-follow-ups" />
       <Stack.Screen name="my-notifications" />
     </Stack>
   );

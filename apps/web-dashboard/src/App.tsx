@@ -87,6 +87,7 @@ import PatientVaccinationPage from '@/pages/patient/PatientVaccinationPage'
 import PatientFamilyPage from '@/pages/patient/PatientFamilyPage'
 import PatientAppointmentsPage from '@/pages/patient/PatientAppointmentsPage'
 import PatientReferralsPage from '@/pages/patient/PatientReferralsPage'
+import PatientFollowUpsPage from '@/pages/patient/PatientFollowUpsPage'
 import PatientNotificationsPage from '@/pages/patient/PatientNotificationsPage'
 import PatientProfileSettingsPage from '@/pages/patient/PatientProfileSettingsPage'
 
@@ -253,6 +254,7 @@ export const router = createBrowserRouter([
           { path: 'vaccination', element: <RoleRoute roles={PATIENT_ROLES}><PatientVaccinationPage /></RoleRoute> },
           { path: 'appointments', element: <RoleRoute roles={PATIENT_ROLES}><PatientAppointmentsPage /></RoleRoute> },
           { path: 'referrals', element: <RoleRoute roles={PATIENT_ROLES}><PatientReferralsPage /></RoleRoute> },
+          { path: 'follow-ups', element: <RoleRoute roles={PATIENT_ROLES}><PatientFollowUpsPage /></RoleRoute> },
           { path: 'notifications', element: <RoleRoute roles={PATIENT_ROLES}><PatientNotificationsPage /></RoleRoute> },
           { path: 'profile', element: <RoleRoute roles={PATIENT_ROLES}><PatientProfileSettingsPage /></RoleRoute> },
         ],
