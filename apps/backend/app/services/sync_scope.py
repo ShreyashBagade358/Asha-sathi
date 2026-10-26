@@ -212,6 +212,18 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
     if link == "beneficiary":
         if not scope.beneficiary_ids:
             return False  # noqa: E712
+        # A patient's children are scoped by parentage, not by the shared-phone
+        # beneficiary join: an infant's beneficiary row often carries the
+        # household phone, so the phone OR would hand a woman every child born
+        # to that number — including her relatives'. A worker still reaches
+        # children through their catchment households.
+        from app.models.child import Child
+
+        if model is Child and scope.demographics and not scope.household_ids:
+            return or_(
+                model.mother_id.in_(scope.beneficiary_ids),
+                model.father_id.in_(scope.beneficiary_ids),
+            )
         return model.beneficiary_id.in_(scope.beneficiary_ids)
 
     if link == "via_pregnancy":
@@ -228,7 +240,16 @@ def scope_predicate(model: Any, scope: SyncScope) -> Any | None:
             return False  # noqa: E712
         from app.models.child import Child
 
-        return model.child_id.in_(select(Child.id).where(Child.beneficiary_id.in_(scope.beneficiary_ids)))
+        # Mirror the `beneficiary` link's patient rule: children are reached
+        # by parentage for a patient, by catchment household for a worker.
+        if scope.demographics and not scope.household_ids:
+            child_filter = or_(
+                Child.mother_id.in_(scope.beneficiary_ids),
+                Child.father_id.in_(scope.beneficiary_ids),
+            )
+        else:
+            child_filter = Child.beneficiary_id.in_(scope.beneficiary_ids)
+        return model.child_id.in_(select(Child.id).where(child_filter))
 
     if link == "eligible_couple":
         if not scope.beneficiary_ids:

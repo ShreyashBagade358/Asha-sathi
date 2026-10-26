@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocalization } from '@/hooks/useLocalization'
 import { usePatientProfile } from '@/hooks/usePatientProfile'
-import { useUIStore } from '@/stores/ui.store'
-import { useAppStore } from '@/stores/app.store'
+import { patientService } from '@/services/patient.service'
+import { childService } from '@/services/child.service'
 import { Icon, type IconName } from '@/components/common/Icons'
 
 interface QuickAction {
@@ -30,21 +31,41 @@ function greeting(firstName: string, t: (k: string) => string) {
 export default function PatientHomePage() {
   const { t } = useLocalization()
   const { user } = useAuth()
-  const { addToast } = useUIStore()
-  const appointments = useAppStore((s) => s.appointments)
-  const healthRecords = useAppStore((s) => s.healthRecords)
-  const childVaccines = useAppStore((s) => s.childVaccines)
 
   const profile = usePatientProfile()
   const firstName = user?.fullName?.split(' ')[0] || profile.name.split(' ')[0]
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  const upcoming = appointments.filter((a) => a.status === 'upcoming')
+  // Real API data — never the shared zustand store, which is browser-persisted
+  // across roles and used to show the ASHA's demo rows on the patient home.
+  const appointmentsQuery = useQuery({
+    queryKey: ['patient-home-appointments'],
+    queryFn: () => patientService.listAppointmentRequests(),
+  })
+  const childrenQuery = useQuery({
+    queryKey: ['patient-home-children'],
+    queryFn: () => patientService.getMyChildren(),
+  })
+
+  const appointments = appointmentsQuery.data ?? []
+  const children = childrenQuery.data ?? []
+  const firstChild = children[0]
+
+  const immunizationsQuery = useQuery({
+    queryKey: ['patient-home-immunizations', firstChild?.id],
+    queryFn: () => childService.listImmunizations(firstChild!.id),
+    enabled: Boolean(firstChild?.id),
+  })
+  const immunizations = immunizationsQuery.data ?? []
+
+  const upcoming = appointments.filter((a) => a.status === 'pending' || a.status === 'scheduled' || a.status === 'upcoming')
   const nextAppointment = upcoming[0]
-  const labReports = healthRecords.filter((r) => r.category === 'lab')
-  const recordsCount = healthRecords.length
-  const vaccinationsDone = childVaccines.filter((d) => d.status === 'given').length
-  const vaccinationsTotal = childVaccines.length
+  const vaccinationsDone = immunizations.filter((d) => d.status === 'given').length
+  const vaccinationsTotal = immunizations.length
+
+  // Only surface the vaccination quick action when the patient actually has
+  // children — a woman with none should not see child-registration content.
+  const actions = children.length > 0 ? QUICK_ACTIONS : QUICK_ACTIONS.filter((a) => a.path !== '/patient/vaccination')
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -61,10 +82,10 @@ export default function PatientHomePage() {
             <span className="font-label-md text-label-md font-semibold">{t('patient.nextAppointment')}</span>
           </div>
           <p className="mt-3 font-display-lg text-display-lg font-bold text-on-surface">
-            {nextAppointment ? nextAppointment.date.split(' ')[0] : '—'}
+            {nextAppointment?.preferred_date ? new Date(nextAppointment.preferred_date).getDate() : '—'}
           </p>
           <p className="font-caption text-caption text-on-surface-variant">
-            {nextAppointment ? `${nextAppointment.type} · ${nextAppointment.time}` : t('patient.noUpcoming')}
+            {nextAppointment ? nextAppointment.reason : t('patient.noUpcoming')}
           </p>
         </div>
         <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-card">
@@ -72,7 +93,7 @@ export default function PatientHomePage() {
             <Icon name="fileText" size={20} />
             <span className="font-label-md text-label-md font-semibold">{t('patient.viewRecords')}</span>
           </div>
-          <p className="mt-3 font-display-lg text-display-lg font-bold text-on-surface">{recordsCount}</p>
+          <p className="mt-3 font-display-lg text-display-lg font-bold text-on-surface">—</p>
           <p className="font-caption text-caption text-on-surface-variant">{t('patient.recordsTitle')}</p>
         </div>
         <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-card">
@@ -81,10 +102,20 @@ export default function PatientHomePage() {
             <span className="font-label-md text-label-md font-semibold">{t('patient.viewVaccination')}</span>
           </div>
           <p className="mt-3 font-display-lg text-display-lg font-bold text-on-surface">
-            {vaccinationsDone}
-            <span className="text-body-md font-medium text-on-surface-variant">/{vaccinationsTotal}</span>
+            {children.length > 0 ? (
+              <>
+                {vaccinationsDone}
+                <span className="text-body-md font-medium text-on-surface-variant">/{vaccinationsTotal}</span>
+              </>
+            ) : (
+              '—'
+            )}
           </p>
-          <p className="font-caption text-caption text-on-surface-variant">{t('patient.dosesCompleted', { done: vaccinationsDone, total: vaccinationsTotal })}</p>
+          <p className="font-caption text-caption text-on-surface-variant">
+            {children.length > 0
+              ? t('patient.dosesCompleted', { done: vaccinationsDone, total: vaccinationsTotal })
+              : t('patient.noChildrenRegistered')}
+          </p>
         </div>
         <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-card">
           <div className="flex items-center gap-2 text-error">
@@ -102,7 +133,7 @@ export default function PatientHomePage() {
           <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.quickActions')}</h2>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {QUICK_ACTIONS.map((action) => (
+          {actions.map((action) => (
             <Link
               key={action.path}
               to={action.path}
@@ -139,15 +170,11 @@ export default function PatientHomePage() {
                   <Icon name="calendar" size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-label-md text-label-md font-semibold text-on-surface">{appointment.type}</p>
-                  <p className="flex items-center gap-1 font-caption text-caption text-on-surface-variant">
-                    <Icon name="mapPin" size={13} />
-                    {appointment.location}
-                  </p>
+                  <p className="truncate font-label-md text-label-md font-semibold text-on-surface">{appointment.reason}</p>
+                  <p className="font-caption text-caption text-on-surface-variant">{appointment.preferred_date}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-label-md text-label-md font-semibold text-on-surface">{appointment.date}</p>
-                  <p className="font-caption text-caption text-on-surface-variant">{appointment.time}</p>
+                  <p className="font-label-md text-label-md font-semibold text-on-surface">{appointment.status}</p>
                 </div>
               </Link>
             ))}
@@ -157,48 +184,6 @@ export default function PatientHomePage() {
             {t('patient.noUpcoming')}
           </p>
         )}
-      </section>
-
-      <section className="animate-fade-up">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.latestReports')}</h2>
-          <Link
-            to="/patient/records"
-            className="font-label-md text-label-md font-semibold text-primary transition-colors hover:text-on-primary-fixed-variant hover:underline"
-          >
-            {t('patient.viewAll')}
-          </Link>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-surface-container-lowest shadow-card">
-          {labReports.map((report, index) => (
-            <div
-              key={report.id}
-              className={`flex items-center justify-between gap-3 p-4 transition-colors ${
-                index < labReports.length - 1 ? 'border-b border-outline-variant/40' : ''
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
-                  <Icon name="fileText" size={20} />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate font-label-md text-label-md font-semibold text-on-surface">{report.title}</p>
-                  <p className="font-caption text-caption text-on-surface-variant">
-                    {report.date} · {report.facility}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label={t('common.download')}
-                onClick={() => addToast('success', t('patient.reportDownloadToast'))}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary transition-all hover:bg-surface-container active:scale-90"
-              >
-                <Icon name="download" size={20} />
-              </button>
-            </div>
-          ))}
-        </div>
       </section>
     </div>
   )

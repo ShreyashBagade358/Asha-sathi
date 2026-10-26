@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { Button } from '@/components/ui/Button';
 import { Card, PageHeader } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -140,27 +141,31 @@ export default function PatientVaccinationScreen() {
       >
         <PageHeader
           title={t('patient.vaccinationTitle')}
-          subtitle={t('patient.vaccinationSubtitle')}
+          subtitle={
+            data?.child ? t('patient.vaccinationSubtitle') : t('patient.noChildrenRegistered')
+          }
           actions={
             <>
-              <Button
-                label={t('patient.vaccineCertificate')}
-                icon="download"
-                variant="secondary"
-                shape="pill"
-                onPress={() =>
-                  void shareText(
-                    t('patient.vaccineCertificate'),
-                    [
-                      t('patient.vaccinationTitle'),
-                      ...(data?.childDoses ?? []).map(
-                        (dose) =>
-                          `${dose.name} · ${dose.date} · ${t(DOSE_META[dose.status].label)}`,
-                      ),
-                    ].join('\n'),
-                  )
-                }
-              />
+              {data?.child ? (
+                <Button
+                  label={t('patient.vaccineCertificate')}
+                  icon="download"
+                  variant="secondary"
+                  shape="pill"
+                  onPress={() =>
+                    void shareText(
+                      t('patient.vaccineCertificate'),
+                      [
+                        t('patient.vaccinationTitle'),
+                        ...(data?.childDoses ?? []).map(
+                          (dose) =>
+                            `${dose.name} · ${dose.date} · ${t(DOSE_META[dose.status].label)}`,
+                        ),
+                      ].join('\n'),
+                    )
+                  }
+                />
+              ) : null}
               <LanguageToggle onSurface />
               <MoreButton sections={PATIENT_MORE_SECTIONS} />
             </>
@@ -171,6 +176,11 @@ export default function PatientVaccinationScreen() {
           <ErrorState message={t('common.errorMsg')} onRetry={() => void load()} />
         ) : status === 'loading' ? (
           <LoadingState />
+        ) : !data?.child ? (
+          <EmptyState
+            title={t('patient.noChildrenRegistered')}
+            description={t('patient.vaccinationSubtitle')}
+          />
         ) : (
           <>
             <Card className="mb-6 p-5">
@@ -186,9 +196,7 @@ export default function PatientVaccinationScreen() {
                     className="text-caption text-caption text-on-surface-variant"
                     numberOfLines={1}
                   >
-                    {data?.child
-                      ? `${data.child.label} · ${data.child.subtitle}`
-                      : t('patient.childImmunization')}
+                    {data.child.label} · {data.child.subtitle}
                   </Text>
                 </View>
               </View>
@@ -199,14 +207,14 @@ export default function PatientVaccinationScreen() {
             </Card>
 
             <View className="mb-6 gap-3">
-              {(data?.childDoses ?? []).length === 0 ? (
+              {data.childDoses.length === 0 ? (
                 <Card>
                   <Text className="p-6 text-center text-body-md text-body-md text-on-surface-variant">
                     {t('patient.noRecords')}
                   </Text>
                 </Card>
               ) : (
-                (data?.childDoses ?? []).map((dose) => <DoseRow key={dose.id} dose={dose} />)
+                data.childDoses.map((dose) => <DoseRow key={dose.id} dose={dose} />)
               )}
             </View>
 

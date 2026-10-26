@@ -14,7 +14,7 @@ import { MoreButton } from '@/nav/MoreSheet';
 import { PATIENT_MORE_SECTIONS } from '@/nav/config';
 import { colors } from '@/theme';
 import { listAppointments } from '@/patient/appointments';
-import { buildHealthRecords, loadLocalChildren } from '@/patient/records';
+import { buildHealthRecords, loadLocalChildren, type LocalChildSummary } from '@/patient/records';
 import { usePatientProfile } from '@/patient/profile';
 import type { Appointment, HealthRecord } from '@/patient/types';
 import { shareText } from '@/utils/share';
@@ -61,6 +61,7 @@ function greeting(
 type HomeSummary = {
   appointments: Appointment[];
   records: HealthRecord[];
+  children: LocalChildSummary[];
   dosesDone: number;
   dosesTotal: number;
 };
@@ -92,6 +93,7 @@ export default function PatientHomeScreen() {
       setSummary({
         appointments,
         records,
+        children,
         dosesDone: doses.filter((dose) => dose.status === 'given').length,
         dosesTotal: doses.length,
       });
@@ -171,16 +173,23 @@ export default function PatientHomeScreen() {
                   icon: 'fileText' as const,
                   tone: 'secondary' as const,
                 },
-                {
-                  label: t('patient.viewVaccination'),
-                  value: `${summary?.dosesDone ?? 0}/${summary?.dosesTotal ?? 0}`,
-                  hint: t('patient.dosesCompleted', {
-                    done: summary?.dosesDone ?? 0,
-                    total: summary?.dosesTotal ?? 0,
-                  }),
-                  icon: 'checkCircle' as const,
-                  tone: 'tertiary' as const,
-                },
+                // Child vaccination tile only when this patient actually has
+                // registered children — a woman with none must not see child
+                // content on her dashboard.
+                ...(summary && summary.children.length > 0
+                  ? [
+                      {
+                        label: t('patient.viewVaccination'),
+                        value: `${summary.dosesDone}/${summary.dosesTotal}`,
+                        hint: t('patient.dosesCompleted', {
+                          done: summary.dosesDone,
+                          total: summary.dosesTotal,
+                        }),
+                        icon: 'checkCircle' as const,
+                        tone: 'tertiary' as const,
+                      },
+                    ]
+                  : []),
                 {
                   label: t('patient.healthAtGlance'),
                   value: profile.display.latestBp,
@@ -203,7 +212,10 @@ export default function PatientHomeScreen() {
                 </Text>
               </View>
               <View className="flex-row flex-wrap gap-3">
-                {QUICK_ACTIONS.map((action) => (
+                {(summary && summary.children.length > 0
+                  ? QUICK_ACTIONS
+                  : QUICK_ACTIONS.filter((a) => a.path !== '/vaccination')
+                ).map((action) => (
                   <Pressable
                     key={action.path}
                     accessibilityRole="button"

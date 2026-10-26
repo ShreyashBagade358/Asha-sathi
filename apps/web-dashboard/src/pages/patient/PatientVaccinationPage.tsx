@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocalization } from '@/hooks/useLocalization'
-import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
+import { patientService, type MyChild } from '@/services/patient.service'
 import { childService } from '@/services/child.service'
 import type { Immunization } from '@/types'
 
@@ -33,59 +33,69 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   )
 }
 
+function ChildImmunizationCard({ child, immunizations }: { child: MyChild; immunizations: Immunization[] }) {
+  const { t } = useLocalization()
+  const done = immunizations.filter((d) => d.status === 'given').length
+  const label = child.mother_name || child.father_name || child.id.replace(/-/g, '').slice(0, 8).toUpperCase()
+
+  return (
+    <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-card">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+          <Icon name="heart" size={22} />
+        </span>
+        <div>
+          <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.childImmunization')}</h2>
+          <p className="font-caption text-caption text-on-surface-variant">{label}</p>
+        </div>
+      </div>
+      <ProgressBar done={done} total={immunizations.length} />
+    </section>
+  )
+}
+
 export default function PatientVaccinationPage() {
   const { t } = useLocalization()
-  const profile = usePatientProfile()
 
+  // Scoped server-side by parentage: only the children this patient bore or
+  // fathered. An empty list means no child UI is rendered at all.
   const childrenQuery = useQuery({
-    queryKey: ['patient-children', profile.id],
-    queryFn: () => childService.listChildren({ pageSize: 200 }),
-    enabled: Boolean(profile.id && profile.id !== 'me'),
+    queryKey: ['patient-my-children'],
+    queryFn: () => patientService.getMyChildren(),
   })
 
-  const child = (childrenQuery.data?.items ?? []).find((c) => c.beneficiary_id === profile.id)
+  const children = childrenQuery.data ?? []
+  const firstChild = children[0]
 
   const immunizationsQuery = useQuery({
-    queryKey: ['patient-immunizations', child?.id],
-    queryFn: () => childService.listImmunizations(child!.id),
-    enabled: Boolean(child?.id),
+    queryKey: ['patient-immunizations', firstChild?.id],
+    queryFn: () => childService.listImmunizations(firstChild!.id),
+    enabled: Boolean(firstChild?.id),
   })
 
   const immunizations: Immunization[] = immunizationsQuery.data ?? []
-  const done = immunizations.filter((d) => d.status === 'given').length
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <PageHeader
         title={t('patient.vaccinationTitle')}
-        subtitle={t('patient.vaccinationSubtitle')}
+        subtitle={children.length > 0 ? t('patient.vaccinationSubtitle') : undefined}
       />
 
       {childrenQuery.isLoading ? (
         <LoadingState label="Loading immunisations…" />
-      ) : !child ? (
+      ) : children.length === 0 ? (
         <EmptyState
-          title="No child linked"
-          description="Immunisation records appear once a child is registered against this profile."
+          title="No children registered"
+          description="Immunisation records appear once a child is registered for this profile by your ASHA worker."
         />
       ) : (
         <>
-          <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-card">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-                <Icon name="heart" size={22} />
-              </span>
-              <div>
-                <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.childImmunization')}</h2>
-                <p className="font-caption text-caption text-on-surface-variant">
-                  {child.id.replace(/-/g, '').slice(0, 8).toUpperCase()}
-                </p>
-              </div>
-            </div>
-            <ProgressBar done={done} total={immunizations.length} />
-          </section>
+          <ChildImmunizationCard child={firstChild} immunizations={immunizations} />
 
-          {immunizations.length === 0 ? (
+          {immunizationsQuery.isLoading ? (
+            <LoadingState label="Loading doses…" />
+          ) : immunizations.length === 0 ? (
             <EmptyState title="No immunisations yet" description="Vaccination doses will appear here once scheduled." />
           ) : (
             <section className="flex flex-col gap-3">

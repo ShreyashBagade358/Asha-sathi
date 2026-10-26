@@ -466,6 +466,18 @@ export const patientService = {
     );
     return [...(data.referral_followups ?? []), ...(data.tasks ?? [])];
   },
+
+  /**
+   * `GET /patients/me/children` — the patient's own children, scoped by
+   * parentage (mother_id / father_id) server-side. A woman sees only the
+   * children she bore; a man only the children he fathered. Replaces the
+   * unscoped ASHA-facing `GET /children` list the vaccination page used to
+   * call (which handed every patient every child in the deployment).
+   */
+  async getMyChildren(): Promise<MyChild[]> {
+    const { data } = await api.get<MyChild[]>('/patients/me/children');
+    return data;
+  },
 };
 
 // --- Appointments ------------------------------------------------------------
@@ -502,4 +514,19 @@ export interface PatientFollowUp {
   due_date: string | null;
   detail: string;
   status: string;
+}
+
+// --- Children ----------------------------------------------------------------
+
+/** Wire shape of `GET /patients/me/children` (snake_case from the API). */
+export interface MyChild {
+  id: string;
+  beneficiary_id: string;
+  mother_id: string | null;
+  father_id: string | null;
+  mother_name: string | null;
+  father_name: string | null;
+  birth_registration_no: string | null;
+  birth_weight_grams: number | null;
+  gestation_weeks: number | null;
 }

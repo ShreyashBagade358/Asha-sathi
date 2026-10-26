@@ -616,6 +616,7 @@ const en = {
     doseUpcoming: 'Upcoming',
     onTrack: 'On Track',
     dosesCompleted: '{{done}} of {{total}} doses completed',
+    noChildrenRegistered: 'No children registered yet',
     vaccineCertificate: 'Download Vaccination Certificate',
     certificateToast: 'Vaccination certificate download started',
     nextDose: 'Next Dose',

@@ -724,6 +724,7 @@ const hi = {
     vaccinationTitle: 'टीकाकरण',
     vaccinationSubtitle: 'आपके और आपके बच्चे के टीकाकरण रिकॉर्ड',
     childImmunization: 'बाल टीकाकरण',
+    noChildrenRegistered: 'अभी तक कोई बच्चा पंजीकृत नहीं',
     yourImmunization: 'आपका टीकाकरण',
     doseGiven: 'दिया गया',
     doseDue: 'नियत',

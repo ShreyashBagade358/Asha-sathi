@@ -724,6 +724,7 @@ const en = {
     vaccinationTitle: 'Vaccination',
     vaccinationSubtitle: 'Immunization records for you and your child',
     childImmunization: 'Child Immunization',
+    noChildrenRegistered: 'No children registered yet',
     yourImmunization: 'Your Immunization',
     doseGiven: 'Given',
     doseDue: 'Due',

@@ -10,6 +10,7 @@ from app.core.security import generate_patient_password, get_password_hash
 from app.models.admin import PHC, Village
 from app.models.beneficiary import Beneficiary, Household
 from app.models.disease import DiseaseCase
+from app.models.child import Child
 from app.models.maternal import ANCVISIT, Pregnancy
 from app.models.ncd import NCDScreening
 from app.models.referral import Referral, ReferralFollowup
@@ -29,6 +30,7 @@ from app.schemas.patient import (
     ReferralRequestCreate,
     ReferralRequestResponse,
 )
+from app.schemas.health import ChildResponse
 from app.services.audit import log_action
 from app.services.notification import NotificationService
 
@@ -459,6 +461,50 @@ async def get_my_household(
             for member in members
         ],
     )
+
+
+@router.get("/me/children", response_model=list[ChildResponse])
+async def get_my_children(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """The signed-in patient's own children.
+
+    Scoped by parentage (``mother_id`` / ``father_id``), not by household or
+    shared phone: a woman sees only the children she bore, a man only the
+    children he fathered. The ASHA-facing ``GET /children`` list is
+    deliberately not reused here — it is unscoped and would hand any patient
+    every child in the deployment.
+    """
+    beneficiary = await _find_my_beneficiary(db, user)
+    if beneficiary is None:
+        return []
+
+    result = await db.execute(
+        select(Child)
+        .where((Child.mother_id == beneficiary.id) | (Child.father_id == beneficiary.id))
+        .order_by(Child.created_at.desc())
+    )
+    children = result.scalars().all()
+    if not children:
+        return []
+
+    # Resolve parent names once for the whole batch.
+    parent_ids = {pid for c in children for pid in (c.mother_id, c.father_id) if pid}
+    names: dict[str, str] = {}
+    if parent_ids:
+        rows = (
+            await db.execute(select(Beneficiary.id, Beneficiary.full_name).where(Beneficiary.id.in_(parent_ids)))
+        ).all()
+        names = {str(row.id): row.full_name for row in rows}
+
+    responses = []
+    for child in children:
+        resp = ChildResponse.model_validate(child)
+        resp.mother_name = names.get(child.mother_id or "")
+        resp.father_name = names.get(child.father_id or "")
+        responses.append(resp)
+    return responses
 
 
 # Human-readable labels for the fields a patient may self-edit. Used in the

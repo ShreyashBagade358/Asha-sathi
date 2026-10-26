@@ -616,6 +616,7 @@ const hi = {
     doseUpcoming: 'आगामी',
     onTrack: 'सही दिशा में',
     dosesCompleted: '{{done}} में से {{total}} खुराकें पूर्ण',
+    noChildrenRegistered: 'अभी तक कोई बच्चा पंजीकृत नहीं',
     vaccineCertificate: 'टीकाकरण प्रमाणपत्र डाउनलोड करें',
     certificateToast: 'टीकाकरण प्रमाणपत्र डाउनलोड शुरू हुआ',
     nextDose: 'अगली खुराक',
