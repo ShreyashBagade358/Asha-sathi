@@ -83,22 +83,23 @@ export async function verifyOtp(phone: string, code: string): Promise<UserSummar
 }
 
 async function completeLogin(response: LoginResponse, deviceId: string): Promise<UserSummary> {
-  const previous = await tokenStore.getUser();
   await tokenStore.save({
     accessToken: response.tokens.access_token,
     refreshToken: response.tokens.refresh_token,
     user: response.user,
   });
 
-  // A different account signing in on this device must not inherit the
-  // previous user's offline rows, queued pushes or pull watermark — that is
-  // what made an admin login land on stale ASHA data with an empty sync.
-  if (previous && previous.id !== response.user.id) {
-    try {
-      await resetLocalData();
-    } catch (error) {
-      console.warn('[auth] local data reset failed', error);
-    }
+  // Every login starts from a clean slate. The sync engine only upserts —
+  // it never deletes rows that fell out of scope — so a re-login as the
+  // *same* account used to keep whatever the previous session synced (an
+  // ASHA's whole catchment, demo seed rows, ...). Wiping unconditionally
+  // means the patient screens can only ever render rows this session's
+  // scope actually delivered. Login is the one moment guaranteed to be
+  // online, and scheduleSync() below re-pulls immediately.
+  try {
+    await resetLocalData();
+  } catch (error) {
+    console.warn('[auth] local data reset failed', error);
   }
 
   // Best effort: a failure here must not block the login.
