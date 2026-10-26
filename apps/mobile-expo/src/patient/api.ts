@@ -386,6 +386,45 @@ export async function listFollowUps(): Promise<PatientFollowUp[]> {
   return [...(data.referral_followups ?? []), ...(data.tasks ?? [])];
 }
 
+// --- Pregnancy ---------------------------------------------------------------
+
+export interface PregnancyReportPayload {
+  lmp: string; // YYYY-MM-DD
+  gravida?: number;
+  parity?: number;
+  notes?: string;
+}
+
+export interface PregnancyReport {
+  id: string;
+  lmp: string;
+  edd: string;
+  gravida: number | null;
+  parity: number | null;
+  status: string;
+  asha_worker_name: string | null;
+  created_at: string | null;
+}
+
+/**
+ * `POST /patients/me/pregnancy` — patient reports her own pregnancy.
+ * Server resolves the beneficiary, validates female gender, derives EDD
+ * from LMP, and notifies the ASHA worker.
+ */
+export async function createMyPregnancy(
+  payload: PregnancyReportPayload,
+): Promise<PregnancyReport> {
+  return apiRequest<PregnancyReport>('/patients/me/pregnancy', {
+    method: 'POST',
+    body: dropUndefined({
+      lmp: payload.lmp,
+      gravida: payload.gravida,
+      parity: payload.parity,
+      notes: payload.notes,
+    }),
+  });
+}
+
 // --- ML ---------------------------------------------------------------------
 
 /** `GET /ai/predictions` — stored predictions for one beneficiary, newest first. */

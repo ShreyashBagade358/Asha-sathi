@@ -7,6 +7,7 @@ import { Icon, type IconName } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { RiskPredictionCard } from '@/components/common/RiskPredictionCard'
 import { HealthProfileEditModal } from '@/components/patient/HealthProfileEditModal'
+import { ReportPregnancyModal } from '@/components/patient/ReportPregnancyModal'
 import { aiService, type AIPrediction } from '@/services/ai.service'
 import type { MyPatientProfile } from '@/services/patient.service'
 
@@ -94,6 +95,11 @@ export default function PatientHealthProfilePage() {
   const profile = usePatientProfile()
   const raw = useMyPatientProfile()
   const [editing, setEditing] = useState(false)
+  const [reportingPregnancy, setReportingPregnancy] = useState(false)
+
+  // Report Pregnancy is offered only to female patients with no ongoing
+  // pregnancy — a man or an already-pregnant woman never sees the action.
+  const canReportPregnancy = profile.gender?.toLowerCase() === 'female' && !profile.pregnant
 
   const VITALS: Vital[] = [
     { label: 'patient.height', value: profile.height, icon: 'activity', tone: 'default' },
@@ -222,6 +228,28 @@ export default function PatientHealthProfilePage() {
             ))}
           </div>
         </section>
+      ) : canReportPregnancy ? (
+        <section className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5 shadow-card">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
+                <Icon name="heart" size={28} />
+              </span>
+              <div>
+                <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.reportPregnancy')}</h2>
+                <p className="mt-0.5 font-body-md text-body-md text-on-surface-variant">{t('patient.reportPregnancySubtitle')}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReportingPregnancy(true)}
+              className="flex h-touch-target shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-colors hover:bg-on-primary-fixed-variant"
+            >
+              <Icon name="heart" size={18} />
+              {t('patient.reportPregnancy')}
+            </button>
+          </div>
+        </section>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -283,6 +311,7 @@ export default function PatientHealthProfilePage() {
       </div>
 
       <HealthProfileEditModal open={editing} profile={raw} onClose={() => setEditing(false)} />
+      <ReportPregnancyModal open={reportingPregnancy} onClose={() => setReportingPregnancy(false)} />
     </div>
   )
 }

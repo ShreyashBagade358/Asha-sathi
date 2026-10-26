@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db_session
+from app.api.deps import get_current_user, get_db_session, require_roles
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.beneficiary import Beneficiary
 from app.models.maternal import ANCVISIT, DeliveryOutcome, MicroBirthPlan, PNCVisit, Pregnancy
-from app.models.user import User
+from app.models.user import Role, User
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
 from app.schemas.health import (
     ANCVisitCreate,
@@ -59,8 +59,15 @@ async def create_pregnancy(
     payload: PregnancyCreate,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_roles(Role.ASHA, Role.ADMIN)),
 ):
+    """ASHA/admin registers a pregnancy for a beneficiary.
+
+    Patients must use ``POST /patients/me/pregnancy`` instead — that endpoint
+    resolves the beneficiary from the signed-in account and notifies the
+    worker, whereas this one takes an arbitrary beneficiary id and is a
+    worker-only tool.
+    """
     beneficiary = await db.get(Beneficiary, payload.beneficiary_id)
     if not beneficiary:
         raise NotFoundError("Beneficiary not found")

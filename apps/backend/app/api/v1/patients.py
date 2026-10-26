@@ -26,6 +26,8 @@ from app.schemas.patient import (
     PatientRegistrationRequest,
     PatientRegistrationResponse,
     PatientVitals,
+    PregnancyReportCreate,
+    PregnancyReportResponse,
     PregnancySummary,
     ReferralRequestCreate,
     ReferralRequestResponse,
@@ -505,6 +507,118 @@ async def get_my_children(
         resp.father_name = names.get(child.father_id or "")
         responses.append(resp)
     return responses
+
+
+@router.post("/me/pregnancy", response_model=PregnancyReportResponse, status_code=201)
+async def report_my_pregnancy(
+    payload: PregnancyReportCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Patient reports her own pregnancy.
+
+    Resolves the beneficiary server-side (the patient never supplies an id),
+    validates the account is female, rejects a duplicate ongoing pregnancy,
+    derives EDD from LMP (Naegele's rule), flips ``is_pregnant``, and notifies
+    the assigned ASHA worker — mirroring the appointment/referral-request
+    pattern so the worker picks it up through the same task/notification flow.
+    """
+    from datetime import timedelta as _timedelta
+
+    from app.core.exceptions import ValidationError
+
+    beneficiary = await _find_my_beneficiary(db, user)
+    if beneficiary is None:
+        raise NotFoundError("No beneficiary profile")
+
+    if (beneficiary.gender or "").lower() not in ("female", "f"):
+        raise ValidationError("Pregnancy can only be reported by a female beneficiary")
+
+    existing = (
+        await db.execute(
+            select(Pregnancy).where(
+                Pregnancy.beneficiary_id == beneficiary.id,
+                Pregnancy.status == "ongoing",
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ValidationError("An ongoing pregnancy is already registered for this profile")
+
+    if payload.gravida is not None and payload.parity is not None and payload.parity > payload.gravida:
+        raise ValidationError("Parity cannot exceed gravida")
+
+    edd = payload.lmp + _timedelta(days=280)
+
+    pregnancy = Pregnancy(
+        beneficiary_id=beneficiary.id,
+        lmp=payload.lmp,
+        edd=edd,
+        gravida=payload.gravida,
+        parity=payload.parity,
+        risk_level="low",
+        status="ongoing",
+        anc_count=0,
+    )
+    db.add(pregnancy)
+    beneficiary.is_pregnant = True
+    await db.flush()
+
+    patient_name = beneficiary.full_name or user.full_name
+    await log_action(
+        db,
+        user.id,
+        "pregnancy_reported",
+        "pregnancy",
+        pregnancy.id,
+        new_values={
+            "lmp": payload.lmp.isoformat(),
+            "edd": edd.isoformat(),
+            "gravida": payload.gravida,
+            "parity": payload.parity,
+            "source": "patient_self_report",
+        },
+    )
+
+    asha = await _resolve_asha_for_beneficiary(db, beneficiary)
+    asha_name = asha.full_name if asha else None
+    if asha is not None:
+        await NotificationService.ensure_notification(
+            db,
+            user_id=asha.id,
+            notif_type="pregnancy_reported",
+            title=f"{patient_name} reported a pregnancy",
+            message=(
+                f"{patient_name} reported pregnancy. LMP {payload.lmp.strftime('%d %b %Y')}, "
+                f"EDD {edd.strftime('%d %b %Y')}. Please confirm and schedule the first ANC."
+            ),
+            reference_id=pregnancy.id,
+            reference_type="pregnancy",
+            priority="high",
+            action_url="/maternal",
+            data={
+                "patient_name": patient_name,
+                "patient_phone": user.phone,
+                "lmp": payload.lmp.isoformat(),
+                "edd": edd.isoformat(),
+                "gravida": payload.gravida,
+                "parity": payload.parity,
+                "notes": payload.notes,
+            },
+        )
+
+    await db.commit()
+
+    return PregnancyReportResponse(
+        id=pregnancy.id,
+        lmp=pregnancy.lmp,
+        edd=pregnancy.edd,
+        gravida=pregnancy.gravida,
+        parity=pregnancy.parity,
+        status=pregnancy.status,
+        asha_worker_name=asha_name,
+        created_at=pregnancy.created_at.isoformat() if pregnancy.created_at else None,
+    )
 
 
 # Human-readable labels for the fields a patient may self-edit. Used in the

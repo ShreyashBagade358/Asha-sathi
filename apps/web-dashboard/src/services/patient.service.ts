@@ -478,6 +478,26 @@ export const patientService = {
     const { data } = await api.get<MyChild[]>('/patients/me/children');
     return data;
   },
+
+  /**
+   * `POST /patients/me/pregnancy` — patient reports her own pregnancy.
+   * Server resolves the beneficiary from the signed-in account, validates
+   * female gender, derives EDD from LMP, and notifies the ASHA worker.
+   */
+  async createMyPregnancy(payload: {
+    lmp: string; // YYYY-MM-DD
+    gravida?: number;
+    parity?: number;
+    notes?: string;
+  }): Promise<PregnancyReport> {
+    const { data } = await api.post<PregnancyReport>('/patients/me/pregnancy', {
+      lmp: payload.lmp,
+      gravida: payload.gravida,
+      parity: payload.parity,
+      notes: payload.notes,
+    });
+    return data;
+  },
 };
 
 // --- Appointments ------------------------------------------------------------
@@ -529,4 +549,18 @@ export interface MyChild {
   birth_registration_no: string | null;
   birth_weight_grams: number | null;
   gestation_weeks: number | null;
+}
+
+// --- Pregnancy ---------------------------------------------------------------
+
+/** Wire shape of `POST /patients/me/pregnancy`. */
+export interface PregnancyReport {
+  id: string;
+  lmp: string;
+  edd: string;
+  gravida: number | null;
+  parity: number | null;
+  status: string;
+  asha_worker_name: string | null;
+  created_at: string | null;
 }

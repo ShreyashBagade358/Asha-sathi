@@ -4,15 +4,18 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { Button } from '@/components/ui/Button';
+import { DateField, TextField } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
+import { useToast } from '@/components/ui/Toast';
 import { useLocalization } from '@/i18n/useLocalization';
 import { cx } from '@/cx';
 import { MoreButton, type MoreSection } from '@/nav/MoreSheet';
 import { PATIENT_MORE_SECTIONS } from '@/nav/config';
 import { colors } from '@/theme';
-import { predictMaternalRisk, predictNcdRisk } from '@/patient/api';
+import { createMyPregnancy, predictMaternalRisk, predictNcdRisk } from '@/patient/api';
 import { HealthProfileEditModal } from '@/patient/HealthProfileEditModal';
 import { RiskPredictionCard } from '@/patient/RiskPredictionCard';
 import { usePatientProfile } from '@/patient/profile';
@@ -104,7 +107,15 @@ export default function PatientHealthProfileScreen() {
   const { t } = useLocalization();
   const router = useRouter();
   const profile = usePatientProfile();
+  const { toast } = useToast();
   const [editing, setEditing] = useState(false);
+  const [reportingPregnancy, setReportingPregnancy] = useState(false);
+  const [lmp, setLmp] = useState('');
+  const [gravida, setGravida] = useState('');
+  const [parity, setParity] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submittingPregnancy, setSubmittingPregnancy] = useState(false);
+  const [pregnancyError, setPregnancyError] = useState<string | null>(null);
 
   const moreSections: MoreSection[] = [
     {
@@ -123,6 +134,39 @@ export default function PatientHealthProfileScreen() {
 
   const display = profile.display;
   const raw = profile.raw;
+
+  // Report Pregnancy is offered only to female patients with no ongoing
+  // pregnancy — a man or an already-pregnant woman never sees the action.
+  const canReportPregnancy =
+    (display.gender || '').toLowerCase() === 'female' && !display.pregnant;
+
+  const submitPregnancyReport = async () => {
+    if (!lmp) {
+      setPregnancyError(t('patient.reportPregnancyLmpRequired'));
+      return;
+    }
+    setSubmittingPregnancy(true);
+    setPregnancyError(null);
+    try {
+      await createMyPregnancy({
+        lmp,
+        gravida: gravida ? Number(gravida) : undefined,
+        parity: parity ? Number(parity) : undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast(t('patient.reportPregnancySuccess'), 'success');
+      setReportingPregnancy(false);
+      setLmp('');
+      setGravida('');
+      setParity('');
+      setNotes('');
+      profile.reload();
+    } catch (err) {
+      setPregnancyError(err instanceof Error ? err.message : t('common.errorMsg'));
+    } finally {
+      setSubmittingPregnancy(false);
+    }
+  };
 
   const VITALS: Vital[] = [
     { label: t('patient.height'), value: display.height, icon: 'activity', tone: 'default' },
@@ -286,6 +330,30 @@ export default function PatientHealthProfileScreen() {
               ))}
             </View>
           </View>
+        ) : canReportPregnancy ? (
+          <View className="mb-6 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-5">
+            <View className="flex-row items-center gap-4">
+              <View className="h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-container">
+                <Icon name="heart" size={28} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="font-headline-md text-headline-md font-semibold text-on-surface">
+                  {t('patient.reportPregnancy')}
+                </Text>
+                <Text className="mt-0.5 text-body-md text-body-md text-on-surface-variant">
+                  {t('patient.reportPregnancySubtitle')}
+                </Text>
+              </View>
+            </View>
+            <Button
+              label={t('patient.reportPregnancy')}
+              icon="heart"
+              shape="pill"
+              className="mt-4"
+              onPress={() => setReportingPregnancy(true)}
+              testID="report-pregnancy"
+            />
+          </View>
         ) : null}
 
         <View className="mb-6">
@@ -368,6 +436,71 @@ export default function PatientHealthProfileScreen() {
         onClose={() => setEditing(false)}
         onSaved={profile.reload}
       />
+
+      <Modal
+        visible={reportingPregnancy}
+        onClose={() => setReportingPregnancy(false)}
+        title={t('patient.reportPregnancy')}
+      >
+        <View className="gap-4 pb-2">
+          <Text className="text-body-md text-on-surface-variant">
+            {t('patient.reportPregnancySubtitle')}
+          </Text>
+
+          <DateField
+            label={t('patient.lmp')}
+            value={lmp}
+            onChange={setLmp}
+            placeholder={t('patient.lmp')}
+            maxIso={new Date().toISOString().slice(0, 10)}
+            errorText={pregnancyError && !lmp ? t('patient.reportPregnancyLmpRequired') : undefined}
+          />
+
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <TextField
+                label={t('patient.gravida')}
+                value={gravida}
+                onChangeText={setGravida}
+                keyboardType="number-pad"
+                placeholder="—"
+              />
+            </View>
+            <View className="flex-1">
+              <TextField
+                label={t('patient.parity')}
+                value={parity}
+                onChangeText={setParity}
+                keyboardType="number-pad"
+                placeholder="—"
+              />
+            </View>
+          </View>
+
+          <TextField
+            label={t('patient.notes')}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder={t('patient.reportPregnancyNotesPlaceholder')}
+            multiline
+            numberOfLines={2}
+          />
+
+          {pregnancyError ? (
+            <Text className="text-caption text-error">{pregnancyError}</Text>
+          ) : null}
+
+          <Button
+            label={t('patient.reportPregnancy')}
+            icon="heart"
+            shape="pill"
+            full
+            loading={submittingPregnancy}
+            onPress={() => void submitPregnancyReport()}
+            testID="submit-pregnancy-report"
+          />
+        </View>
+      </Modal>
     </View>
   );
 }

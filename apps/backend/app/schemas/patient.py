@@ -220,3 +220,28 @@ class ReferralRequestResponse(BaseModel):
     status: str
     asha_worker_name: str | None = None
     created_at: str | None = None
+
+
+class PregnancyReportCreate(BaseModel):
+    """Patient-initiated pregnancy report.
+
+    LMP is the only clinical input the patient supplies; EDD is derived
+    server-side (Naegele's rule: LMP + 280 days) so the patient cannot
+    mis-set it. Gravida/parity are optional self-reported history.
+    """
+
+    lmp: date
+    gravida: int | None = Field(default=None, ge=0, le=20)
+    parity: int | None = Field(default=None, ge=0, le=20)
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class PregnancyReportResponse(BaseModel):
+    id: str
+    lmp: date
+    edd: date
+    gravida: int | None = None
+    parity: int | None = None
+    status: str
+    asha_worker_name: str | None = None
+    created_at: str | None = None
