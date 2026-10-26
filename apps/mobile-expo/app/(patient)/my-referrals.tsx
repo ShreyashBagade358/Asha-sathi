@@ -4,13 +4,16 @@ import { Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/ui/Button';
 import { Card, Pill } from '@/components/ui/Card';
+import { SelectField, TextField } from '@/components/ui/Field';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Icon } from '@/components/ui/Icon';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { useLocalization } from '@/i18n/useLocalization';
 import { cx } from '@/cx';
 import { loadPatientReferrals } from '@/patient/referrals';
+import { createReferralRequest, listReferralRequests } from '@/patient/api';
 import type { PatientReferral, PatientReferralStatus } from '@/patient/types';
 
 const STATUS_META: Record<PatientReferralStatus, { label: string; tone: string }> = {
@@ -26,11 +29,18 @@ const URGENCY_META: Record<PatientReferral['urgency'], { label: string; tone: st
   routine: { label: 'patient.routine', tone: 'bg-surface-container-high text-on-surface-variant' },
 };
 
+const REFERRAL_TYPES = [
+  { value: 'general', label: 'General Medicine' },
+  { value: 'specialist', label: 'Specialist Review' },
+  { value: 'maternal', label: 'Maternal / Obstetric' },
+  { value: 'child', label: 'Child Health' },
+  { value: 'emergency', label: 'Emergency / Trauma' },
+];
+
 /**
- * My Referrals, ported from the web's PatientReferralsPage: status pills,
- * referral cards with urgency / status chips and the reason footer. Rows come
- * from the locally synced `referrals` table (see referrals.ts), which the sync
- * scope already restricts to this patient.
+ * My Referrals: reads from the locally synced `referrals` table (offline-safe)
+ * and falls back to / merges with the live API. The Request Referral button
+ * opens a real form that POSTs to `/patients/me/referral-requests`.
  */
 export default function PatientMyReferralsScreen() {
   const { t } = useLocalization();
@@ -39,9 +49,36 @@ export default function PatientMyReferralsScreen() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [filter, setFilter] = useState<'all' | PatientReferralStatus>('all');
 
+  // Request Referral modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [refType, setRefType] = useState('');
+  const [urgency, setUrgency] = useState<'routine' | 'urgent' | 'emergency'>('routine');
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setStatus('loading');
     try {
+      // Try the live API first (freshest data); fall back to local sync.
+      try {
+        const apiRows = await listReferralRequests();
+        if (apiRows.length > 0) {
+          setRows(apiRows.map((r) => ({
+            id: r.id,
+            toFacility: r.referral_type,
+            referredBy: r.asha_worker_name ?? '—',
+            date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+            urgency: r.urgency,
+            status: r.status,
+            reason: r.reason,
+          })));
+          setStatus('ready');
+          return;
+        }
+      } catch {
+        // API unreachable — fall through to local sync
+      }
       setRows(await loadPatientReferrals());
       setStatus('ready');
     } catch {
@@ -53,6 +90,32 @@ export default function PatientMyReferralsScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const submitReferral = useCallback(async () => {
+    if (!refType || !reason.trim()) {
+      setFormError('Please select a type and enter a reason.');
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await createReferralRequest({
+        referralType: refType,
+        urgency,
+        reason: reason.trim(),
+      });
+      toast(t('patient.referralToast'), 'success');
+      setModalOpen(false);
+      setRefType('');
+      setUrgency('routine');
+      setReason('');
+      await load();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to submit referral request.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [refType, urgency, reason, toast, t, load]);
 
   const visible = rows.filter((r) => (filter === 'all' ? true : r.status === filter));
 
@@ -74,11 +137,66 @@ export default function PatientMyReferralsScreen() {
           label={t('patient.requestReferral')}
           icon="plus"
           shape="pill"
-          onPress={() => toast(t('patient.referralToast'), 'success')}
+          onPress={() => setModalOpen(true)}
           testID="request-referral"
         />
       }
     >
+      {/* Request Referral modal */}
+      <Modal visible={modalOpen} onClose={() => setModalOpen(false)} title={t('patient.requestReferral')}>
+        <View className="gap-4 pb-2">
+          <SelectField
+            label="Referral Type"
+            value={refType}
+            options={REFERRAL_TYPES.map((r) => ({ label: r.label, value: r.value }))}
+            onChange={setRefType}
+            placeholder="Select type..."
+            errorText={formError && !refType ? 'Please select a type' : undefined}
+          />
+
+          <View>
+            <Text className="text-label-md font-semibold text-on-surface mb-1.5">
+              {t('patient.urgency')}
+            </Text>
+            <View className="flex-row gap-2">
+              {(['routine', 'urgent', 'emergency'] as const).map((u) => (
+                <Button
+                  key={u}
+                  label={t(`patient.${u}`)}
+                  shape="pill"
+                  variant={urgency === u ? 'primary' : 'ghost'}
+                  onPress={() => setUrgency(u)}
+                  className="flex-1"
+                />
+              ))}
+            </View>
+          </View>
+
+          <TextField
+            label={t('patient.refReason')}
+            value={reason}
+            onChangeText={setReason}
+            placeholder="Describe your symptoms or reason..."
+            multiline
+            numberOfLines={3}
+          />
+
+          {formError ? (
+            <Text className="text-caption text-error">{formError}</Text>
+          ) : null}
+
+          <Button
+            label={t('patient.requestReferral')}
+            icon="plus"
+            shape="pill"
+            full
+            loading={submitting}
+            onPress={() => void submitReferral()}
+            testID="submit-referral"
+          />
+        </View>
+      </Modal>
+
       {status === 'failed' ? (
         <ErrorState message={t('common.errorMsg')} onRetry={() => void load()} />
       ) : status === 'loading' ? (

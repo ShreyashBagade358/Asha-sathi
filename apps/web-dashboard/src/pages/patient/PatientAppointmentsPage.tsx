@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useLocalization } from '@/hooks/useLocalization'
-import { usePatientProfile } from '@/hooks/usePatientProfile'
 import { useUIStore } from '@/stores/ui.store'
-import { useAppStore } from '@/stores/app.store'
 import { Icon } from '@/components/common/Icons'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { patientService, apiErrorMessage, type AppointmentRequest } from '@/services/patient.service'
+import { patientService, apiErrorMessage, type AppointmentRequest, type PatientFollowUp } from '@/services/patient.service'
 import type { AppointmentStatus } from '@/pages/patient/mockData'
 
 type TabKey = 'all' | AppointmentStatus
@@ -45,15 +43,13 @@ function mapRequest(req: AppointmentRequest): DisplayAppointment {
 export default function PatientAppointmentsPage() {
   const { t } = useLocalization()
   const { addToast } = useUIStore()
-  const followUps = useAppStore((s) => s.followUps)
-  const markFollowUpDone = useAppStore((s) => s.markFollowUpDone)
   const [filter, setFilter] = useState<TabKey>('upcoming')
-
-  const profile = usePatientProfile()
-  const myFollowUps = followUps.filter((f) => f.patientName === profile.name && f.status === 'scheduled')
 
   // Appointments fetched from the API
   const [appointments, setAppointments] = useState<DisplayAppointment[]>([])
+
+  // Follow-ups fetched from the API
+  const [followUps, setFollowUps] = useState<PatientFollowUp[]>([])
 
   const loadAppointments = useCallback(async () => {
     try {
@@ -64,9 +60,18 @@ export default function PatientAppointmentsPage() {
     }
   }, [])
 
+  const loadFollowUps = useCallback(async () => {
+    try {
+      setFollowUps(await patientService.listFollowUps())
+    } catch {
+      setFollowUps([])
+    }
+  }, [])
+
   useEffect(() => {
     void loadAppointments()
-  }, [loadAppointments])
+    void loadFollowUps()
+  }, [loadAppointments, loadFollowUps])
 
   // Booking form state
   const [booking, setBooking] = useState(false)
@@ -320,35 +325,24 @@ export default function PatientAppointmentsPage() {
 
       <section>
         <h2 className="mb-3 font-headline-md text-headline-md font-semibold text-on-surface">{t('patient.followUps')}</h2>
-        {myFollowUps.length === 0 ? (
+        {followUps.length === 0 ? (
           <p className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 text-center font-body-md text-body-md text-on-surface-variant">
             {t('patient.noUpcoming')}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {myFollowUps.map((fu) => (
+            {followUps.map((fu) => (
               <div key={fu.id} className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-card">
                 <div className="flex items-center gap-3">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-tertiary-container text-on-tertiary-container">
                     <Icon name="activity" size={22} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-label-md text-label-md font-semibold text-on-surface">{fu.type}</p>
+                    <p className="font-label-md text-label-md font-semibold text-on-surface">{fu.title}</p>
                     <p className="truncate font-caption text-caption text-on-surface-variant">
-                      {fu.due} · {fu.notes ?? t('asha.fuScheduled')}
+                      {fu.due_date ?? '—'} · {fu.detail || t('asha.fuScheduled')}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      markFollowUpDone(fu.id)
-                      addToast('success', t('asha.fuDoneToast'))
-                    }}
-                    className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 font-label-md text-label-md font-semibold text-on-primary shadow-sm transition-all hover:bg-on-primary-fixed-variant active:scale-[0.98]"
-                  >
-                    <Icon name="check" size={16} />
-                    {t('asha.fuMarkDone')}
-                  </button>
                 </div>
               </div>
             ))}

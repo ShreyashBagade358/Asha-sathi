@@ -435,6 +435,37 @@ export const patientService = {
     const { data } = await api.get<AppointmentRequest[]>('/patients/me/appointment-requests');
     return data;
   },
+
+  /**
+   * `POST /patients/me/referral-requests` — patient requests a referral to a
+   * higher facility (creates a Referral row + ASHA notification server-side).
+   */
+  async createReferralRequest(payload: {
+    referralType: string;
+    urgency: 'routine' | 'urgent' | 'emergency';
+    reason: string;
+  }): Promise<ReferralRequest> {
+    const { data } = await api.post<ReferralRequest>('/patients/me/referral-requests', {
+      referral_type: payload.referralType,
+      urgency: payload.urgency,
+      reason: payload.reason,
+    });
+    return data;
+  },
+
+  /** `GET /patients/me/referral-requests` — lists the patient's referrals. */
+  async listReferralRequests(): Promise<ReferralRequest[]> {
+    const { data } = await api.get<ReferralRequest[]>('/patients/me/referral-requests');
+    return data;
+  },
+
+  /** `GET /patients/me/follow-ups` — referral follow-ups + open ASHA tasks. */
+  async listFollowUps(): Promise<PatientFollowUp[]> {
+    const { data } = await api.get<{ referral_followups: PatientFollowUp[]; tasks: PatientFollowUp[] }>(
+      '/patients/me/follow-ups'
+    );
+    return [...(data.referral_followups ?? []), ...(data.tasks ?? [])];
+  },
 };
 
 // --- Appointments ------------------------------------------------------------
@@ -448,4 +479,27 @@ export interface AppointmentRequest {
   status: string;
   asha_worker_name: string | null;
   created_at: string | null;
+}
+
+// --- Referrals ---------------------------------------------------------------
+
+export interface ReferralRequest {
+  id: string;
+  referral_type: string;
+  urgency: 'routine' | 'urgent' | 'emergency';
+  reason: string;
+  status: 'pending' | 'accepted' | 'completed' | 'cancelled';
+  asha_worker_name: string | null;
+  created_at: string | null;
+}
+
+// --- Follow-ups --------------------------------------------------------------
+
+export interface PatientFollowUp {
+  id: string;
+  type: 'referral' | 'task';
+  title: string;
+  due_date: string | null;
+  detail: string;
+  status: string;
 }

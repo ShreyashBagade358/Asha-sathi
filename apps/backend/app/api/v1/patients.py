@@ -12,6 +12,7 @@ from app.models.beneficiary import Beneficiary, Household
 from app.models.disease import DiseaseCase
 from app.models.maternal import ANCVISIT, Pregnancy
 from app.models.ncd import NCDScreening
+from app.models.referral import Referral, ReferralFollowup
 from app.models.task import ASHATask
 from app.models.user import Role, User
 from app.schemas.patient import (
@@ -25,6 +26,8 @@ from app.schemas.patient import (
     PatientRegistrationResponse,
     PatientVitals,
     PregnancySummary,
+    ReferralRequestCreate,
+    ReferralRequestResponse,
 )
 from app.services.audit import log_action
 from app.services.notification import NotificationService
@@ -733,3 +736,194 @@ async def list_appointment_requests(
         )
         for t in tasks
     ]
+
+
+@router.post(
+    "/me/referral-requests",
+    response_model=ReferralRequestResponse,
+    status_code=201,
+)
+async def create_referral_request(
+    payload: ReferralRequestCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Patient requests a referral to a higher health facility.
+
+    Creates a Referral row (status ``initiated``) linked to their beneficiary
+    and notifies the assigned ASHA worker.
+    """
+    beneficiary = await _find_my_beneficiary(db, user)
+    if beneficiary is None:
+        raise NotFoundError("No beneficiary profile")
+
+    asha = await _resolve_asha_for_beneficiary(db, beneficiary)
+    patient_name = beneficiary.full_name or user.full_name
+
+    from datetime import UTC, datetime
+
+    referral = Referral(
+        beneficiary_id=beneficiary.id,
+        referral_type=payload.referral_type,
+        urgency=payload.urgency,
+        reason=payload.reason,
+        referred_to_facility_id=payload.referred_to_facility_id,
+        status="initiated",
+        initiated_at=datetime.now(UTC),
+    )
+    db.add(referral)
+    await db.flush()
+
+    await log_action(
+        db,
+        user.id,
+        "referral_requested",
+        "referral",
+        referral.id,
+        new_values={
+            "referral_type": payload.referral_type,
+            "urgency": payload.urgency,
+            "reason": payload.reason,
+        },
+    )
+
+    if asha is not None:
+        await NotificationService.ensure_notification(
+            db,
+            user_id=asha.id,
+            notif_type="referral_requested",
+            title=f"{patient_name} requested a referral",
+            message=f"{patient_name} requests a {payload.urgency} referral ({payload.referral_type}): {payload.reason}.",
+            reference_id=referral.id,
+            reference_type="referral",
+            priority="normal",
+            action_url="/referrals",
+            data={
+                "patient_name": patient_name,
+                "referral_type": payload.referral_type,
+                "urgency": payload.urgency,
+                "reason": payload.reason,
+            },
+        )
+
+    await db.commit()
+
+    return ReferralRequestResponse(
+        id=referral.id,
+        referral_type=payload.referral_type,
+        urgency=payload.urgency,
+        reason=payload.reason,
+        status="pending",
+        asha_worker_name=asha.full_name if asha else None,
+        created_at=referral.created_at.isoformat() if referral.created_at else None,
+    )
+
+
+@router.get(
+    "/me/referral-requests",
+    response_model=list[ReferralRequestResponse],
+)
+async def list_referral_requests(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """List this patient's referral requests."""
+    beneficiary = await _find_my_beneficiary(db, user)
+    if beneficiary is None:
+        return []
+
+    result = await db.execute(
+        select(Referral)
+        .where(Referral.beneficiary_id == beneficiary.id)
+        .order_by(Referral.created_at.desc())
+        .limit(50)
+    )
+    referrals = result.scalars().all()
+
+    # Resolve ASHA name for display
+    asha_name: str | None = None
+    asha = await _resolve_asha_for_beneficiary(db, beneficiary)
+    if asha is not None:
+        asha_name = asha.full_name
+
+    def _status(r: Referral) -> str:
+        return {
+            "initiated": "pending",
+            "accepted": "accepted",
+            "completed": "completed",
+            "cancelled": "cancelled",
+        }.get(r.status, "pending")
+
+    return [
+        ReferralRequestResponse(
+            id=r.id,
+            referral_type=r.referral_type,
+            urgency=r.urgency,
+            reason=r.reason or "",
+            status=_status(r),
+            asha_worker_name=asha_name,
+            created_at=r.created_at.isoformat() if r.created_at else None,
+        )
+        for r in referrals
+    ]
+
+
+@router.get("/me/follow-ups")
+async def list_my_follow_ups(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """List this patient's follow-ups (referral follow-ups + open ASHA tasks)."""
+    beneficiary = await _find_my_beneficiary(db, user)
+    if beneficiary is None:
+        return {"referral_followups": [], "tasks": []}
+
+    # Referral follow-ups that are still needed
+    fu_result = await db.execute(
+        select(ReferralFollowup, Referral)
+        .join(Referral, ReferralFollowup.referral_id == Referral.id)
+        .where(
+            Referral.beneficiary_id == beneficiary.id,
+            Referral.followup_required.is_(True),
+            Referral.status.notin_(["completed", "cancelled"]),
+        )
+        .order_by(Referral.followup_date.asc())
+        .limit(20)
+    )
+    referral_followups = [
+        {
+            "id": f"referral:{fu.id}",
+            "type": "referral",
+            "title": f"Referral follow-up — {ref.referral_type}",
+            "due_date": fu.followup_date.isoformat() if fu.followup_date else None,
+            "detail": fu.notes or ref.reason or "",
+            "status": "scheduled",
+        }
+        for fu, ref in fu_result.all()
+    ]
+
+    # Open ASHA tasks for this beneficiary (excluding appointment_requests
+    # which are already shown in the Appointments tab).
+    task_result = await db.execute(
+        select(ASHATask)
+        .where(
+            ASHATask.beneficiary_id == beneficiary.id,
+            ASHATask.status.notin_(["completed", "cancelled"]),
+            ASHATask.task_type != "appointment_request",
+        )
+        .order_by(ASHATask.task_date.asc())
+        .limit(20)
+    )
+    tasks = [
+        {
+            "id": f"task:{t.id}",
+            "type": "task",
+            "title": t.task_type.replace("_", " ").title(),
+            "due_date": t.task_date.isoformat() if t.task_date else None,
+            "detail": t.notes or "",
+            "status": "scheduled",
+        }
+        for t in task_result.scalars().all()
+    ]
+
+    return {"referral_followups": referral_followups, "tasks": tasks}

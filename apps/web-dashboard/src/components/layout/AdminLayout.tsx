@@ -189,29 +189,29 @@ function getBreadcrumbDefs(pathname: string): BreadcrumbDef[] | null {
     return [{ labelKey: 'nav.profile' }]
   }
   if (pathname === '/patient/health-profile') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientProfile' }]
+    return [{ labelKey: 'nav.patientProfile' }]
   }
   if (pathname === '/patient/records') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientRecords' }]
+    return [{ labelKey: 'nav.patientRecords' }]
   }
 
   if (pathname === '/patient/family') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientFamily' }]
+    return [{ labelKey: 'nav.patientFamily' }]
   }
   if (pathname === '/patient/vaccination') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientVaccination' }]
+    return [{ labelKey: 'nav.patientVaccination' }]
   }
   if (pathname === '/patient/appointments') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientAppointments' }]
+    return [{ labelKey: 'nav.patientAppointments' }]
   }
   if (pathname === '/patient/referrals') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientReferrals' }]
+    return [{ labelKey: 'nav.patientReferrals' }]
   }
   if (pathname === '/patient/notifications') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientNotifications' }]
+    return [{ labelKey: 'nav.patientNotifications' }]
   }
   if (pathname === '/patient/profile') {
-    return [{ labelKey: 'nav.patientHome', to: '/patient/dashboard' }, { labelKey: 'nav.patientSettings' }]
+    return [{ labelKey: 'nav.patientSettings' }]
   }
   return null
 }

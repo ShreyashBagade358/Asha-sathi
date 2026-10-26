@@ -201,3 +201,22 @@ class AppointmentRequestResponse(BaseModel):
     status: str
     asha_worker_name: str | None = None
     created_at: str | None = None
+
+
+class ReferralRequestCreate(BaseModel):
+    """Patient-initiated referral request, delivered as a Referral row + ASHA notification."""
+
+    referral_type: str = Field(min_length=2, max_length=40)
+    urgency: Literal["routine", "urgent", "emergency"] = "routine"
+    reason: str = Field(min_length=2, max_length=500)
+    referred_to_facility_id: str | None = Field(default=None, max_length=36)
+
+
+class ReferralRequestResponse(BaseModel):
+    id: str
+    referral_type: str
+    urgency: str
+    reason: str
+    status: str
+    asha_worker_name: str | None = None
+    created_at: str | None = None

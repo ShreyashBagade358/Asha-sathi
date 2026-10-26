@@ -1008,6 +1008,7 @@ export async function listFollowUps(): Promise<FollowUp[]> {
        LEFT JOIN beneficiaries b ON b.id = t.beneficiary_id
        LEFT JOIN households h ON h.id = t.household_id
       WHERE COALESCE(t.status, '') NOT IN ('completed', 'cancelled')
+        AND COALESCE(t.task_type, '') != 'appointment_request'
       ORDER BY t.task_date ASC`,
   );
 

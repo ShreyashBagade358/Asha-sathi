@@ -329,6 +329,63 @@ export async function listAppointmentRequests(): Promise<AppointmentRequest[]> {
   return apiRequest<AppointmentRequest[]>('/patients/me/appointment-requests');
 }
 
+// --- Referrals ---------------------------------------------------------------
+
+export interface ReferralRequestPayload {
+  referralType: string;
+  urgency: 'routine' | 'urgent' | 'emergency';
+  reason: string;
+}
+
+export interface ReferralRequest {
+  id: string;
+  referral_type: string;
+  urgency: 'routine' | 'urgent' | 'emergency';
+  reason: string;
+  status: 'pending' | 'accepted' | 'completed' | 'cancelled';
+  asha_worker_name: string | null;
+  created_at: string | null;
+}
+
+/** `POST /patients/me/referral-requests` — patient requests a referral. */
+export async function createReferralRequest(
+  payload: ReferralRequestPayload,
+): Promise<ReferralRequest> {
+  return apiRequest<ReferralRequest>('/patients/me/referral-requests', {
+    method: 'POST',
+    body: {
+      referral_type: payload.referralType,
+      urgency: payload.urgency,
+      reason: payload.reason,
+    },
+  });
+}
+
+/** `GET /patients/me/referral-requests` — lists the patient's referral requests. */
+export async function listReferralRequests(): Promise<ReferralRequest[]> {
+  return apiRequest<ReferralRequest[]>('/patients/me/referral-requests');
+}
+
+// --- Follow-ups --------------------------------------------------------------
+
+export interface PatientFollowUp {
+  id: string;
+  type: 'referral' | 'task';
+  title: string;
+  due_date: string | null;
+  detail: string;
+  status: string;
+}
+
+/** `GET /patients/me/follow-ups` — referral follow-ups + open ASHA tasks. */
+export async function listFollowUps(): Promise<PatientFollowUp[]> {
+  const data = await apiRequest<{
+    referral_followups: PatientFollowUp[];
+    tasks: PatientFollowUp[];
+  }>('/patients/me/follow-ups');
+  return [...(data.referral_followups ?? []), ...(data.tasks ?? [])];
+}
+
 // --- ML ---------------------------------------------------------------------
 
 /** `GET /ai/predictions` — stored predictions for one beneficiary, newest first. */
