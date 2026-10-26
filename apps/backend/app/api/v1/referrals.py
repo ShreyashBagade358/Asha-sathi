@@ -35,6 +35,7 @@ async def _get_referral(db: AsyncSession, referral_id: str) -> Referral:
 async def list_referrals(
     status: str | None = None,
     referral_type: str | None = None,
+    urgency: str | None = None,
     beneficiary_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
@@ -43,9 +44,16 @@ async def list_referrals(
 ):
     stmt = select(Referral)
     if status:
-        stmt = stmt.where(Referral.status == status)
+        # The UI shows patient-raised referrals as "Pending", but the row is
+        # stored as "initiated" — accept both spellings so the filter works.
+        if status == "pending":
+            stmt = stmt.where(Referral.status == "initiated")
+        else:
+            stmt = stmt.where(Referral.status == status)
     if referral_type:
         stmt = stmt.where(Referral.referral_type == referral_type)
+    if urgency:
+        stmt = stmt.where(Referral.urgency == urgency)
     if beneficiary_id:
         stmt = stmt.where(Referral.beneficiary_id == beneficiary_id)
     if user.role == Role.ASHA.value:

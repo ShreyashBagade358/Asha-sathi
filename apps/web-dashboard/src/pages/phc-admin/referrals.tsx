@@ -47,7 +47,7 @@ export default function ReferralDirectoryPhcAdmin() {
     queryKey: ['referrals', statusFilter, urgencyFilter, page],
     queryFn: () => referralService.listReferrals({
       status: statusFilter || undefined,
-      referralType: urgencyFilter || undefined,
+      urgency: urgencyFilter || undefined,
       page,
       pageSize: PAGE_SIZE,
     }),

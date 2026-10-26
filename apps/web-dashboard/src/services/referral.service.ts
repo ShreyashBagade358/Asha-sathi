@@ -4,6 +4,7 @@ import type { Paginated, Referral } from '@/types'
 export interface ReferralListParams {
   status?: string
   referralType?: string
+  urgency?: string
   beneficiaryId?: string
   page?: number
   pageSize?: number
@@ -84,6 +85,7 @@ export const referralService = {
       params: {
         status: params.status,
         referral_type: params.referralType,
+        urgency: params.urgency,
         beneficiary_id: params.beneficiaryId,
         page: params.page ?? 1,
         page_size: params.pageSize ?? 10,
