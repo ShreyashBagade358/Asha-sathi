@@ -19,15 +19,10 @@ function ageMonthsFromDob(iso?: string): number | null {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / (30.44 * 86400000)))
 }
 
-function nutritionBadge(status: ChildHealthStatus) {
-  const statusMap: Record<ChildHealthStatus, string> = {
-    healthy: 'Healthy',
-    underweight: 'Underweight',
-    malnourished: 'Malnourished',
-  }
+function nutritionBadge(_status: ChildHealthStatus) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-semibold">
-      {statusMap[status]}
+      — Not available
     </span>
   )
 }
@@ -128,8 +123,7 @@ export default function ChildrenDirectoryPhcAdmin() {
 
   const counts = (() => {
     const total = data?.total ?? 0
-    const malnourished = children.filter((c) => c.status === 'malnourished').length
-    return { total, malnourished, vaxDue: (dueVaccinations ?? []).length, healthy: total - malnourished }
+    return { total, malnourished: 0, vaxDue: (dueVaccinations ?? []).length, healthy: total }
   })()
 
   const childrenList = (() => {
