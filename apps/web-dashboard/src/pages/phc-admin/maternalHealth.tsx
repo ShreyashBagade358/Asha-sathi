@@ -64,10 +64,13 @@ export default function MaternalHealthPhcAdmin() {
   const total = pregnancies.length
   const high = pregnancies.filter((p) => p.risk === 'high').length
   const deliveryRate = total > 0 ? Math.round(((total - high) / total) * 100) : 0
-  const anc4Pct = 0
+  const anc4Pct = total > 0 ? Math.round((pregnancies.filter((p) => p.anc4Coverage).length / total) * 100) : 0
   const counts = { total, high, deliveryRate, anc4Pct }
 
-  const ashaFor = () => 'ASHA'
+  const ashaFor = () => {
+    const firstPreg = pregnancies[0]
+    return firstPreg?.ashaName ?? firstPreg?.asha?.name ?? 'ASHA'
+}
 
   const byVillage = villages.map((v) => {
     const vPregs = pregnancies.filter((p) => p.village === v)

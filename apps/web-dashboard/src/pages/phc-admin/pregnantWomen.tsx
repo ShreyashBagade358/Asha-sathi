@@ -108,21 +108,29 @@ export default function PregnantWomenListPhcAdmin() {
   const hasFilter = village !== 'All' || risk !== 'All' || trimester !== 'All' || search.trim()
 
   const stats = useMemo(
-    () => ({
-      total: totalCount,
-      highRisk: pregnancies.filter((p) => p.highRisk).length,
-      dueThisMonth: pregnancies.filter((p) => {
-        const t = trimesterFromLmp(p.lmp)
-        return t === 3
-      }).length,
-      recent: pregnancies.filter((p) => {
-        if (!p.registeredAt) return false
-        const d = new Date(p.registeredAt)
-        const now = new Date()
-        return d > new Date(now.getTime() - 30 * 86400000)
-      }).length,
-    }),
-    [pregnancies, totalCount]
+    () => {
+      const filteredPregs = pregnancies.filter((p) =>
+        (village === 'All' || p.village === village) &&
+        (risk === 'All' || p.risk === risk) &&
+        (trimester === 'All' || trimesterFromLmp(p.lmp) === trimester) &&
+        search.trim().split('').every((c) => p.name.toLowerCase().includes(c.toLowerCase()))
+      )
+      return ({
+        total: totalCount,
+        highRisk: filteredPregs.filter((p) => p.highRisk).length,
+        dueThisMonth: pregnancies.filter((p) => {
+          const t = trimesterFromLmp(p.lmp)
+          return t === 3
+        }).length,
+        recent: pregnancies.filter((p) => {
+          if (!p.registeredAt) return false
+          const d = new Date(p.registeredAt)
+          const now = new Date()
+          return d > new Date(now.getTime() - 30 * 86400000)
+        }).length,
+      })
+    },
+    [pregnancies, totalCount, village, risk, trimester, search]
   )
 
   return (

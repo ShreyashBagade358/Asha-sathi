@@ -130,7 +130,8 @@ export default function PregnancyDetailsPhcAdmin() {
 
   const beneficiary = useMemo(() => {
     if (!pregnancy) return undefined
-    return benData?.items?.find((b) => b.id === pregnancy.beneficiaryId)
+    const found = benData?.items?.find((b) => b.id === pregnancy.beneficiaryId)
+    return found || undefined
   }, [benData, pregnancy])
 
   const deleteMutation = useMutation({
@@ -138,7 +139,7 @@ export default function PregnancyDetailsPhcAdmin() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pregnancies'] })
       addToast('success', 'Pregnancy record deleted.')
-      navigate('/phc/maternal')
+      navigate(/phc/pregnancy/ + pregnancy.phcId || '/phc/maternal')
     },
     onError: (err) => addToast('error', getErrorMessage(err)),
   })
