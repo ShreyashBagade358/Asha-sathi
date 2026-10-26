@@ -78,6 +78,7 @@ const NAV_SECTIONS: Record<string, NavSection[]> = {
       items: [
         { labelKey: 'nav.followUps', path: '/phc/follow-ups', icon: 'checkCircle' },
         { labelKey: 'nav.healthCheckup', path: '/phc/health-checkups/new', icon: 'activity' },
+        { labelKey: 'nav.referrals', path: '/phc/referrals', icon: 'fileText' },
       ],
     },
     {
