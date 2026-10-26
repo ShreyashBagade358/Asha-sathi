@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db_session
 from app.core.exceptions import ConflictError, NotFoundError
-from app.models.beneficiary import Beneficiary
+from app.models.beneficiary import Beneficiary, Household
 from app.models.referral import Referral, ReferralFollowup
 from app.models.user import Role, User
 from app.schemas.common import MessageResponse, PaginatedResponse, paginate
@@ -19,6 +19,7 @@ from app.schemas.other_domain import (
     ReferralUpdate,
 )
 from app.services.audit import log_action
+from app.services.notification import NotificationService
 from app.services.sync_scope import resolve_scope
 
 router = APIRouter()
@@ -29,6 +30,91 @@ async def _get_referral(db: AsyncSession, referral_id: str) -> Referral:
     if not referral:
         raise NotFoundError("Referral not found")
     return referral
+
+
+async def _patient_and_asha_for_referral(
+    db: AsyncSession, referral: Referral
+) -> tuple[User | None, User | None]:
+    """Resolve the patient user and assigned ASHA for a referral's beneficiary."""
+    beneficiary = await db.get(Beneficiary, referral.beneficiary_id)
+    if beneficiary is None:
+        return None, None
+
+    # Patient user: prefer the durable users.beneficiary_id link
+    patient = None
+    result = await db.execute(
+        select(User).where(
+            User.beneficiary_id == beneficiary.id,
+            User.role == Role.PATIENT.value,
+        ).limit(1)
+    )
+    patient = result.scalar_one_or_none()
+
+    # ASHA: registered_by first, then household
+    asha = None
+    if beneficiary.registered_by:
+        candidate = await db.get(User, beneficiary.registered_by)
+        if candidate is not None and candidate.role == Role.ASHA.value:
+            asha = candidate
+    if asha is None and beneficiary.household_id:
+        household = await db.get(Household, beneficiary.household_id)
+        if household and household.asha_id:
+            asha = await db.get(User, household.asha_id)
+
+    return patient, asha
+
+
+async def _notify_referral_status(
+    db: AsyncSession,
+    referral: Referral,
+    patient: User | None,
+    asha: User | None,
+    status: str,
+) -> None:
+    """Notify the patient and their ASHA when a referral status changes."""
+    beneficiary = await db.get(Beneficiary, referral.beneficiary_id)
+    patient_name = (beneficiary.full_name if beneficiary else "") or "A patient"
+
+    if status == "accepted":
+        title = "Your referral was accepted"
+        message = f"{patient_name}'s {referral.urgency} referral ({referral.referral_type}) has been accepted. Please contact your ASHA worker for next steps."
+        action_url = "/patient/referrals"
+    elif status == "completed":
+        title = "Your referral was completed"
+        message = f"{patient_name}'s referral ({referral.referral_type}) has been completed."
+        action_url = "/patient/referrals"
+    else:
+        return
+
+    # Notify patient
+    if patient is not None:
+        await NotificationService.ensure_notification(
+            db,
+            user_id=patient.id,
+            notif_type=f"referral_{status}",
+            title=title,
+            message=message,
+            reference_id=referral.id,
+            reference_type="referral",
+            priority="normal",
+            action_url=action_url,
+            data={"referral_id": referral.id, "status": status},
+        )
+
+    # Notify ASHA
+    if asha is not None:
+        await NotificationService.ensure_notification(
+            db,
+            user_id=asha.id,
+            notif_type=f"referral_{status}",
+            title=f"Referral {status} for {patient_name}",
+            message=f"The {referral.urgency} referral for {patient_name} ({referral.referral_type}) has been {status}.",
+            reference_id=referral.id,
+            reference_type="referral",
+            priority="normal",
+            action_url="/referrals",
+            data={"patient_name": patient_name, "referral_id": referral.id, "status": status},
+        )
 
 
 @router.get("", response_model=PaginatedResponse[ReferralResponse])
@@ -160,6 +246,8 @@ async def accept_referral(
     referral.status = "accepted"
     referral.accepted_at = datetime.now(UTC)
     await log_action(db, user.id, "referral_accepted", "referral", referral.id, new_values={"status": "accepted"})
+    patient, asha = await _patient_and_asha_for_referral(db, referral)
+    await _notify_referral_status(db, referral, patient, asha, "accepted")
     await db.commit()
     await db.refresh(referral)
     return referral
@@ -178,6 +266,8 @@ async def complete_referral(
     if outcome:
         referral.outcome = outcome
     await log_action(db, user.id, "referral_completed", "referral", referral.id, new_values={"status": "completed"})
+    patient, asha = await _patient_and_asha_for_referral(db, referral)
+    await _notify_referral_status(db, referral, patient, asha, "completed")
     await db.commit()
     await db.refresh(referral)
     return referral
