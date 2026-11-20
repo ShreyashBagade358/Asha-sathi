@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FAB } from '@/components/ui/FAB';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { SearchBar } from '@/components/ui/SearchBar';
+import { tokenStore } from '@/auth/tokenStore';
 import { listHouseholdCards, type HouseholdCard } from '@/db/clinical';
 import { getQueueCounts } from '@/db/database';
 import { useLocalization } from '@/i18n/useLocalization';
@@ -72,7 +73,11 @@ export default function HouseholdsScreen() {
   const [filter, setFilter] = useState<FilterKey>('all');
 
   const load = useCallback(async () => {
-    const [cards, counts] = await Promise.all([listHouseholdCards(), getQueueCounts()]);
+    const user = await tokenStore.getUser();
+    const [cards, counts] = await Promise.all([
+      listHouseholdCards(user?.id),
+      getQueueCounts(),
+    ]);
     setRows(cards);
     setPending(counts.pending + counts.failed);
   }, []);

@@ -1548,30 +1548,27 @@ const ACTIVE_PREGNANCY = `(p.status IS NULL OR p.status NOT IN ('delivered','abo
 
 const HOUSEHOLD_CARD_SQL = `
   SELECT h.id, h.hhid, h.address, h.village_id,
-         COALESCE((SELECT b.full_name FROM beneficiaries b
-           WHERE b.household_id = h.id
-           ORDER BY (b.age_years IS NULL), b.age_years DESC, b.full_name ASC
-           LIMIT 1), h.head_name) AS head_name,
+         h.head_name AS head_name,
          (SELECT COUNT(*) FROM beneficiaries b
            WHERE b.household_id = h.id) AS members,
          (SELECT COUNT(DISTINCT b.id) FROM beneficiaries b
            JOIN pregnancies p ON p.beneficiary_id = b.id
           WHERE b.household_id = h.id AND ${ACTIVE_PREGNANCY}) AS pregnant,
          (SELECT COUNT(*) FROM beneficiaries b
-          WHERE b.household_id = h.id
-            AND ((b.age_years IS NOT NULL AND b.age_years < 5)
-              OR (b.age_years IS NULL AND b.age_months IS NOT NULL AND b.age_months < 60))) AS children_under5,
+           WHERE b.household_id = h.id
+             AND ((b.age_years IS NOT NULL AND b.age_years < 5)
+               OR (b.age_years IS NULL AND b.age_months IS NOT NULL AND b.age_months < 60))) AS children_under5,
          (SELECT COUNT(*) FROM asha_tasks t
-          WHERE t.household_id = h.id AND ${OPEN_TASK}) AS open_tasks,
+           WHERE t.household_id = h.id AND ${OPEN_TASK}) AS open_tasks,
          (SELECT COUNT(*) FROM asha_tasks t
-          WHERE t.household_id = h.id AND t.status IN ('completed','done')) AS completed_tasks,
+           WHERE t.household_id = h.id AND t.status IN ('completed','done')) AS completed_tasks,
          (SELECT MIN(COALESCE(t.task_date, substr(COALESCE(t.completed_time, ''), 1, 10)))
             FROM asha_tasks t
            WHERE t.household_id = h.id AND ${OPEN_TASK}) AS next_task_date,
          (SELECT MAX(COALESCE(t.task_date, substr(COALESCE(t.completed_time, ''), 1, 10)))
             FROM asha_tasks t
            WHERE t.household_id = h.id AND t.status IN ('completed','done')) AS last_visit_date
-    FROM households h
+     FROM households h
 `;
 
 /** MIN/MAX over an empty task set comes back as `''`, which would read as a date. */
@@ -1593,9 +1590,15 @@ function toCard(row: Record<string, unknown>): HouseholdCard {
   };
 }
 
-export async function listHouseholdCards(): Promise<HouseholdCard[]> {
+export async function listHouseholdCards(ashaId?: string): Promise<HouseholdCard[]> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<Record<string, unknown>>(`${HOUSEHOLD_CARD_SQL} ORDER BY h.hhid ASC`);
+  if (!ashaId) {
+    return [];
+  }
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `${HOUSEHOLD_CARD_SQL} WHERE h.asha_id = ? ORDER BY h.hhid ASC`,
+    ashaId,
+  );
   return rows.map(toCard);
 }
 

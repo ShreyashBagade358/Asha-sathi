@@ -9,7 +9,7 @@ Expo app both log in against it.
 cd apps/backend
 .venv/bin/python -m alembic upgrade head
 .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+
 
 
 ## Terminal 2 — web dashboard (port 5173)

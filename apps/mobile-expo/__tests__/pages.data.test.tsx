@@ -163,6 +163,21 @@ describe('populated screens render real rows', () => {
   });
 
   it('households screen lists the pulled household', async () => {
+    // Set authenticated ASHA session: tokenStore user id = 'u1'
+    // This matches the fixture household asha_id, so listHouseholdCards('u1')
+    // returns the household (security filtering is preserved).
+    await tokenStore.save({
+      accessToken: 'test-token',
+      refreshToken: 'test-refresh',
+      user: {
+        id: 'u1',
+        phone: '9876543210',
+        full_name: 'Sunita Devi',
+        role: 'asha',
+        language: 'hi',
+      },
+    });
+
     const tree = await render('../app/(app)/(tabs)/households');
     const body = text(tree);
     const hhids = fixture.households.map((h) => h.hhid).filter(Boolean);

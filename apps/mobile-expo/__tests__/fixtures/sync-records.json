@@ -3,10 +3,10 @@
     {
       "hhid": "HH-UP-LKO-0001",
       "village_id": "ce450ed1-5e67-4017-a299-db4823eec482",
-      "asha_id": "22f70286-8723-4d6f-8a89-d2fc08cbeb59",
+      "asha_id": "u1",
       "address": "House 12, Ward 4, Khasra",
       "address_local": {
-        "hi": "मकान १२, वार्ड ४, खसरा"
+        "hi": "\u092e\u0915\u093e\u0928 \u0967\u0968, \u0935\u093e\u0930\u094d\u0921 \u096a, \u0916\u0938\u0930\u093e"
       },
       "amenities": {
         "toilet": true,
@@ -34,7 +34,7 @@
       "aadhaar_hash": null,
       "full_name": "Rekha Sharma",
       "full_name_local": {
-        "hi": "रेखा शर्मा"
+        "hi": "\u0930\u0947\u0916\u093e \u0936\u0930\u094d\u092e\u093e"
       },
       "gender": "female",
       "date_of_birth": null,
@@ -68,7 +68,7 @@
       "aadhaar_hash": null,
       "full_name": "Aarav Kumar",
       "full_name_local": {
-        "hi": "आरव कुमार"
+        "hi": "\u0906\u0930\u0935 \u0915\u0941\u092e\u093e\u0930"
       },
       "gender": "male",
       "date_of_birth": "2026-02-15",
@@ -102,7 +102,7 @@
       "aadhaar_hash": null,
       "full_name": "Kamla Devi",
       "full_name_local": {
-        "hi": "कमला देवी"
+        "hi": "\u0915\u092e\u0932\u093e \u0926\u0947\u0935\u0940"
       },
       "gender": "female",
       "date_of_birth": null,
@@ -136,7 +136,7 @@
       "aadhaar_hash": null,
       "full_name": "Manju Kumari",
       "full_name_local": {
-        "hi": "मंजू कुमारी"
+        "hi": "\u092e\u0902\u091c\u0942 \u0915\u0941\u092e\u093e\u0930\u0940"
       },
       "gender": "female",
       "date_of_birth": null,
@@ -170,7 +170,7 @@
       "aadhaar_hash": null,
       "full_name": "Rakesh Kumar",
       "full_name_local": {
-        "hi": "राकेश कुमार"
+        "hi": "\u0930\u093e\u0915\u0947\u0936 \u0915\u0941\u092e\u093e\u0930"
       },
       "gender": "male",
       "date_of_birth": null,

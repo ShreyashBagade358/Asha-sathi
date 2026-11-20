@@ -12,6 +12,9 @@ The script is idempotent for records that carry natural unique keys
 (geography, users, households, beneficiaries, KPIs). Records without a natural
 key (ANC visits, immunizations, notifications) may be duplicated on repeat runs,
 which is acceptable for a demo environment.
+
+**⚠️ Production guard**: the seed command refuses to run when
+``APP_ENV=prod``. This prevents accidental seeding of real production data.
 """
 
 from __future__ import annotations
@@ -53,6 +56,14 @@ async def _get_or_create(
 
 
 async def seed_demo() -> None:
+    import os
+
+    if os.getenv("APP_ENV") == "prod":
+        raise RuntimeError(
+            "Seed command refused: APP_ENV=prod. "
+            "Do not seed a production database. Use a staging database instead."
+        )
+
     async with async_session_maker() as session:
         async with session.begin():
             # ------------------------------------------------------------------
