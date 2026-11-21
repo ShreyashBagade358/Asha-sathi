@@ -178,8 +178,18 @@ async def create_beneficiary(
         await db.execute(select(Beneficiary).where(Beneficiary.beneficiary_id == payload.beneficiary_id))
     ).scalar_one_or_none()
     if existing:
-        raise ConflictError("Beneficiary with this id already exists")
-    beneficiary = Beneficiary(**payload.model_dump(), registered_by=user.id)
+        # Beneficiary already exists - return existing record rather than raising error
+        # This handles sync idempotency: if the beneficiary was already created,
+        # just return the existing record so the sync can proceed
+        beneficiary = existing
+    else:
+        beneficiary = Beneficiary(**payload.model_dump(), registered_by=user.id)
+    db.add(beneficiary)
+    await db.flush()
+    await log_action(db, user.id, "beneficiary_created", "beneficiary", beneficiary.id, new_values=payload.model_dump())
+    await db.commit()
+    await db.refresh(beneficiary)
+    return (await _hydrate_beneficiaries(db, [beneficiary]))[0]
     db.add(beneficiary)
     await db.flush()
     await log_action(db, user.id, "beneficiary_created", "beneficiary", beneficiary.id, new_values=payload.model_dump())
