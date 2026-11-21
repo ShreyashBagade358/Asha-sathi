@@ -9,14 +9,25 @@ module.exports = function babelConfig(api) {
 
   return {
     presets: isTest
-      ? ['babel-preset-expo']
+      ? [
+          'babel-preset-expo',
+          {
+            plugins: ['@babel/plugin-transform-typescript'],
+          },
+        ]
       : [
           // jsxImportSource: 'nativewind' makes Metro use NativeWind's JSX
           // runtime, which is what turns className on React Native primitives
           // into styles. Without this preset the app bundles fine but every
           // className is inert, so screens paint with no background or text
           // colour at all - a white screen with no error.
-          ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
+          [
+            'babel-preset-expo',
+            {
+              jsxImportSource: 'nativewind',
+              plugins: ['@babel/plugin-transform-typescript'],
+            },
+          ],
           'nativewind/babel',
         ],
   };

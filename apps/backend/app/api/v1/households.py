@@ -157,8 +157,12 @@ async def create_household(
 ):
     existing = (await db.execute(select(Household).where(Household.hhid == payload.hhid))).scalar_one_or_none()
     if existing:
-        raise ConflictError("Household with this hhid already exists")
-    household = Household(asha_id=user.id, **payload.model_dump())
+        # Household already exists - return existing record rather than raising error
+        # This handles sync idempotency: if the household was already created,
+        # just return the existing record so beneficiary sync can proceed
+        household = existing
+    else:
+        household = Household(asha_id=user.id, **payload.model_dump())
     db.add(household)
     await db.flush()
     await log_action(db, user.id, "household_created", "household", household.id, new_values=payload.model_dump())

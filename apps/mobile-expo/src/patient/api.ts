@@ -21,6 +21,7 @@ const apiRequest = async <T>(url: string, options: { method?: string; body?: unk
 }
 
 // Raw shapes for deserialization (match backend OpenAPI types)
+import type { MyPatientProfile } from "./types";
 interface RawMyProfile {
   photo_url: string | null;
   photo_urls: Record<string, string> | null;
@@ -65,6 +66,7 @@ interface RawMyProfile {
     photo_url: string | null;
     photo_urls: Record<string, string> | null;
   }
+}
 
 interface RawMyHousehold {
   id: string;
@@ -119,27 +121,49 @@ interface RawNCDScreening {
 }
 
 function mapMyProfile(data: RawMyProfile): MyPatientProfile {
-      : null,
-    vitals: data.vitals
-      ? {
-          heightCm: data.vitals.height_cm,
-          weightKg: data.vitals.weight_kg,
-          bmi: data.vitals.bmi,
-          bpSystolic: data.vitals.bp_systolic,
-          bpDiastolic: data.vitals.bp_diastolic,
-          pulse: data.vitals.pulse,
-          temperature: data.vitals.temperature,
-          spo2: data.vitals.spo2,
-          hemoglobin: data.vitals.hemoglobin,
-          bloodSugarRandom: data.vitals.blood_sugar_random,
-          waistCircumferenceCm: data.vitals.waist_circumference_cm,
-          bloodGroup: data.vitals.blood_group,
-      : null,
-    photoUrl: data.photo_url ?? null,
-      : null,
-    // Map photo URLs from the API response
-  };
-}
+    const photoUrls = data.photo_urls
+      ? Object.fromEntries(
+          Object.entries(data.photo_urls).map(([key, value]) => [key, value])
+        )
+      : null;
+    return {
+      userId: data.id,
+      beneficiaryId: data.household_id,
+      fullName: data.full_name,
+      phone: data.phone,
+      abhaId: data.abha_id,
+      dateOfBirth: data.date_of_birth,
+      ageYears: data.age_years,
+      gender: data.gender,
+      bloodGroup: data.blood_group,
+      village: data.village,
+      householdId: data.household_id,
+      address: data.address,
+      phcName: data.phc_name,
+      ashaWorkerName: data.asha_worker_name,
+      isPregnant: data.is_pregnant,
+      activeConditions: data.active_conditions,
+      pregnancy: data.pregnancy,
+      vitals: data.vitals
+        ? {
+            heightCm: data.vitals.height_cm,
+            weightKg: data.vitals.weight_kg,
+            bmi: data.vitals.bmi,
+            bpSystolic: data.vitals.bp_systolic,
+            bpDiastolic: data.vitals.bp_diastolic,
+            pulse: data.vitals.pulse,
+            temperature: data.vitals.temperature,
+            spo2: data.vitals.spo2,
+            hemoglobin: data.vitals.hemoglobin,
+            bloodSugarRandom: data.vitals.blood_sugar_random,
+            waistCircumferenceCm: data.vitals.waist_circumference_cm,
+            bloodGroup: data.vitals.blood_group,
+          }
+        : null,
+      profileInputs: data.profile_inputs,
+      photoUrls,
+    };
+  }
 
 function mapMyHousehold(data: RawMyHousehold): MyHousehold {
   return {
@@ -173,4 +197,3 @@ export function invalidateProfileCache(): void {
   profileCache = null;
 }
 
-</ENDOFFILE
